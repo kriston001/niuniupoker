@@ -19,7 +19,8 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     args: [], // 构造函数参数为空，因为使用initialize初始化
     log: true,
     proxy: {
-      proxyContract: "OpenZeppelinTransparentProxy",
+      owner: deployer,
+      proxyContract: "UUPS", //"OpenZeppelinTransparentProxy",
       execute: {
         init: {
           methodName: "initialize",
@@ -36,9 +37,9 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
 
   // 设置初始化参数
   const minBet = ethers.parseEther("0.01"); // 最小下注金额，0.01 ETH
-  const maxPlayers = 8; // 最大玩家数
+  const maxPlayers = 10; // 最大玩家数
   const houseFeePercent = 3; // 平台手续费百分比
-  const playerTimeout = 120; // 玩家超时时间，单位为秒
+  const playerTimeout = 180; // 玩家超时时间，单位为秒
   const tableInactiveTimeout = 86400; // 桌子空闲超时时间，单位为秒，这里是24小时
 
   // 部署BBGameMain合约
@@ -48,7 +49,8 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     log: true,
     // 我们使用代理模式部署，因为合约是可升级的
     proxy: {
-      proxyContract: "OpenZeppelinTransparentProxy",
+      owner: deployer,
+      proxyContract: "UUPS",
       execute: {
         init: {
           methodName: "initialize", // 初始化函数
@@ -58,6 +60,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     },
     // 等待确认
     waitConfirmations: 1,
+    // gasLimit: 8000000, // Gas limit
   });
 
   console.log("BBGameMain合约已部署到地址:", bbGameMain.address);
@@ -66,6 +69,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log("----------设置BBGameMain合约的BBGameHistory合约地址----------");
   const bbGameMainContract = await ethers.getContractAt("BBGameMain", bbGameMain.address);
   await bbGameMainContract.setGameHistoryAddress(bbGameHistory.address);
+  // await bbGameMainContract.setParams(minBet, maxPlayers, houseFeePercent, playerTimeout, tableInactiveTimeout);
   console.log("BBGameMain合约的BBGameHistory合约地址已设置为:", bbGameHistory.address);
 
   // 设置BBGameHistory合约的BBGameMain合约地址
@@ -95,6 +99,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log("houseFeePercent:", await bbGameMainContract.houseFeePercent());
 };
 
-deployBBGameMain.tags = ["BBGameMain"];
+deployBBGameMain.tags = ["BBDeploy"];
 
 export default deployBBGameMain;

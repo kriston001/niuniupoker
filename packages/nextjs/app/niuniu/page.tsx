@@ -6,23 +6,7 @@ import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { Address, Balance } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-
-// 游戏桌信息类型定义
-type GameTable = {
-  tableAddr: string;
-  tableName: string;
-  bankerAddr: string;
-  betAmount: bigint;
-  playerCount: number;
-  maxPlayers: number;
-  creationTimestamp: bigint;
-  state: number;
-  continuedPlayerCount: number;
-  foldPlayerCount: number;
-  playerReadyCount: number;
-  playerAddresses: string[];
-  currentRoundDeadline: bigint;
-};
+import { GameTable, getGameStateName } from "~~/utils/my-tools/types";
 
 const NiuNiuPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -35,14 +19,6 @@ const NiuNiuPage = () => {
   const { data: gameTables, isLoading: isLoadingTables } = useScaffoldReadContract({
     contractName: "BBGameMain",
     functionName: "getAllGameTables",
-    watch: true,
-  });
-
-  // 读取用户余额
-  const { data: userBalance, isLoading: isLoadingBalance } = useScaffoldReadContract({
-    contractName: "BBGameMain",
-    functionName: "getUserBalance",
-    args: [connectedAddress],
     watch: true,
   });
 
@@ -94,14 +70,6 @@ const NiuNiuPage = () => {
             <div>
               <h2 className="text-xl font-bold mb-2">账户余额</h2>
               <Balance address={connectedAddress} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold mb-2">游戏余额</h2>
-              {isLoadingBalance ? (
-                <div className="animate-pulse h-6 w-24 bg-base-300 rounded"></div>
-              ) : (
-                <div className="text-xl">{userBalance ? formatEther(userBalance) : "0"} ETH</div>
-              )}
             </div>
           </div>
         </div>
@@ -185,7 +153,7 @@ const NiuNiuPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {gameTables.map((table: GameTable, index: number) => (
+                {gameTables.map((table, index: number) => (
                   <tr key={index}>
                     <td>{table.tableName}</td>
                     <td>
@@ -193,7 +161,7 @@ const NiuNiuPage = () => {
                     </td>
                     <td>{formatEther(table.betAmount)} ETH</td>
                     <td>{table.playerCount}/{table.maxPlayers}</td>
-                    <td>{getGameState(table.state)}</td>
+                    <td>{getGameStateName(table.state)}</td>
                     <td>{new Date(Number(table.creationTimestamp) * 1000).toLocaleString()}</td>
                     <td>
                       <Link href={`/niuniu/table/${table.tableAddr}`} passHref>
@@ -216,19 +184,3 @@ const NiuNiuPage = () => {
 };
 
 export default NiuNiuPage;
-
-// 添加一个辅助函数来转换游戏状态
-const getGameState = (state: number): string => {
-  switch (state) {
-    case 0:
-      return "等待中";
-    case 1:
-      return "第一轮下注";
-    case 2:
-      return "第二轮下注";
-    case 3:
-      return "已结束";
-    default:
-      return "未知状态";
-  }
-};

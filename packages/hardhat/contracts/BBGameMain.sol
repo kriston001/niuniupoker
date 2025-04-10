@@ -17,10 +17,10 @@ import "./BBGameTable.sol";
  * @title BBGameMain
  * @dev 牛牛明牌游戏主合约，管理多个游戏桌
  */
-contract BBGameMain is 
-    Initializable, 
-    OwnableUpgradeable, 
-    ReentrancyGuardUpgradeable, 
+contract BBGameMain is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable
 {
@@ -34,17 +34,18 @@ contract BBGameMain is
 
     // 新增一个数组来存储已清算的游戏桌地址
     address[] private liquidatedTableAddresses;
-    
+
     // 游戏桌地址列表
     address[] private tableAddresses;
     mapping(address => BBGameTable) public gameTables;
-    
+
     address public gameHistoryAddress;  // 游戏历史记录合约地址
-    
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
-    
+
     /**
      * @dev 初始化函数，替代构造函数
      */
@@ -59,14 +60,14 @@ contract BBGameMain is
         __ReentrancyGuard_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
-        
+
         minBet = _minBet;
         maxPlayers = _maxPlayers;
         houseFeePercent = _houseFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
     }
-    
+
     /**
      * @dev 创建新游戏桌，调用者成为庄家
      * @param tableName 游戏桌名称
@@ -74,14 +75,14 @@ contract BBGameMain is
      * @param tableMaxPlayers 最大玩家数量
      */
     function createGameTable(
-        string memory tableName, 
-        uint256 betAmount, 
+        string memory tableName,
+        uint256 betAmount,
         uint8 tableMaxPlayers
     ) external payable nonReentrant {
         require(betAmount >= minBet, "betAmount too small");
         require(tableMaxPlayers > 0 && tableMaxPlayers <= maxPlayers, "Invalid max players");
         require(msg.value == betAmount, "Insufficient funds");
-        
+
         // 创建新游戏桌合约
         BBGameTable newGameTable = new BBGameTable(
             tableName,
@@ -98,14 +99,14 @@ contract BBGameMain is
 
         // 转账到游戏桌合约
         payable(tableAddr).transfer(betAmount);
-        
+
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
         gameTables[tableAddr] = newGameTable;
-        
+
     }
 
-    
+
     /**
      * @dev 平台提取手续费
      * @notice 只有平台所有者可以调用
@@ -113,15 +114,15 @@ contract BBGameMain is
     function withdrawHouseFee() external nonReentrant onlyOwner returns (uint256) {
         uint256 amount = pendingHouseFee;
         require(amount > 0, "No fees to withdraw");
-        
+
         pendingHouseFee = 0;
-        
+
         // 转账给平台所有者
         payable(owner()).transfer(amount);
-        
+
         return amount;
     }
-    
+
     /**
      * @dev 查询可提取平台手续费
      */
@@ -129,21 +130,34 @@ contract BBGameMain is
         return pendingHouseFee;
     }
 
-    
+    /**
+     * @dev 更新平台手续费
+     * @notice 只有游戏桌合约可以调用
+     * @param amount 要添加的手续费金额
+     */
+    function updatePendingHouseFee(uint256 amount) external nonReentrant returns (bool) {
+        // 安全检查：只允许游戏桌合约调用
+        require(address(gameTables[msg.sender]) != address(0), "Only game table can update house fee");
+
+        pendingHouseFee += amount;
+        return true;
+    }
+
+
     /**
      * @dev 暂停合约（仅限合约拥有者）
      */
     function pause() external onlyOwner {
         _pause();
     }
-    
+
     /**
      * @dev 恢复合约（仅限合约拥有者）
      */
     function unpause() external onlyOwner {
         _unpause();
     }
-    
+
     /**
      * @dev 更新游戏配置（仅限合约拥有者）
      */
@@ -163,20 +177,20 @@ contract BBGameMain is
      */
     function batchCleanupInactiveTables(uint256 batchSize) external nonReentrant {
         uint256 processed = 0;
-        
+
         for (uint256 i = 0; i < tableAddresses.length && processed < batchSize; i++) {
             address tableAddr = tableAddresses[i];
             BBGameTable gameTable = gameTables[tableAddr];
-            
+
             // 检查是否可以清算
             if (block.timestamp > gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() &&
                 gameTable.state() != BBTypes.GameState.LIQUIDATED && gameTable.state() != BBTypes.GameState.ENDED) {
-                
+
                 // 尝试清算
                 (bool success, ) = tableAddr.call(
                     abi.encodeWithSignature("liquidateInactiveTable()")
                 );
-                
+
                 // 如果清算成功，计数器加一
                 if (success) {
                     processed++;
@@ -192,7 +206,7 @@ contract BBGameMain is
     function removeGameTable(address tableAddr) external nonReentrant {
         // 安全检查：只允许游戏桌合约自己调用此函数
         require(msg.sender == tableAddr, "Only table contract can remove itself");
-        
+
         // 查找游戏桌在数组中的位置
         uint256 index = type(uint256).max;
         for (uint256 i = 0; i < tableAddresses.length; i++) {
@@ -201,25 +215,25 @@ contract BBGameMain is
                 break;
             }
         }
-        
+
         // 确保找到了游戏桌
         require(index != type(uint256).max, "Table not found");
-        
+
         // 从数组中移除（通过将最后一个元素移到要删除的位置，然后删除最后一个元素）
         if (index < tableAddresses.length - 1) {
             tableAddresses[index] = tableAddresses[tableAddresses.length - 1];
         }
         tableAddresses.pop();
-        
+
         // 从映射中删除
         delete gameTables[tableAddr];
 
         // 将被清算的游戏桌地址添加到已清算的游戏桌列表中
         liquidatedTableAddresses.push(tableAddr);
     }
-    
-    
-    
+
+
+
     /**
      * @dev 获取所有活跃游戏桌的信息
      * @return 返回游戏桌信息数组
@@ -244,20 +258,28 @@ contract BBGameMain is
      */
     function getAllGameTablesInactive() external view returns(GameTableView[] memory) {
         uint256 tableCount = tableAddresses.length;
-        GameTableView[] memory tables = new GameTableView[](tableCount);
+        GameTableView[] memory tempTables = new GameTableView[](tableCount);
+        uint256 validCount = 0;
 
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[i];
             BBGameTable gameTable = gameTables[tableAddr];
             //超过清算时间并且状态不是清算或者结束的table可以被清算
-            if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() > block.timestamp && gameTable.state() != BBTypes.GameState.ENDED){
-                tables[i] = gameTable.getTableInfo();
+            if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp && gameTable.state() != BBTypes.GameState.ENDED){
+                tempTables[i] = gameTable.getTableInfo();
+                validCount++;
             }
+        }
+
+        // 创建一个新的数组来存储有效元素
+        GameTableView[] memory tables = new GameTableView[](validCount);
+        for (uint256 i = 0; i < validCount; i++) {
+            tables[i] = tempTables[i];
         }
 
         return tables;
     }
-    
+
     /**
      * @dev 获取指定地址的游戏桌信息
      * @param tableAddr 游戏桌合约地址
@@ -267,25 +289,6 @@ contract BBGameMain is
         require(tableAddr != address(0), "Table does not exist");
         BBGameTable gameTable = gameTables[tableAddr];
         return gameTable.getTableInfo();
-        // return GameTableView({
-        //     tableAddr: tableAddr,
-        //     tableName: gameTable.tableName(),
-        //     bankerAddr: gameTable.bankerAddr(),
-        //     betAmount: gameTable.betAmount(),
-        //     totalPrizePool: gameTable.totalPrizePool(),
-        //     playerCount: gameTable.playerCount(),
-        //     maxPlayers: gameTable.maxPlayers(),
-        //     creationTimestamp: gameTable.creationTimestamp(),
-        //     state: gameTable.state(),
-        //     playerContinuedCount: gameTable.playerContinuedCount(),
-        //     playerFoldCount: gameTable.playerFoldCount(),
-        //     playerReadyCount: gameTable.playerReadyCount(),
-        //     playerAddresses: gameTable.getPlayerAddresses(),
-        //     currentRoundDeadline: gameTable.currentRoundDeadline(),
-        //     playerTimeout: gameTable.playerTimeout(),
-        //     tableInactiveTimeout: gameTable.tableInactiveTimeout(),
-        //     lastActivityTimestamp: gameTable.lastActivityTimestamp()
-        // });
     }
 
     /**
@@ -300,10 +303,10 @@ contract BBGameMain is
                 count++;
             }
         }
-        
+
         // 创建正确大小的数组
         GameTableView[] memory tables = new GameTableView[](count);
-        
+
         // 第二次遍历填充数据
         uint256 index = 0;
         for (uint256 i = 0; i < tableAddresses.length; i++) {
@@ -313,7 +316,7 @@ contract BBGameMain is
                 index++;
             }
         }
-        
+
         return tables;
     }
 
@@ -334,6 +337,38 @@ contract BBGameMain is
         gameHistoryAddress = _gameHistoryAddress;
     }
 
+    // function setParams(uint256 _minBet, uint8 _maxPlayers, uint256 _houseFeePercent, uint256 _playerTimeout, uint256 _tableInactiveTimeout) external onlyOwner nonReentrant{
+    //     require(_minBet > 0, "_minBet must be greater than 0");
+    //     require(_maxPlayers > 1, "_maxPlayers must be greater than 1");
+    //     require(_houseFeePercent > 0, "_houseFeePercent must be greater than 0");
+    //     require(_playerTimeout > 0, "_playerTimeout must be greater than 0");
+    //     require(_tableInactiveTimeout > 0, "_tableInactiveTimeout must be greater than 0");
+
+    //     minBet = _minBet;
+    //     maxPlayers = _maxPlayers;
+    //     houseFeePercent = _houseFeePercent;
+    //     playerTimeout = _playerTimeout;
+    //     tableInactiveTimeout = _tableInactiveTimeout;
+    // }
+
+    // //设置betAmount
+    // function setBetAmount(uint256 _minBet) external onlyOwner nonReentrant{
+    //     require(_minBet > 0, "_minBet must be greater than 0");
+    //     minBet = _minBet;
+    // }
+
+    // //设置maxPlayers
+    // function setMaxPlayers(uint8 _maxPlayers) external onlyOwner nonReentrant{
+    //     require(_maxPlayers > 1, "_maxPlayers must be greater than 1");
+    //     maxPlayers = _maxPlayers;
+    // }
+
+    // //设置houseFeePercent
+    // function setHouseFeePercent(uint256 _houseFeePercent) external onlyOwner nonReentrant{
+    //     require(_houseFeePercent > 0, "_houseFeePercent must be greater than 0");
+    //     houseFeePercent = _houseFeePercent;
+    // }
+
     // 授权升级
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
@@ -343,4 +378,3 @@ contract BBGameMain is
     receive() external payable {}
 }
 
-    

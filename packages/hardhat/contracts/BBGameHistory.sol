@@ -12,7 +12,7 @@ interface IBBGameMain {
     function isValidGameTable(address tableAddr) external view returns (bool);
 }
 
-contract BBGameHistory is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
+contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // 游戏记录基础信息
     struct GameRecordBase {
         address tableAddr;         // 游戏桌地址
@@ -42,15 +42,16 @@ contract BBGameHistory is Initializable, OwnableUpgradeable, UUPSUpgradeable, Re
     // 游戏主合约地址
     address public gameMainAddr;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
     
     // 初始化函数，替代构造函数
     function initialize() public initializer {
-        __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
+        __Ownable_init(msg.sender);  
         __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
 
         recordCounter = 0;
     }
