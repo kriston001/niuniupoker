@@ -6,12 +6,9 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-// import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
-// import "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Upgradeable.sol";
-
+import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBGameTable.sol";
-
 
 /**
  * @title BBGameMain
@@ -24,11 +21,11 @@ contract BBGameMain is
     PausableUpgradeable,
     UUPSUpgradeable
 {
+
     // 游戏配置
     uint256 public minBet;  // 保留最小下注金额
     uint8 public maxPlayers;
-    uint256 public houseFeePercent;
-    uint256 public pendingHouseFee;  // 平台赚取的手续费
+    uint256 public pendingPlatformFee;  // 平台赚取的手续费
     uint256 public playerTimeout;  // 玩家超时时间
     uint256 public tableInactiveTimeout;  // 游戏桌不活跃超时时间
 
@@ -41,6 +38,9 @@ contract BBGameMain is
 
     address public gameHistoryAddress;  // 游戏历史记录合约地址
 
+    // 平台费用收集相关
+    uint256 public platformFeePercent; // 平台费用百分比
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -52,7 +52,7 @@ contract BBGameMain is
     function initialize(
         uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _houseFeePercent,
+        uint256 _platformFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout
     ) public initializer {
@@ -63,7 +63,7 @@ contract BBGameMain is
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
-        houseFeePercent = _houseFeePercent;
+        platformFeePercent = _platformFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
     }
@@ -79,9 +79,18 @@ contract BBGameMain is
         uint256 betAmount,
         uint8 tableMaxPlayers
     ) external payable nonReentrant {
-        require(betAmount >= minBet, "betAmount too small");
-        require(tableMaxPlayers > 0 && tableMaxPlayers <= maxPlayers, "Invalid max players");
-        require(msg.value == betAmount, "Insufficient funds");
+        if (paused()) revert ContractPaused();
+        if (betAmount < minBet) revert BetAmountTooSmall();
+        if (tableMaxPlayers == 0 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
+
+        // 计算平台费用
+        uint256 platformFee = (betAmount * platformFeePercent) / 10000;
+        uint256 totalAmount = betAmount + platformFee;
+
+        if (msg.value != totalAmount) revert InsufficientFunds();
+
+        // 收取平台费用
+        pendingPlatformFee += platformFee;
 
         // 创建新游戏桌合约
         BBGameTable newGameTable = new BBGameTable(
@@ -92,55 +101,64 @@ contract BBGameMain is
             address(this),
             playerTimeout,
             tableInactiveTimeout,
-            gameHistoryAddress
+            gameHistoryAddress,
+            platformFeePercent
         );
 
         address tableAddr = address(newGameTable);
 
-        // 转账到游戏桌合约
-        payable(tableAddr).transfer(betAmount);
+        // 转账到游戏桌合约 - 使用更安全的 call 方法而不是 transfer
+        (bool success, ) = payable(tableAddr).call{value: betAmount}("");
+        if (!success) revert TransferFailed();
 
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
         gameTables[tableAddr] = newGameTable;
 
+        // 触发事件
+        emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers);
     }
 
 
+
+
     /**
-     * @dev 平台提取手续费
+     * @dev 平台提取平台费用
      * @notice 只有平台所有者可以调用
      */
-    function withdrawHouseFee() external nonReentrant onlyOwner returns (uint256) {
-        uint256 amount = pendingHouseFee;
-        require(amount > 0, "No fees to withdraw");
+    function withdrawPlatformFee() external nonReentrant onlyOwner returns (uint256) {
+        uint256 amount = pendingPlatformFee;
+        if (amount == 0) revert NoPlatformFeesToWithdraw();
 
-        pendingHouseFee = 0;
+        pendingPlatformFee = 0;
 
         // 转账给平台所有者
-        payable(owner()).transfer(amount);
+        (bool success, ) = payable(owner()).call{value: amount}("");
+        if (!success) revert TransferFailed();
 
         return amount;
     }
 
     /**
-     * @dev 查询可提取平台手续费
+     * @dev 查询可提取平台费用
      */
-    function getWithdrawableHouseFee() external view returns (uint256) {
-        return pendingHouseFee;
+    function getWithdrawablePlatformFee() external view returns (uint256) {
+        return pendingPlatformFee;
     }
 
     /**
-     * @dev 更新平台手续费
+     * @dev 游戏桌合约调用此函数增加待提取的平台费用
      * @notice 只有游戏桌合约可以调用
-     * @param amount 要添加的手续费金额
      */
-    function updatePendingHouseFee(uint256 amount) external nonReentrant returns (bool) {
-        // 安全检查：只允许游戏桌合约调用
-        require(address(gameTables[msg.sender]) != address(0), "Only game table can update house fee");
+    function addPendingPlatformFee(uint256 amount) external payable {
+        // 检查调用者是否是有效的游戏桌合约
+        if (address(gameTables[msg.sender]) != msg.sender) revert TableDoesNotExist();
 
-        pendingHouseFee += amount;
-        return true;
+        // 检查转账金额是否与参数一致
+        if (msg.value != amount) revert InsufficientFunds();
+
+        // 增加待提取的平台费用
+        pendingPlatformFee += amount;
     }
 
 
@@ -164,11 +182,17 @@ contract BBGameMain is
     function updateGameConfig(
         uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _houseFeePercent
+        uint256 _platformFeePercent
     ) external onlyOwner {
+        if (_minBet == 0) revert MinBetMustBePositive();
+        if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
+        if (_platformFeePercent > 2000) revert PlatformFeePercentTooHigh(); // 最高 20%
+
         minBet = _minBet;
         maxPlayers = _maxPlayers;
-        houseFeePercent = _houseFeePercent;
+        platformFeePercent = _platformFeePercent;
+
+        emit GameConfigUpdated(_minBet, _maxPlayers, _platformFeePercent);
     }
 
     /**
@@ -205,7 +229,7 @@ contract BBGameMain is
      */
     function removeGameTable(address tableAddr) external nonReentrant {
         // 安全检查：只允许游戏桌合约自己调用此函数
-        require(msg.sender == tableAddr, "Only table contract can remove itself");
+        if (msg.sender != tableAddr) revert OnlyTableContractCanRemoveItself();
 
         // 查找游戏桌在数组中的位置
         uint256 index = type(uint256).max;
@@ -217,7 +241,7 @@ contract BBGameMain is
         }
 
         // 确保找到了游戏桌
-        require(index != type(uint256).max, "Table not found");
+        if (index == type(uint256).max) revert TableNotFound();
 
         // 从数组中移除（通过将最后一个元素移到要删除的位置，然后删除最后一个元素）
         if (index < tableAddresses.length - 1) {
@@ -230,6 +254,8 @@ contract BBGameMain is
 
         // 将被清算的游戏桌地址添加到已清算的游戏桌列表中
         liquidatedTableAddresses.push(tableAddr);
+
+        emit GameTableRemoved(tableAddr);
     }
 
 
@@ -286,7 +312,7 @@ contract BBGameMain is
      * @return 返回游戏桌信息
      */
     function getGameTableInfo(address tableAddr) external view returns (GameTableView memory) {
-        require(tableAddr != address(0), "Table does not exist");
+        if (tableAddr == address(0)) revert TableDoesNotExist();
         BBGameTable gameTable = gameTables[tableAddr];
         return gameTable.getTableInfo();
     }
@@ -322,7 +348,7 @@ contract BBGameMain is
 
     // 添加一个内部函数来获取游戏桌信息
     function _getTableInfo(address tableAddr) internal view returns (GameTableView memory) {
-        require(tableAddr != address(0) && address(gameTables[tableAddr]) != address(0), "Table does not exist");
+        if (tableAddr == address(0) || address(gameTables[tableAddr]) == address(0)) revert TableDoesNotExist();
         BBGameTable gameTable = gameTables[tableAddr];
         return gameTable.getTableInfo();
     }
@@ -334,7 +360,9 @@ contract BBGameMain is
 
     //设置游戏历史记录合约地址
     function setGameHistoryAddress(address _gameHistoryAddress) external onlyOwner nonReentrant{
+        if (_gameHistoryAddress == address(0)) revert InvalidGameHistoryAddress();
         gameHistoryAddress = _gameHistoryAddress;
+        emit GameHistoryAddressSet(_gameHistoryAddress);
     }
 
     // function setParams(uint256 _minBet, uint8 _maxPlayers, uint256 _houseFeePercent, uint256 _playerTimeout, uint256 _tableInactiveTimeout) external onlyOwner nonReentrant{
@@ -376,5 +404,11 @@ contract BBGameMain is
      * @dev 需要接收资金的合约必须要实现的函数
      */
     receive() external payable {}
+
+    // 事件定义
+    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers);
+    event GameTableRemoved(address indexed tableAddr);
+    event GameConfigUpdated(uint256 minBet, uint8 maxPlayers, uint256 platformFeePercent);
+    event GameHistoryAddressSet(address indexed gameHistoryAddress);
 }
 

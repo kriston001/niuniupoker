@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { Address, Balance } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-import { GameTable, getGameStateName } from "~~/utils/my-tools/types";
+import { useGameLobbyData } from "~~/hooks/my-hooks/useGameLobbyData";
+import { getGameStateName } from "~~/utils/my-tools/types";
 
 const NiuNiuPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -15,36 +15,37 @@ const NiuNiuPage = () => {
   const [betAmount, setBetAmount] = useState("0.01");
   const [maxPlayers, setMaxPlayers] = useState(5);
 
-  // 读取所有游戏桌信息
-  const { data: gameTables, isLoading: isLoadingTables } = useScaffoldReadContract({
-    contractName: "BBGameMain",
-    functionName: "getAllGameTables",
-    watch: true,
-  });
-
-  // 创建游戏桌合约写入
-  const { writeContractAsync: writeGameMainAsync } = useScaffoldWriteContract({
-    contractName: "BBGameMain"
+  // 使用自定义钩子获取游戏大厅数据
+  const {
+    gameTables,
+    isLoading: isLoadingTables,
+    writeGameMainAsync,
+    refreshData,
+  } = useGameLobbyData({
+    refreshInterval: 15000, // 15秒自动刷新一次
   });
 
   // 处理创建游戏桌
   const handleCreateTable = async () => {
     if (!connectedAddress) return;
-    
+
     try {
       setIsCreatingTable(true);
       const parsedBetAmount = parseEther(betAmount);
-      
+
       await writeGameMainAsync({
         functionName: "createGameTable",
         args: [tableName, parsedBetAmount, maxPlayers],
         value: parsedBetAmount,
       });
-      
+
       // 重置表单
       setTableName("");
       setBetAmount("0.01");
       setMaxPlayers(5);
+
+      // 刷新游戏桌列表
+      refreshData();
     } catch (error) {
       console.error("创建游戏桌失败:", error);
     } finally {
@@ -133,7 +134,16 @@ const NiuNiuPage = () => {
 
       {/* 游戏桌列表 */}
       <div className="bg-base-200 rounded-box p-6">
-        <h2 className="text-2xl font-bold mb-4">可用游戏桌</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">可用游戏桌</h2>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => refreshData()}
+            disabled={isLoadingTables}
+          >
+            {isLoadingTables ? "刷新中..." : "刷新列表"}
+          </button>
+        </div>
         {isLoadingTables ? (
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

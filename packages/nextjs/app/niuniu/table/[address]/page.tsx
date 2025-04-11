@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { formatEther, parseEther } from "viem";
-import { useAccount } from "wagmi";
-import { Address, Balance } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-import { useWriteContract, useReadContract, useWatchContractEvent } from 'wagmi';
-import { GameState, PlayerState, CardType, GameTable, Player, getCardTypeName, getPlayerStateName, getGameStateName } from "~~/utils/my-tools/types";
-import { useDynamicReadContract } from "~~/hooks/my-hooks/useDynamicReadContract"
+import { formatEther } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
+import { Address } from "~~/components/scaffold-eth";
 import BBContractAbis from "~~/contracts/contractABIs";
+import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
+import {
+  CardType,
+  GameState,
+  Player,
+  PlayerState,
+  getCardTypeName,
+  getGameStateName,
+  getPlayerStateName,
+} from "~~/utils/my-tools/types";
 
 // 卡牌组件
 const Card = ({ value }: { value: number }) => {
@@ -19,7 +25,7 @@ const Card = ({ value }: { value: number }) => {
 
   // 计算牌面值和花色
   const suit = Math.floor((value - 1) / 13);
-  const rank = (value - 1) % 13 + 1;
+  const rank = ((value - 1) % 13) + 1;
 
   // 花色符号
   const suitSymbols = ["♠", "♥", "♣", "♦"];
@@ -43,79 +49,60 @@ const Card = ({ value }: { value: number }) => {
 
 // 在文件顶部定义ABI
 
-
-
-
 const GameTablePage = () => {
   const params = useParams();
   const router = useRouter();
   const { address: connectedAddress } = useAccount();
   const [isDoing, setIsDoing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 使用公共客户端直接调用合约
+  const { writeContractAsync: writeContract } = useWriteContract();
 
   // 获取游戏桌地址
-  const tableAddress = typeof params.address === "string" ? params.address : "";
-
-  // 读取游戏桌信息
-  const { data: tableInfo, isLoading: isLoadingTableInfo } = useScaffoldReadContract({
-    contractName: "BBGameMain",
-    functionName: "getGameTableInfo",
-    args: [tableAddress],
-    watch: true,
-  }) as { data: GameTable | undefined, isLoading: boolean };
-
+  const tableAddress = typeof params.address === "string" ? (params.address as `0x${string}`) : undefined;
   const gameTableAbi = BBContractAbis.BBGameTable.abi;
-  
-  // 读取自己的信息
-  const { data: selfPlayerData } = useDynamicReadContract({
-    contractAddress: tableAddress as `0x${string}`,
-    abi: gameTableAbi,
-    functionName: 'getPlayerData',
-    args: [connectedAddress],
-    onSuccess: (data) => {
-    },
-    onError: (error) => {
-    },
-    // 新增参数：仅在 connectedAddress 存在时启用查询
-    enabled: Boolean(connectedAddress),
+
+  // 使用新的钩子获取游戏桌数据
+  const {
+    tableInfo,
+    playerData: selfPlayerData,
+    allPlayers: players,
+    isLoading: isLoadingTableInfo,
+    refreshData,
+  } = useGameTableData({
+    tableAddress,
+    playerAddress: connectedAddress,
+    gameTableAbi,
+    refreshInterval: 15000, // 15秒自动刷新一次
   });
 
-  // 读取所有玩家的信息
-  const { data: players } = useDynamicReadContract({
-    contractAddress: tableAddress as `0x${string}`,
-    abi: gameTableAbi,
-    functionName: 'getAllPlayerData',
-    onSuccess: (data) => {
-    },
-    onError: (error) => {
-    },
-  });
-
-  // 刷新数据
-  const refreshData = () => {
-    setRefreshKey(prev => prev + 1);
-  };
+  // 如果tableInfo为空，显示加载中
+  if (!tableInfo) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <h1 className="text-3xl font-bold mb-4">正在加载游戏桌信息...</h1>
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
 
   // 返回游戏大厅
   const goToLobby = () => {
     router.push("/niuniu");
   };
 
-  // 使用公共客户端直接调用合约
-  const { writeContractAsync: writeContract } = useWriteContract();
-
   // 加入游戏
   const handleJoinGame = async () => {
     if (!connectedAddress || !tableInfo) return;
-    
+
     try {
-      setIsDoing(true);      
+      setIsDoing(true);
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerJoin',
+        functionName: "playerJoin",
         // gas: 500000n  // 添加固定的 gas 限制
       });
     } catch (error) {
@@ -124,41 +111,40 @@ const GameTablePage = () => {
       setIsDoing(false);
     }
   };
-  
+
   // 准备游戏
   const handleReadyGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerReady',
+        functionName: "playerReady",
         value: tableInfo.betAmount,
       });
-      
     } catch (error) {
       console.error("准备游戏失败:", error);
     } finally {
       setIsDoing(false);
     }
   };
-  
+
   // 取消准备游戏
   const handleUnreadyGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerUnready',
+        functionName: "playerUnready",
       });
     } catch (error) {
       console.error("取消准备失败:", error);
@@ -170,15 +156,15 @@ const GameTablePage = () => {
   // 离开游戏
   const handleQuitGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerQuit',
+        functionName: "playerQuit",
       });
     } catch (error) {
       console.error("离开游戏失败:", error);
@@ -193,18 +179,18 @@ const GameTablePage = () => {
     if (!selfPlayerData.isBanker) return;
     if (!playerAddr) return;
     if (playerAddr == selfPlayerData.playerAddr) return;
-    
+
     try {
       setIsRemoving(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'bankerRemovePlayer',
-        args: [playerAddr]
+        functionName: "bankerRemovePlayer",
+        args: [playerAddr],
       });
-      
+
       refreshData();
     } catch (error) {
       console.error("庄家踢出玩家失败:", error);
@@ -217,17 +203,17 @@ const GameTablePage = () => {
   const handleStartGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
     if (!selfPlayerData.isBanker) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'nextStep'
+        functionName: "nextStep",
       });
-      
+
       refreshData();
     } catch (error) {
       console.error("开始游戏失败:", error);
@@ -236,21 +222,19 @@ const GameTablePage = () => {
     }
   };
 
-
   // 继续游戏
   const handleContinueGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerContinue'
+        functionName: "playerContinue",
       });
-      
     } catch (error) {
       console.error("继续游戏失败:", error);
     } finally {
@@ -258,19 +242,18 @@ const GameTablePage = () => {
     }
   };
 
-
   // 弃牌
   const handleFoldGame = async () => {
     if (!selfPlayerData || !tableInfo) return;
-    
+
     try {
       setIsDoing(true);
-      
+
       // 直接调用合约
       await writeContract({
         address: tableAddress as `0x${string}`,
         abi: gameTableAbi,
-        functionName: 'playerFold'
+        functionName: "playerFold",
       });
     } catch (error) {
       console.error("弃牌失败:", error);
@@ -291,7 +274,9 @@ const GameTablePage = () => {
     return (
       <div className="container mx-auto py-8 px-4 text-center">
         <h1 className="text-3xl font-bold mb-4">游戏桌不存在</h1>
-        <button className="btn btn-primary" onClick={goToLobby}>返回游戏大厅</button>
+        <button className="btn btn-primary" onClick={goToLobby}>
+          返回游戏大厅
+        </button>
       </div>
     );
   }
@@ -300,7 +285,9 @@ const GameTablePage = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{tableInfo.tableName}</h1>
-        <button className="btn btn-outline" onClick={goToLobby}>返回游戏大厅</button>
+        <button className="btn btn-outline" onClick={goToLobby}>
+          返回游戏大厅
+        </button>
       </div>
 
       {/* 游戏桌信息 */}
@@ -332,7 +319,9 @@ const GameTablePage = () => {
           </div>
           <div>
             <h3 className="font-bold mb-2">玩家数量</h3>
-            <p className="text-xl">{tableInfo.playerCount}/{tableInfo.maxPlayers}</p>
+            <p className="text-xl">
+              {tableInfo.playerCount}/{tableInfo.maxPlayers}
+            </p>
           </div>
         </div>
 
@@ -340,7 +329,7 @@ const GameTablePage = () => {
         <div className="mt-6 flex flex-wrap gap-4">
           {/* 根据游戏状态和玩家角色显示不同的按钮 */}
           {!selfPlayerData && tableInfo.state == GameState.WAITING && tableInfo.playerCount < tableInfo.maxPlayers && (
-            <button 
+            <button
               className={`btn btn-primary ${isDoing ? "loading" : ""}`}
               onClick={handleJoinGame}
               disabled={isDoing}
@@ -350,7 +339,7 @@ const GameTablePage = () => {
           )}
 
           {selfPlayerData && selfPlayerData.state == PlayerState.JOINED && tableInfo.state == GameState.WAITING && (
-            <button 
+            <button
               className={`btn btn-primary ${isDoing ? "loading" : ""}`}
               onClick={handleReadyGame}
               disabled={isDoing}
@@ -360,7 +349,7 @@ const GameTablePage = () => {
           )}
 
           {selfPlayerData && selfPlayerData.state == PlayerState.READY && tableInfo.state == GameState.WAITING && (
-            <button 
+            <button
               className={`btn btn-primary ${isDoing ? "loading" : ""}`}
               onClick={handleUnreadyGame}
               disabled={isDoing}
@@ -369,51 +358,57 @@ const GameTablePage = () => {
             </button>
           )}
 
-          {selfPlayerData && (selfPlayerData.state == PlayerState.JOINED || selfPlayerData.state == PlayerState.READY) && tableInfo.state == GameState.WAITING && (
-            <button 
-              className={`btn btn-primary ${isDoing ? "loading" : ""}`}
-              onClick={handleQuitGame}
-              disabled={isDoing}
-            >
-              {isDoing ? "离开中..." : "离开游戏"}
-            </button>
-          )}
-          
-          {selfPlayerData && selfPlayerData.isBanker && tableInfo.state === 1 && tableInfo.playerCount > 1 && tableInfo.playerReadyCount == tableInfo.playerCount && (
-            <button 
-              className={`btn btn-primary ${isDoing ? "loading" : ""}`}
-              onClick={handleStartGame}
-              disabled={isDoing}
-            >
-              {isDoing ? "开始中..." : "开始游戏"}
-            </button>
-          )}
-          
-          
-          {selfPlayerData && ((tableInfo.state === GameState.FIRST_BETTING && selfPlayerData.state == PlayerState.READY) || 
-          (tableInfo.state === GameState.SECOND_BETTING && selfPlayerData.state == PlayerState.FIRST_CONTINUED))  && (
-            <button 
-              className={`btn btn-success ${isDoing ? "loading" : ""}`}
-              onClick={() => handleContinueGame()}
-              disabled={isDoing}
-            >
-              {isDoing ? "加注中..." : "加注"}
-            </button>
-          )}
-          
-          
-          {selfPlayerData && ((tableInfo.state === GameState.FIRST_BETTING && selfPlayerData.state == PlayerState.READY) || 
-          (tableInfo.state === GameState.SECOND_BETTING && selfPlayerData.state == PlayerState.FIRST_CONTINUED))  && (
-            <button 
-              className={`btn btn-error ${isDoing ? "loading" : ""}`}
-              onClick={() => handleFoldGame()}
-              disabled={isDoing}
-            >
-              {isDoing ? "弃牌中..." : "弃牌"}
-            </button>
-          )}
+          {selfPlayerData &&
+            (selfPlayerData.state == PlayerState.JOINED || selfPlayerData.state == PlayerState.READY) &&
+            tableInfo.state == GameState.WAITING && (
+              <button
+                className={`btn btn-primary ${isDoing ? "loading" : ""}`}
+                onClick={handleQuitGame}
+                disabled={isDoing}
+              >
+                {isDoing ? "离开中..." : "离开游戏"}
+              </button>
+            )}
 
+          {selfPlayerData &&
+            selfPlayerData.isBanker &&
+            tableInfo.state === 1 &&
+            tableInfo.playerCount > 1 &&
+            tableInfo.playerReadyCount == tableInfo.playerCount && (
+              <button
+                className={`btn btn-primary ${isDoing ? "loading" : ""}`}
+                onClick={handleStartGame}
+                disabled={isDoing}
+              >
+                {isDoing ? "开始中..." : "开始游戏"}
+              </button>
+            )}
 
+          {selfPlayerData &&
+            ((tableInfo.state === GameState.FIRST_BETTING && selfPlayerData.state == PlayerState.READY) ||
+              (tableInfo.state === GameState.SECOND_BETTING &&
+                selfPlayerData.state == PlayerState.FIRST_CONTINUED)) && (
+              <button
+                className={`btn btn-success ${isDoing ? "loading" : ""}`}
+                onClick={() => handleContinueGame()}
+                disabled={isDoing}
+              >
+                {isDoing ? "加注中..." : "加注"}
+              </button>
+            )}
+
+          {selfPlayerData &&
+            ((tableInfo.state === GameState.FIRST_BETTING && selfPlayerData.state == PlayerState.READY) ||
+              (tableInfo.state === GameState.SECOND_BETTING &&
+                selfPlayerData.state == PlayerState.FIRST_CONTINUED)) && (
+              <button
+                className={`btn btn-error ${isDoing ? "loading" : ""}`}
+                onClick={() => handleFoldGame()}
+                disabled={isDoing}
+              >
+                {isDoing ? "弃牌中..." : "弃牌"}
+              </button>
+            )}
         </div>
       </div>
 
@@ -436,34 +431,37 @@ const GameTablePage = () => {
       <div className="bg-base-200 rounded-box p-6">
         <h2 className="text-2xl font-bold mb-4">其他玩家</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {players && players.filter((player: Player) => 
-            player.playerAddr.toLowerCase() !== connectedAddress?.toLowerCase()
-          ).map((player: Player, index: number) => (
-            <div className="border border-primary rounded-box p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-bold">{player.isBanker ? '庄家' : ''}</h3>
-                {selfPlayerData.isBanker && tableInfo.state == GameState.WAITING && (
-                  <button 
-                    className={`btn btn-error ${isRemoving ? "loading" : ""}`}
-                    onClick={() => handleBankerRemovePlayer(player.playerAddr)}
-                    disabled={isRemoving}
-                  >踢出房间</button>
-                )}
-                <span className="badge badge-primary">{ getPlayerStateName(player.state) }</span>
-              </div>
-              <Address address={ player.playerAddr } size="sm" />
-              <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                <Card value={0} />
-                <Card value={0} />
-                <Card value={0} />
-                <Card value={0} />
-                <Card value={0} />
-              </div>
-            </div>
-          ))}
-          
+          {players &&
+            players
+              .filter((player: Player) => player.playerAddr.toLowerCase() !== connectedAddress?.toLowerCase())
+              .map((player: Player) => (
+                <div key={player.playerAddr} className="border border-primary rounded-box p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-bold">{player.isBanker ? "庄家" : ""}</h3>
+                    {selfPlayerData?.isBanker && tableInfo.state == GameState.WAITING && (
+                      <button
+                        className={`btn btn-error ${isRemoving ? "loading" : ""}`}
+                        onClick={() => handleBankerRemovePlayer(player.playerAddr)}
+                        disabled={isRemoving}
+                      >
+                        踢出房间
+                      </button>
+                    )}
+                    <span className="badge badge-primary">{getPlayerStateName(player.state)}</span>
+                  </div>
+                  <Address address={player.playerAddr} size="sm" />
+                  <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                    <Card value={0} />
+                    <Card value={0} />
+                    <Card value={0} />
+                    <Card value={0} />
+                    <Card value={0} />
+                  </div>
+                </div>
+              ))}
+
           {/* 空位 */}
-          {tableInfo.playerCount < tableInfo.maxPlayers  && (
+          {tableInfo.playerCount < tableInfo.maxPlayers && (
             <div className="border border-base-300 rounded-box p-4 flex items-center justify-center">
               <p className="text-xl text-base-content/50">等待玩家加入...</p>
             </div>
