@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { multicall } from "@wagmi/core";
 import { type Abi } from "abitype";
 import { Address } from "viem";
@@ -24,19 +24,15 @@ export function useGameTableData({
   tableAddress,
   playerAddress,
   gameTableAbi,
-  refreshInterval = 15000, // 默认15秒刷新一次
+  refreshInterval = 10000, // 默认15秒刷新一次
 }: {
   tableAddress: Address | undefined;
   playerAddress: Address | undefined;
   gameTableAbi: Abi;
   refreshInterval?: number;
 }) {
-  // 状态
-  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
   // 公共客户端，用于multicall
-  const publicClient = usePublicClient();
+  // const publicClient = usePublicClient();
 
   // 读取玩家数据
   const {
@@ -50,7 +46,7 @@ export function useGameTableData({
     functionName: "getPlayerData",
     args: [playerAddress],
     query: {
-      enabled: Boolean(tableAddress && playerAddress),
+      enabled: Boolean(tableAddress && playerAddress && tableAddress !== "" && playerAddress !== ""),
     },
   });
 
@@ -65,7 +61,7 @@ export function useGameTableData({
     abi: gameTableAbi,
     functionName: "getAllPlayerData",
     query: {
-      enabled: Boolean(tableAddress),
+      enabled: Boolean(tableAddress && tableAddress !== ""),
     },
   });
 
@@ -80,53 +76,28 @@ export function useGameTableData({
     abi: gameTableAbi,
     functionName: "getTableInfo",
     query: {
-      enabled: Boolean(tableAddress),
+      enabled: Boolean(tableAddress && tableAddress !== ""),
     },
   });
 
-  // 监听GameChanged事件
+  // 监听游戏状态变化事件
   useWatchContractEvent({
     address: tableAddress,
     abi: gameTableAbi,
-    eventName: "GameChanged",
-    onLogs: () => {
+    eventName: "GameTableChanged",
+    onLogs: logs => {
+      console.log("GameTableChanged event:", logs);
       refreshAllData();
     },
-  });
-
-  // 监听PlayerStateChanged事件
-  useWatchContractEvent({
-    address: tableAddress,
-    abi: gameTableAbi,
-    eventName: "PlayerStateChanged",
-    onLogs: () => {
-      refreshAllData();
+    onError: error => {
+      console.error("Error watching GameTableChanged event:", error);
     },
-  });
-
-  // 监听CardDealt事件
-  useWatchContractEvent({
-    address: tableAddress,
-    abi: gameTableAbi,
-    eventName: "CardDealt",
-    onLogs: () => {
-      refreshAllData();
-    },
-  });
-
-  // 监听CardTypeCalculated事件
-  useWatchContractEvent({
-    address: tableAddress,
-    abi: gameTableAbi,
-    eventName: "CardTypeCalculated",
-    onLogs: () => {
-      refreshAllData();
-    },
+    enabled: Boolean(tableAddress && tableAddress !== ""),
   });
 
   // 使用multicall一次性获取所有数据
-  const fetchAllDataWithMulticall = useCallback(async () => {
-    if (!tableAddress) return null;
+  const fetchAllDataWithMulticall = async () => {
+    if (!tableAddress || tableAddress === "") return null;
 
     try {
       interface ContractCall {
@@ -161,10 +132,12 @@ export function useGameTableData({
         });
       }
 
+      console.log("执行 multicall...");
       const results = await multicall(wagmiConfig, {
         contracts: calls as any[],
       });
 
+      console.log("multicall 结果:", results);
       return {
         tableInfo: results[0].result,
         allPlayers: results[1].result,
@@ -174,93 +147,79 @@ export function useGameTableData({
       console.error("Failed to fetch data with multicall:", error);
       return null;
     }
-  }, [tableAddress, playerAddress, gameTableAbi]);
+  };
 
-  // 刷新所有数据
-  const refreshAllData = useCallback(async () => {
-    if (isRefreshing || !tableAddress) return;
+  // 刷新所有数据 - 普通函数，不使用 useCallback
+  const refreshAllData = async () => {
+    if (!tableAddress) {
+      console.log("没有有效的 tableAddress，跳过刷新");
+      return;
+    }
+
+    console.log("开始刷新数据...");
 
     try {
-      setIsRefreshing(true);
+      // if (publicClient) {
+      //   const data = await fetchAllDataWithMulticall();
+      //   if (data) {
+      //     console.log("使用 multicall 成功获取数据");
+      //     // 这里不需要额外的 refetch，因为 multicall 已经获取了最新数据
+      //     return;
+      //   }
+      //   console.log("multicall 失败，回退到单独请求");
+      // }
 
-      // 使用单独的refetch或multicall
-      if (publicClient) {
-        const data = await fetchAllDataWithMulticall();
-        // 如果multicall失败，回退到单独的refetch
-        if (!data) {
-          await Promise.all([
-            refetchTableInfo(),
-            refetchAllPlayers(),
-            playerAddress ? refetchPlayerData() : Promise.resolve(),
-          ]);
-        }
-      } else {
-        await Promise.all([
-          refetchTableInfo(),
-          refetchAllPlayers(),
-          playerAddress ? refetchPlayerData() : Promise.resolve(),
-        ]);
-      }
-
-      setLastRefreshTime(Date.now());
+      await Promise.all([
+        refetchTableInfo(),
+        refetchAllPlayers(),
+        playerAddress ? refetchPlayerData() : Promise.resolve(),
+      ]);
     } catch (error) {
-      console.error("Failed to refresh data:", error);
+      console.error("刷新数据失败:", error);
     } finally {
-      setIsRefreshing(false);
     }
-  }, [
-    isRefreshing,
-    tableAddress,
-    playerAddress,
-    publicClient,
-    fetchAllDataWithMulticall,
-    refetchTableInfo,
-    refetchAllPlayers,
-    refetchPlayerData,
-  ]);
+  };
 
-  // 定时刷新
+  const refreshAllDataRef = useRef(refreshAllData);
+  const refreshIntervalRef = useRef(refreshInterval);
+
+  // 初始加载时执行一次
   useEffect(() => {
-    if (!tableAddress || refreshInterval <= 0) return;
+    if (!tableAddress || tableAddress === "") return;
+    refreshAllDataRef.current();
+  }, [tableAddress]); // 只在表地址变化时执行
+
+  // 定时执行 - 只在组件挂载时设置一次定时器
+  useEffect(() => {
+    if (refreshIntervalRef.current <= 0) return;
 
     const intervalId = setInterval(() => {
-      // 只有当上次刷新时间超过指定间隔时才刷新
-      if (Date.now() - lastRefreshTime >= refreshInterval) {
-        refreshAllData();
-      }
-    }, refreshInterval);
+      if (!tableAddress || tableAddress === "") return;
+      refreshAllDataRef.current();
+    }, refreshIntervalRef.current);
 
+    // 组件卸载时清除定时器
     return () => clearInterval(intervalId);
-  }, [tableAddress, refreshInterval, lastRefreshTime, refreshAllData]);
+  }, [tableAddress]);
 
-  // 初始加载
-  useEffect(() => {
-    if (tableAddress && !isRefreshing && lastRefreshTime === 0) {
-      refreshAllData();
-    }
-  }, [tableAddress, isRefreshing, lastRefreshTime, refreshAllData]);
-
-  // 当玩家地址变化时刷新
-  useEffect(() => {
-    if (tableAddress && playerAddress) {
-      refreshAllData();
-    }
-  }, [tableAddress, playerAddress, refreshAllData]);
+  // 检查玩家数据是否有效（玩家地址不为零地址且状态不为NONE）
+  const validPlayerData = playerData as Player | undefined;
+  const isValidPlayer =
+    validPlayerData &&
+    validPlayerData.playerAddr !== "0x0000000000000000000000000000000000000000" &&
+    validPlayerData.state !== 0; // PlayerState.NONE = 0
 
   return {
     // 数据
-    playerData: playerData as Player | undefined,
+    playerData: isValidPlayer ? validPlayerData : undefined,
     allPlayers: allPlayersData as Player[] | undefined,
     tableInfo: tableInfo as GameTable | undefined,
 
     // 加载状态
-    isLoading: isLoadingPlayerData || isLoadingAllPlayers || isLoadingTableInfo || isRefreshing,
+    isLoading: isLoadingPlayerData || isLoadingAllPlayers || isLoadingTableInfo,
     isError: isPlayerDataError || isAllPlayersError || isTableInfoError,
 
     // 刷新函数
     refreshData: refreshAllData,
-
-    // 元数据
-    lastRefreshTime,
   };
 }

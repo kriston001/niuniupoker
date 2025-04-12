@@ -11,7 +11,7 @@ const deployedContracts = {
   31337: {
     BBGameMain: {
       address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-      abi: [
+      "abi": [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
@@ -26,6 +26,16 @@ const deployedContracts = {
         }
       ],
       "name": "AddressEmptyCode",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "BetAmountTooSmall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ContractPaused",
       "type": "error"
     },
     {
@@ -61,12 +71,47 @@ const deployedContracts = {
     },
     {
       "inputs": [],
+      "name": "InsufficientFunds",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidGameHistoryAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "InvalidInitialization",
       "type": "error"
     },
     {
       "inputs": [],
+      "name": "InvalidMaxPlayers",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MaxPlayersTooSmall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MinBetMustBePositive",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NoPlatformFeesToWithdraw",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "NotInitializing",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OnlyTableContractCanRemoveItself",
       "type": "error"
     },
     {
@@ -93,7 +138,27 @@ const deployedContracts = {
     },
     {
       "inputs": [],
+      "name": "PlatformFeePercentTooHigh",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "ReentrancyGuardReentrantCall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TableDoesNotExist",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TableNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TransferFailed",
       "type": "error"
     },
     {
@@ -111,6 +176,88 @@ const deployedContracts = {
       ],
       "name": "UUPSUnsupportedProxiableUUID",
       "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "minBet",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "maxPlayers",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "platformFeePercent",
+          "type": "uint256"
+        }
+      ],
+      "name": "GameConfigUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "gameHistoryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "GameHistoryAddressSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "banker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "betAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "maxPlayers",
+          "type": "uint8"
+        }
+      ],
+      "name": "GameTableCreated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        }
+      ],
+      "name": "GameTableRemoved",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -194,6 +341,19 @@ const deployedContracts = {
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "addPendingPlatformFee",
+      "outputs": [],
+      "stateMutability": "payable",
       "type": "function"
     },
     {
@@ -672,20 +832,20 @@ const deployedContracts = {
     },
     {
       "inputs": [],
-      "name": "getWithdrawableHouseFee",
+      "name": "getVersion",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "string",
           "name": "",
-          "type": "uint256"
+          "type": "string"
         }
       ],
-      "stateMutability": "view",
+      "stateMutability": "pure",
       "type": "function"
     },
     {
       "inputs": [],
-      "name": "houseFeePercent",
+      "name": "getWithdrawablePlatformFee",
       "outputs": [
         {
           "internalType": "uint256",
@@ -710,7 +870,7 @@ const deployedContracts = {
         },
         {
           "internalType": "uint256",
-          "name": "_houseFeePercent",
+          "name": "_platformFeePercent",
           "type": "uint256"
         },
         {
@@ -809,7 +969,20 @@ const deployedContracts = {
     },
     {
       "inputs": [],
-      "name": "pendingHouseFee",
+      "name": "pendingPlatformFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "platformFeePercent",
       "outputs": [
         {
           "internalType": "uint256",
@@ -828,6 +1001,19 @@ const deployedContracts = {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proxiableUUID",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
         }
       ],
       "stateMutability": "view",
@@ -856,84 +1042,12 @@ const deployedContracts = {
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "_minBet",
-          "type": "uint256"
-        }
-      ],
-      "name": "setBetAmount",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "address",
           "name": "_gameHistoryAddress",
           "type": "address"
         }
       ],
       "name": "setGameHistoryAddress",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "_houseFeePercent",
-          "type": "uint256"
-        }
-      ],
-      "name": "setHouseFeePercent",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint8",
-          "name": "_maxPlayers",
-          "type": "uint8"
-        }
-      ],
-      "name": "setMaxPlayers",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "_minBet",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint8",
-          "name": "_maxPlayers",
-          "type": "uint8"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_houseFeePercent",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_playerTimeout",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_tableInactiveTimeout",
-          "type": "uint256"
-        }
-      ],
-      "name": "setParams",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -985,7 +1099,7 @@ const deployedContracts = {
         },
         {
           "internalType": "uint256",
-          "name": "_houseFeePercent",
+          "name": "_platformFeePercent",
           "type": "uint256"
         }
       ],
@@ -1014,7 +1128,7 @@ const deployedContracts = {
     },
     {
       "inputs": [],
-      "name": "withdrawHouseFee",
+      "name": "withdrawPlatformFee",
       "outputs": [
         {
           "internalType": "uint256",
@@ -1029,11 +1143,11 @@ const deployedContracts = {
       "stateMutability": "payable",
       "type": "receive"
     }
-      ]
+  ]
     },
     BBGameHistory: {
       address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", // 示例地址
-      abi: [
+      "abi": [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
@@ -1069,6 +1183,11 @@ const deployedContracts = {
     {
       "inputs": [],
       "name": "FailedCall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidGameTable",
       "type": "error"
     },
     {
@@ -1446,6 +1565,19 @@ const deployedContracts = {
     },
     {
       "inputs": [],
+      "name": "getVersion",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "initialize",
       "outputs": [],
       "stateMutability": "nonpayable",
@@ -1513,6 +1645,19 @@ const deployedContracts = {
           "internalType": "enum BBTypes.CardType",
           "name": "cardType",
           "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proxiableUUID",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
         }
       ],
       "stateMutability": "view",
@@ -1670,7 +1815,7 @@ const deployedContracts = {
     },
     BBGameTable: {
       address: "", // 示例地址
-      abi: [
+      "abi": [
     {
       "inputs": [
         {
@@ -1712,6 +1857,11 @@ const deployedContracts = {
           "internalType": "address",
           "name": "_gameHistoryAddr",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_platformFeePercent",
+          "type": "uint256"
         }
       ],
       "stateMutability": "nonpayable",
@@ -1719,7 +1869,107 @@ const deployedContracts = {
     },
     {
       "inputs": [],
+      "name": "GameNotInPlayingState",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "GameNotInWaitingState",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientFunds",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidCardCount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidMaxPlayers",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPlayerState",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPlayerTimeout",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidRound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidTableInactiveTimeout",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MaxPlayersReached",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAllPlayersReady",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotBanker",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotEnoughPlayers",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotYourTurn",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OnlyMainContractCanCall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PlayerNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PlayerNotInReadyState",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "ReentrancyGuardReentrantCall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TableAlreadyLiquidated",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TableNotInactive",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TransferFailed",
       "type": "error"
     },
     {
@@ -1733,6 +1983,281 @@ const deployedContracts = {
         }
       ],
       "name": "GameChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalPrizePool",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "winnerAddrs",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum BBTypes.CardType",
+          "name": "maxCardType",
+          "type": "uint8"
+        }
+      ],
+      "name": "GameEnded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "playerCount",
+          "type": "uint8"
+        }
+      ],
+      "name": "GameStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "betAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "round",
+          "type": "uint8"
+        }
+      ],
+      "name": "PlayerContinued",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        }
+      ],
+      "name": "PlayerFolded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        }
+      ],
+      "name": "PlayerJoined",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        }
+      ],
+      "name": "PlayerQuit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "betAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "PlayerReady",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "bankerAddr",
+          "type": "address"
+        }
+      ],
+      "name": "PlayerRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "playerAddr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "betAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "PlayerUnready",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "bankerAddr",
+          "type": "address"
+        }
+      ],
+      "name": "TableDisbanded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "tableAddr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "liquidator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "liquidatorReward",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "platformFee",
+          "type": "uint256"
+        }
+      ],
+      "name": "TableLiquidated",
       "type": "event"
     },
     {
@@ -1795,7 +2320,7 @@ const deployedContracts = {
       "inputs": [],
       "name": "bankerDisband",
       "outputs": [],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -1808,7 +2333,7 @@ const deployedContracts = {
       ],
       "name": "bankerRemovePlayer",
       "outputs": [],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -2119,6 +2644,19 @@ const deployedContracts = {
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getVersion",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -2181,6 +2719,19 @@ const deployedContracts = {
       "name": "nextStep",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "platformFeePercent",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -2259,7 +2810,7 @@ const deployedContracts = {
       "inputs": [],
       "name": "playerJoin",
       "outputs": [],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -2306,7 +2857,7 @@ const deployedContracts = {
       "inputs": [],
       "name": "playerUnready",
       "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "payable",
       "type": "function"
     },
     {
@@ -2440,7 +2991,7 @@ const deployedContracts = {
       "stateMutability": "payable",
       "type": "receive"
     }
-  ]
+  ],
     }
   }
 } as const;

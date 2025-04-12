@@ -4,12 +4,17 @@ pragma solidity ^0.8.28;
 import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBCardUtils.sol";
+import "./BBVersion.sol";
 
 /**
  * @title BBCardDealer
  * @dev 牌局管理工具，负责发牌和记录已发的牌
  */
 library BBCardDealer {
+    // 使用集中版本管理
+    function getVersion() public pure returns (string memory) {
+        return BBVersion.VERSION;
+    }
     struct DealerState {
         mapping(address => uint8[5]) playerCards;  // 每个玩家的牌
         mapping(address => uint8) cardCount;       // 每个玩家已发的牌数量
@@ -91,7 +96,7 @@ library BBCardDealer {
      * @dev 计算玩家的牌型（当有5张牌时）
      */
     function calculateCardType(DealerState storage self, address player) internal returns (BBTypes.CardType) {
-        if (self.cardCount[player] != 5) revert InvalidCardCount();
+        if (self.cardCount[player] != 5) return BBTypes.CardType.NONE;
 
         uint8[5] memory cards;
         for (uint8 i = 0; i < 5; i++) {

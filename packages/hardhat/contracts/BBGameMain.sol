@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBGameTable.sol";
+import "./BBVersion.sol";
 
 /**
  * @title BBGameMain
@@ -40,6 +41,11 @@ contract BBGameMain is
 
     // 平台费用收集相关
     uint256 public platformFeePercent; // 平台费用百分比
+
+    // 使用集中版本管理
+    function getVersion() public pure returns (string memory) {
+        return BBVersion.VERSION;
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -83,14 +89,7 @@ contract BBGameMain is
         if (betAmount < minBet) revert BetAmountTooSmall();
         if (tableMaxPlayers == 0 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
 
-        // 计算平台费用
-        uint256 platformFee = (betAmount * platformFeePercent) / 10000;
-        uint256 totalAmount = betAmount + platformFee;
-
-        if (msg.value != totalAmount) revert InsufficientFunds();
-
-        // 收取平台费用
-        pendingPlatformFee += platformFee;
+        if (msg.value != betAmount) revert InsufficientFunds();
 
         // 创建新游戏桌合约
         BBGameTable newGameTable = new BBGameTable(
@@ -182,15 +181,21 @@ contract BBGameMain is
     function updateGameConfig(
         uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _platformFeePercent
+        uint256 _platformFeePercent,
+        uint256 _playerTimeout,
+        uint256 _tableInactiveTimeout
     ) external onlyOwner {
         if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
-        if (_platformFeePercent > 2000) revert PlatformFeePercentTooHigh(); // 最高 20%
+        if (_platformFeePercent == 0) revert PlatformFeePercentMustBePositive();
+        if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
+        if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
         platformFeePercent = _platformFeePercent;
+        playerTimeout = _playerTimeout;
+        tableInactiveTimeout = _tableInactiveTimeout;
 
         emit GameConfigUpdated(_minBet, _maxPlayers, _platformFeePercent);
     }
@@ -279,7 +284,7 @@ contract BBGameMain is
     }
 
     /**
-     * @dev 获取所有非活跃游戏桌的信息
+     * @dev 获取所有非活跃可悲清算的游戏桌信息
      * @return 返回游戏桌信息数组
      */
     function getAllGameTablesInactive() external view returns(GameTableView[] memory) {
@@ -291,7 +296,8 @@ contract BBGameMain is
             address tableAddr = tableAddresses[i];
             BBGameTable gameTable = gameTables[tableAddr];
             //超过清算时间并且状态不是清算或者结束的table可以被清算
-            if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp && gameTable.state() != BBTypes.GameState.ENDED){
+            if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp && 
+            gameTable.state() != BBTypes.GameState.ENDED && gameTable.state() != BBTypes.GameState.LIQUIDATED){
                 tempTables[i] = gameTable.getTableInfo();
                 validCount++;
             }
@@ -318,7 +324,7 @@ contract BBGameMain is
     }
 
     /**
-     * @dev 获取我参与的并且活跃状态的赌桌
+     * @dev 获取我参与的赌桌
      * @return 返回游戏桌信息
      */
     function getMyGameTablesActive() external view returns (GameTableView[] memory) {
@@ -362,40 +368,7 @@ contract BBGameMain is
     function setGameHistoryAddress(address _gameHistoryAddress) external onlyOwner nonReentrant{
         if (_gameHistoryAddress == address(0)) revert InvalidGameHistoryAddress();
         gameHistoryAddress = _gameHistoryAddress;
-        emit GameHistoryAddressSet(_gameHistoryAddress);
     }
-
-    // function setParams(uint256 _minBet, uint8 _maxPlayers, uint256 _houseFeePercent, uint256 _playerTimeout, uint256 _tableInactiveTimeout) external onlyOwner nonReentrant{
-    //     require(_minBet > 0, "_minBet must be greater than 0");
-    //     require(_maxPlayers > 1, "_maxPlayers must be greater than 1");
-    //     require(_houseFeePercent > 0, "_houseFeePercent must be greater than 0");
-    //     require(_playerTimeout > 0, "_playerTimeout must be greater than 0");
-    //     require(_tableInactiveTimeout > 0, "_tableInactiveTimeout must be greater than 0");
-
-    //     minBet = _minBet;
-    //     maxPlayers = _maxPlayers;
-    //     houseFeePercent = _houseFeePercent;
-    //     playerTimeout = _playerTimeout;
-    //     tableInactiveTimeout = _tableInactiveTimeout;
-    // }
-
-    // //设置betAmount
-    // function setBetAmount(uint256 _minBet) external onlyOwner nonReentrant{
-    //     require(_minBet > 0, "_minBet must be greater than 0");
-    //     minBet = _minBet;
-    // }
-
-    // //设置maxPlayers
-    // function setMaxPlayers(uint8 _maxPlayers) external onlyOwner nonReentrant{
-    //     require(_maxPlayers > 1, "_maxPlayers must be greater than 1");
-    //     maxPlayers = _maxPlayers;
-    // }
-
-    // //设置houseFeePercent
-    // function setHouseFeePercent(uint256 _houseFeePercent) external onlyOwner nonReentrant{
-    //     require(_houseFeePercent > 0, "_houseFeePercent must be greater than 0");
-    //     houseFeePercent = _houseFeePercent;
-    // }
 
     // 授权升级
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -409,6 +382,5 @@ contract BBGameMain is
     event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers);
     event GameTableRemoved(address indexed tableAddr);
     event GameConfigUpdated(uint256 minBet, uint8 maxPlayers, uint256 platformFeePercent);
-    event GameHistoryAddressSet(address indexed gameHistoryAddress);
 }
 

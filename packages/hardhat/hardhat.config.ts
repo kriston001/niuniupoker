@@ -67,6 +67,19 @@ const config: HardhatUserConfig = {
         enabled: process.env.MAINNET_FORKING_ENABLED === "true",
       },
       allowUnlimitedContractSize: true, // 添加这一行，移除合约大小限制
+      mining: {
+        auto: true, // 自动挖矿
+        interval: 0, // 即时挖矿，不等待
+        mempool: {
+          order: "fifo", // 交易按先进先出的顺序处理
+        },
+      },
+      accounts: {
+        accountsBalance: "10000000000000000000000", // 10000 ETH
+        count: 20, // 生成 20 个测试账户
+      },
+      hardfork: "london", // 使用 London 硬分叉
+      chainId: 31337, // 默认的 Hardhat 网络链 ID
     },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,

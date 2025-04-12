@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBGameTable.sol";
+import "./BBVersion.sol";
 
 
 interface IBBGameMain {
@@ -43,6 +44,11 @@ contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
 
     // 游戏主合约地址
     address public gameMainAddr;
+
+    // 使用集中版本管理
+    function getVersion() public pure returns (string memory) {
+        return BBVersion.VERSION;
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {

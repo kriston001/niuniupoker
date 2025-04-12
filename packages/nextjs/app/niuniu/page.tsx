@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
+import { useGameLobbyData } from "../../hooks/my-hooks/useGameLobbyData";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { Address, Balance } from "~~/components/scaffold-eth";
-import { useGameLobbyData } from "~~/hooks/my-hooks/useGameLobbyData";
+import BBContractAbis from "~~/contracts/contractABIs";
+import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
 import { getGameStateName } from "~~/utils/my-tools/types";
 
 const NiuNiuPage = () => {
@@ -15,15 +18,20 @@ const NiuNiuPage = () => {
   const [betAmount, setBetAmount] = useState("0.01");
   const [maxPlayers, setMaxPlayers] = useState(5);
 
+  const gameMainAbi = BBContractAbis.BBGameMain.abi;
+
   // 使用自定义钩子获取游戏大厅数据
   const {
     gameTables,
     isLoading: isLoadingTables,
-    writeGameMainAsync,
     refreshData,
   } = useGameLobbyData({
+    gameMainAbi,
     refreshInterval: 15000, // 15秒自动刷新一次
   });
+
+  // 使用自定义的 Hook
+  const { writeContractWithCallback } = useWriteContractWithCallback();
 
   // 处理创建游戏桌
   const handleCreateTable = async () => {
@@ -33,19 +41,27 @@ const NiuNiuPage = () => {
       setIsCreatingTable(true);
       const parsedBetAmount = parseEther(betAmount);
 
-      await writeGameMainAsync({
+      await writeContractWithCallback({
+        address: BBContractAbis.BBGameMain.address,
+        abi: gameMainAbi,
         functionName: "createGameTable",
         args: [tableName, parsedBetAmount, maxPlayers],
         value: parsedBetAmount,
+        account: connectedAddress as `0x${string}`,
+        onSuccess: async () => {
+          console.log("✅ 交易成功");
+          // 重置表单
+          setTableName("");
+          setBetAmount("0.01");
+          setMaxPlayers(5);
+
+          // 刷新游戏桌列表
+          await refreshData();
+        },
+        onError: async err => {
+          console.error("❌ 交易失败:", err.message);
+        },
       });
-
-      // 重置表单
-      setTableName("");
-      setBetAmount("0.01");
-      setMaxPlayers(5);
-
-      // 刷新游戏桌列表
-      refreshData();
     } catch (error) {
       console.error("创建游戏桌失败:", error);
     } finally {
@@ -89,7 +105,7 @@ const NiuNiuPage = () => {
               placeholder="输入游戏桌名称"
               className="input input-bordered w-full"
               value={tableName}
-              onChange={(e) => setTableName(e.target.value)}
+              onChange={e => setTableName(e.target.value)}
             />
           </div>
           <div>
@@ -103,7 +119,7 @@ const NiuNiuPage = () => {
               placeholder="输入下注金额"
               className="input input-bordered w-full"
               value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
+              onChange={e => setBetAmount(e.target.value)}
             />
           </div>
           <div>
@@ -117,7 +133,7 @@ const NiuNiuPage = () => {
               placeholder="输入最大玩家数"
               className="input input-bordered w-full"
               value={maxPlayers}
-              onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+              onChange={e => setMaxPlayers(Number(e.target.value))}
             />
           </div>
           <div className="flex items-end">
@@ -136,11 +152,7 @@ const NiuNiuPage = () => {
       <div className="bg-base-200 rounded-box p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">可用游戏桌</h2>
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => refreshData()}
-            disabled={isLoadingTables}
-          >
+          <button className="btn btn-outline btn-sm" onClick={() => refreshData()} disabled={isLoadingTables}>
             {isLoadingTables ? "刷新中..." : "刷新列表"}
           </button>
         </div>
@@ -163,14 +175,16 @@ const NiuNiuPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {gameTables.map((table, index: number) => (
-                  <tr key={index}>
+                {gameTables.map(table => (
+                  <tr key={table.tableAddr}>
                     <td>{table.tableName}</td>
                     <td>
                       <Address address={table.bankerAddr} size="sm" />
                     </td>
                     <td>{formatEther(table.betAmount)} ETH</td>
-                    <td>{table.playerCount}/{table.maxPlayers}</td>
+                    <td>
+                      {table.playerCount}/{table.maxPlayers}
+                    </td>
                     <td>{getGameStateName(table.state)}</td>
                     <td>{new Date(Number(table.creationTimestamp) * 1000).toLocaleString()}</td>
                     <td>

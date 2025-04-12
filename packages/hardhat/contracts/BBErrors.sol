@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import "./BBVersion.sol";
+
+// 使用集中版本管理
+function getErrorsVersion() pure returns (string memory) {
+    return BBVersion.VERSION;
+}
+
 // Card related errors
 error InvalidCardIndex();
 error InvalidCardCount();
@@ -29,6 +36,7 @@ error GameNotInDealingState();
 error GameNotInCalculatingState();
 error GameNotInSettlingState();
 error GameAlreadyStarted();
+error GameNotNextStep();
 
 // Table related errors
 error TableNotActive();
@@ -36,6 +44,7 @@ error TableNotInactive();
 error TableAlreadyLiquidated();
 error TableNotFound();
 error TableDoesNotExist();
+error PlayerAlreadyJoined();
 
 // Role related errors
 error NotBanker();
@@ -58,7 +67,9 @@ error InvalidPlayerTimeout();
 error InvalidTableInactiveTimeout();
 error MinBetMustBePositive();
 error HouseFeePercentTooHigh();
-error PlatformFeePercentTooHigh();
+error PlatformFeePercentMustBePositive();
+error PlayerTimeoutMustBePositive();
+error TableInactiveTimeoutMustBePositive();
 error InvalidGameHistoryAddress();
 error MaxPlayersTooSmall();
 error ContractPaused();

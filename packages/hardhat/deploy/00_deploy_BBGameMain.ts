@@ -38,7 +38,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   // 设置初始化参数
   const minBet = ethers.parseEther("0.01"); // 最小下注金额，0.01 ETH
   const maxPlayers = 10; // 最大玩家数
-  const houseFeePercent = 3; // 平台手续费百分比
+  const platformFeePercent = 3; // 平台手续费百分比
   const playerTimeout = 180; // 玩家超时时间，单位为秒
   const tableInactiveTimeout = 86400; // 桌子空闲超时时间，单位为秒，这里是24小时
 
@@ -54,7 +54,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
       execute: {
         init: {
           methodName: "initialize", // 初始化函数
-          args: [minBet, maxPlayers, houseFeePercent, playerTimeout, tableInactiveTimeout], // 初始化参数
+          args: [minBet, maxPlayers, platformFeePercent, playerTimeout, tableInactiveTimeout], // 初始化参数
         },
       },
     },
@@ -96,7 +96,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log("验证初始化参数:");
   console.log("minBet:", await bbGameMainContract.minBet());
   console.log("maxPlayers:", await bbGameMainContract.maxPlayers());
-  console.log("houseFeePercent:", await bbGameMainContract.houseFeePercent());
+  console.log("houseFeePercent:", await bbGameMainContract.platformFeePercent());
 };
 
 deployBBGameMain.tags = ["BBDeploy"];

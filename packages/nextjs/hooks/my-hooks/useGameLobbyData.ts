@@ -1,29 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { type Abi } from "abitype";
 import { useWatchContractEvent } from "wagmi";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import scaffoldConfig from "~~/scaffold.config";
 import { GameTable } from "~~/utils/my-tools/types";
 
-/**
- * 游戏大厅数据钩子
- *
- * 该钩子使用多种策略来保持数据的实时性：
- * 1. 事件监听：监听合约事件，当事件触发时刷新数据
- * 2. 手动刷新：提供刷新函数，可以在需要时手动刷新数据
- * 3. 定时刷新：定期刷新数据，作为备份机制
- *
- * @param refreshInterval 自动刷新间隔（毫秒），默认15秒
- * @returns 游戏大厅数据和操作函数
- */
 export function useGameLobbyData({
-  refreshInterval = 15000, // 默认15秒刷新一次
+  gameMainAbi,
+  refreshInterval = 15000,
 }: {
+  gameMainAbi: Abi;
   refreshInterval?: number;
-} = {}) {
-  // 状态
-  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+}) {
+  const refreshLockRef = useRef(false);
+  const lastRefreshTimeRef = useRef<number>(0);
+  const refreshIntervalRef = useRef(refreshInterval);
 
-  // 读取所有游戏桌信息
   const {
     data: gameTables,
     isLoading: isLoadingTables,
@@ -33,125 +25,85 @@ export function useGameLobbyData({
     functionName: "getAllGameTables",
   });
 
-  // 创建游戏桌合约写入
-  const { writeContractAsync: writeGameMainAsync } = useScaffoldWriteContract({
-    contractName: "BBGameMain",
-  });
+  // refetchGameTables 保存在 ref 中，防止依赖变化引发副作用
+  const refetchRef = useRef(refetchGameTables);
+  refetchRef.current = refetchGameTables;
 
-  // 监听GameTableCreated事件
-  useWatchContractEvent({
-    address: process.env.NEXT_PUBLIC_BBGAMEMAIN_CONTRACT_ADDRESS as `0x${string}`,
-    abi: [
-      {
-        anonymous: false,
-        inputs: [
-          {
-            indexed: true,
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
-          },
-          {
-            indexed: true,
-            internalType: "address",
-            name: "banker",
-            type: "address",
-          },
-          {
-            indexed: false,
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
-          },
-          {
-            indexed: false,
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
-          },
-        ],
-        name: "GameTableCreated",
-        type: "event",
-      },
-    ],
-    eventName: "GameTableCreated",
-    onLogs: () => {
-      refreshData();
-    },
-  });
+  const refreshData = async () => {
+    // 添加节流：如果距离上次刷新不足1秒，则跳过
+    const now = Date.now();
+    if (now - lastRefreshTimeRef.current < 1000) {
+      return;
+    }
 
-  // 监听GameTableRemoved事件
-  useWatchContractEvent({
-    address: process.env.NEXT_PUBLIC_BBGAMEMAIN_CONTRACT_ADDRESS as `0x${string}`,
-    abi: [
-      {
-        anonymous: false,
-        inputs: [
-          {
-            indexed: true,
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
-          },
-        ],
-        name: "GameTableRemoved",
-        type: "event",
-      },
-    ],
-    eventName: "GameTableRemoved",
-    onLogs: () => {
-      refreshData();
-    },
-  });
-
-  // 刷新数据
-  const refreshData = useCallback(async () => {
-    if (isRefreshing) return;
+    if (refreshLockRef.current) return;
+    refreshLockRef.current = true;
 
     try {
-      setIsRefreshing(true);
-      await refetchGameTables();
-      setLastRefreshTime(Date.now());
-    } catch (error) {
-      console.error("Failed to refresh game tables:", error);
+      await refetchRef.current();
+      lastRefreshTimeRef.current = now;
+    } catch (err) {
+      console.error("刷新游戏桌失败:", err);
     } finally {
-      setIsRefreshing(false);
+      refreshLockRef.current = false;
     }
-  }, [isRefreshing, refetchGameTables]);
+  };
 
-  // 定时刷新
+  // 将 refreshData 保存到 ref 中
+  const refreshDataRef = useRef(refreshData);
+  refreshDataRef.current = refreshData;
+
+  // ✅ 初始加载时刷新一次
   useEffect(() => {
-    if (refreshInterval <= 0) return;
+    refreshDataRef.current();
+  }, []);
+
+  // ✅ 定时刷新
+  useEffect(() => {
+    if (refreshIntervalRef.current <= 0) {
+      return;
+    }
 
     const intervalId = setInterval(() => {
-      // 只有当上次刷新时间超过指定间隔时才刷新
-      if (Date.now() - lastRefreshTime >= refreshInterval) {
-        refreshData();
-      }
-    }, refreshInterval);
+      refreshDataRef.current();
+    }, refreshIntervalRef.current);
 
-    return () => clearInterval(intervalId);
-  }, [refreshInterval, lastRefreshTime, refreshData]);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []); // 空依赖数组，只在组件挂载时设置一次定时器
 
-  // 初始加载
-  useEffect(() => {
-    if (!isRefreshing && lastRefreshTime === 0) {
-      refreshData();
-    }
-  }, [isRefreshing, lastRefreshTime, refreshData]);
+  // ✅ 事件监听（创建）
+  useWatchContractEvent({
+    address: scaffoldConfig.contracts.BBGameMain,
+    abi: gameMainAbi,
+    eventName: "GameTableCreated",
+    onLogs: logs => {
+      console.log("收到 GameTableCreated 事件:", logs);
+      refreshDataRef.current();
+    },
+    onError: e => console.error("监听 GameTableCreated 出错:", e),
+    enabled: true,
+  });
 
+  // ✅ 事件监听（移除）
+  useWatchContractEvent({
+    address: scaffoldConfig.contracts.BBGameMain,
+    abi: gameMainAbi,
+    eventName: "GameTableRemoved",
+    onLogs: logs => {
+      console.log("收到 GameTableRemoved 事件:", logs);
+      refreshDataRef.current();
+    },
+    onError: e => console.error("监听 GameTableRemoved 出错:", e),
+    enabled: true,
+  });
+
+  // 修改返回值，只在真正加载数据时才显示加载状态
   return {
-    // 数据
     gameTables: gameTables as GameTable[] | undefined,
-
-    // 加载状态
-    isLoading: isLoadingTables || isRefreshing,
-
-    // 操作函数
+    isLoading: isLoadingTables,
     refreshData,
-    writeGameMainAsync,
-
-    // 元数据
-    lastRefreshTime,
+    lastRefreshTime: lastRefreshTimeRef.current,
   };
 }

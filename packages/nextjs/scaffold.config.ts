@@ -7,6 +7,9 @@ export type ScaffoldConfig = {
   rpcOverrides?: Record<number, string>;
   walletConnectProjectId: string;
   onlyLocalBurnerWallet: boolean;
+  contracts: {
+    BBGameMain: string;
+  };
 };
 
 export const DEFAULT_ALCHEMY_API_KEY = "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
@@ -48,6 +51,11 @@ const scaffoldConfig = {
   // It's recommended to store it in an env variable:
   // .env.local for local testing, and in the Vercel/system env config for live apps.
   walletConnectProjectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "3a8170812b534d0ff9d794f19a901d64",
+
+  contracts: {
+    BBGameMain: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    // 可以添加更多合约地址
+  },
 
   // Only show the Burner Wallet when running on hardhat network
   onlyLocalBurnerWallet: true,

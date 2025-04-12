@@ -6,6 +6,7 @@ import "./BBTypes.sol";
 import "./BBCardUtils.sol";
 import "./BBPlayer.sol";
 import "./BBCardDealer.sol";
+import "./BBVersion.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IBBGameHistory {
@@ -77,6 +78,10 @@ contract BBGameTable is ReentrancyGuard {
     uint8 public playerReadyCount;
     uint256 public totalPrizePool;  //奖池金额
     uint256 public platformFeePercent; // 平台费用百分比
+    // 使用集中版本管理
+    function getVersion() public pure returns (string memory) {
+        return BBVersion.VERSION;
+    }
 
     // 玩家数据
     address[] public playerAddresses;
@@ -99,7 +104,7 @@ contract BBGameTable is ReentrancyGuard {
     address public gameHistoryAddr;
 
     // 事件
-    event GameChanged(address indexed tableAddr);
+    event GameTableChanged(address indexed tableAddr);
 
     /**
      * @dev 构造函数
@@ -117,8 +122,8 @@ contract BBGameTable is ReentrancyGuard {
     ) {
         // 参数验证
         if (_maxPlayers < 2 || _maxPlayers > 10) revert InvalidMaxPlayers();
-        if (_playerTimeout < 60) revert InvalidPlayerTimeout(); // 最小超时时间为60秒
-        if (_tableInactiveTimeout < 3600) revert InvalidTableInactiveTimeout(); // 最小不活跃超时时间为1小时
+        if (_playerTimeout < 60) revert InvalidPlayerTimeout(); // 玩家操作最小超时时间为60秒
+        if (_tableInactiveTimeout < 3600) revert InvalidTableInactiveTimeout(); // 赌桌最小不活跃超时时间为1小时
 
         tableName = _tableName;
         bankerAddr = _bankerAddr;
@@ -200,6 +205,7 @@ contract BBGameTable is ReentrancyGuard {
      */
     function playerJoin() external nonReentrant {
         address playerAddr = msg.sender;
+        if (players[playerAddr].playerAddr != address(0)) revert PlayerAlreadyJoined();
         if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
         if (playerCount >= maxPlayers) revert MaxPlayersReached();
 
@@ -224,6 +230,8 @@ contract BBGameTable is ReentrancyGuard {
         playerCount++;
 
         _updateLastActivity();
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -240,8 +248,11 @@ contract BBGameTable is ReentrancyGuard {
         totalPrizePool += betAmount;
         playerReadyCount++;
 
-        _updateLastActivity();
         player.playerReady();
+
+        _updateLastActivity();
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -257,11 +268,15 @@ contract BBGameTable is ReentrancyGuard {
         playerReadyCount--;
         player.initialBet = 0;
 
-        _updateLastActivity();
         player.playerUnready();
 
-        // 返还押金给玩家
-        payable(playerAddr).transfer(betAmount);
+        _updateLastActivity();
+
+        // 返还押金给玩家 - 使用更安全的 call 方法而不是 transfer
+        (bool success, ) = payable(playerAddr).call{value: betAmount}("");
+        if (!success) revert TransferFailed();
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -273,6 +288,8 @@ contract BBGameTable is ReentrancyGuard {
         BBPlayer storage player = players[playerAddr];
         if (player.state != BBTypes.PlayerState.JOINED) revert InvalidPlayerState();
 
+        // 先保存需要返还的金额
+        uint256 amountToReturn = player.initialBet;
 
         // 移除玩家
         if(_removePlayer(playerAddr)){
@@ -281,10 +298,14 @@ contract BBGameTable is ReentrancyGuard {
 
         _updateLastActivity();
 
-        if(player.initialBet > 0){
+        
+        if(amountToReturn > 0){
             //返还押金
-            payable(playerAddr).transfer(player.initialBet);
+            (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
+            if (!success) revert TransferFailed();
         }
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -319,8 +340,11 @@ contract BBGameTable is ReentrancyGuard {
 
         // 最后进行所有转账
         for (uint i = 0; i < refundCount; i++) {
-            payable(refundAddresses[i]).transfer(refundAmounts[i]);
+            (bool success, ) = payable(refundAddresses[i]).call{value: refundAmounts[i]}("");
+            if (!success) revert TransferFailed();
         }
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -331,8 +355,7 @@ contract BBGameTable is ReentrancyGuard {
         if (playerAddr == bankerAddr) revert NotBanker();
         if (players[playerAddr].playerAddr == address(0)) revert PlayerNotFound();
 
-        _updateLastActivity();
-
+        
         uint256 amountToReturn = 0;
         bool playerFound = false;
 
@@ -364,9 +387,16 @@ contract BBGameTable is ReentrancyGuard {
             }
         }
 
+        _updateLastActivity();
+
         // 最后进行转账
         if(playerFound && amountToReturn > 0){
-            payable(playerAddr).transfer(amountToReturn);
+            (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
+            if (!success) revert TransferFailed();
+        }
+
+        if(playerFound) {
+            emit GameTableChanged(address(this));
         }
     }
 
@@ -396,13 +426,15 @@ contract BBGameTable is ReentrancyGuard {
         gameStartTimestamp = block.timestamp;
 
         setState(BBTypes.GameState.FIRST_BETTING);
+
+        emit GameTableChanged(address(this));
     }
 
     /**
      * @dev 下一步
      */
     function nextStep() external onlyBanker nonReentrant {
-        if (!_checkCanNext()) revert GameNotInWaitingState();
+        if (!_checkCanNext()) revert GameNotNextStep();
 
         if(state == BBTypes.GameState.WAITING){
             _startGame();
@@ -426,6 +458,8 @@ contract BBGameTable is ReentrancyGuard {
                 _endGame();
             }
         }
+
+        _updateLastActivity();
     }
 
     // 获取是否可以进入下一步
@@ -438,7 +472,7 @@ contract BBGameTable is ReentrancyGuard {
             //等待状态，人数大于一人并且都已准备，则可以开始游戏
             return playerCount >= 2 && playerReadyCount == playerCount;
         }else if(state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING){
-            //第一、二轮下注状态，所有玩家都已行动，则可以进入第二轮
+            //第一、二轮下注状态，所有玩家都已行动，则可以进入下一轮
             return playerContinuedCount + playerFoldCount + _timeoutPlayerCount() == playerCount;
         }else if(state == BBTypes.GameState.ENDED){
             return true;
@@ -500,6 +534,8 @@ contract BBGameTable is ReentrancyGuard {
         player.playerFold();
 
         playerFoldCount++;
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -531,6 +567,8 @@ contract BBGameTable is ReentrancyGuard {
         totalPrizePool += betAmount;
 
         _updateLastActivity();
+
+        emit GameTableChanged(address(this));
     }
 
 
@@ -540,7 +578,7 @@ contract BBGameTable is ReentrancyGuard {
         gameEndTimestamp = block.timestamp;
 
         // 计算平台费用
-        uint256 platformFee = (totalPrizePool * platformFeePercent) / 10000;
+        uint256 platformFee = (totalPrizePool * platformFeePercent) / 100;
         uint256 remainingPrizePool = totalPrizePool;
 
         // 如果有平台费用，则从奖池中扣除
@@ -548,6 +586,7 @@ contract BBGameTable is ReentrancyGuard {
             remainingPrizePool -= platformFee;
         }
 
+        BBTypes.CardType _maxCardType = BBTypes.CardType.NONE;
         // 计算每个玩家的牌型
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
@@ -563,6 +602,11 @@ contract BBGameTable is ReentrancyGuard {
             // 赋值给玩家
             player.cards = allCards;
             player.cardType = cardType;
+
+            // 更新最大牌型
+            if (uint8(player.cardType) > uint8(_maxCardType)) {
+                _maxCardType = player.cardType;
+            }
         }
 
         // 准备游戏结果数据
@@ -570,7 +614,7 @@ contract BBGameTable is ReentrancyGuard {
         address[] memory _playerAddrs = playerAddresses;
         address[] memory _winnerAddrs = new address[](playerAddresses.length);
         uint256 winnerCount = 0;
-        BBTypes.CardType _maxCardType = BBTypes.CardType.NONE;
+        
 
         // 创建玩家数据条目数组
         BBPlayerEntry[] memory playerEntries = new BBPlayerEntry[](playerAddresses.length);
@@ -585,11 +629,6 @@ contract BBGameTable is ReentrancyGuard {
                 playerAddr: playerAddr,
                 playerData: player
             });
-
-            // 更新最大牌型
-            if (uint8(player.cardType) > uint8(_maxCardType)) {
-                _maxCardType = player.cardType;
-            }
 
             // 如果是获胜者，添加到获胜者数组
             if (player.cardType == _maxCardType) {
@@ -615,8 +654,6 @@ contract BBGameTable is ReentrancyGuard {
             _maxCardType
         );
 
-        // 所有状态更新和记录完成后，进行转账操作
-
         // 首先转账平台费用
         if (platformFee > 0) {
             // 调用主合约的函数增加待提取的平台费用
@@ -628,7 +665,7 @@ contract BBGameTable is ReentrancyGuard {
             if (!success) revert TransferFailed();
         }
 
-        // 然后分配奖金给获胜者
+        // 分配奖金给获胜者
         if (winnerCount > 0) {
             // 每个获胜者应得的奖金
             uint256 prizePerWinner = remainingPrizePool / winnerCount;
@@ -636,15 +673,19 @@ contract BBGameTable is ReentrancyGuard {
             // 分配奖金给每个获胜者
             for (uint i = 0; i < winnerCount; i++) {
                 address winnerAddr = _winnerAddrs[i];
-                payable(winnerAddr).transfer(prizePerWinner);
+                (bool success, ) = payable(winnerAddr).call{value: prizePerWinner}("");
+                if (!success) revert TransferFailed();
             }
 
             // 处理可能的舍入误差，将剩余的少量奖金给第一个获胜者
             uint256 remainingPrize = remainingPrizePool - (prizePerWinner * winnerCount);
             if (remainingPrize > 0) {
-                payable(_winnerAddrs[0]).transfer(remainingPrize);
+                (bool success, ) = payable(_winnerAddrs[0]).call{value: remainingPrize}("");
+                if (!success) revert TransferFailed();
             }
         }
+
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -661,7 +702,7 @@ contract BBGameTable is ReentrancyGuard {
         uint256 bankerBet = players[bankerAddr].totalBet();
 
         // 计算平台费用 (从庄家押金中收取)
-        uint256 platformFee = (bankerBet * platformFeePercent) / 10000;
+        uint256 platformFee = (bankerBet * platformFeePercent) / 100;
 
         // 清算人的奖励 (20% 的庄家押金)
         uint256 liquidatorReward = bankerBet * 20 / 100;
@@ -669,8 +710,6 @@ contract BBGameTable is ReentrancyGuard {
         // 剩余的庄家押金平均分配给所有玩家
         uint256 remainingBankerBet = bankerBet - liquidatorReward - platformFee;
         uint256 playerRewardTotal = 0;
-
-        // 平台费用转账将在最后进行
 
         // 计算有多少玩家可以分配奖励（不包括庄家）
         uint256 eligiblePlayerCount = playerAddresses.length - 1;
@@ -757,11 +796,15 @@ contract BBGameTable is ReentrancyGuard {
 
         // 然后进行其他转账
         for (uint i = 0; i < paymentCount; i++) {
-            payable(paymentAddresses[i]).transfer(paymentAmounts[i]);
+            (bool otherSuccess, ) = payable(paymentAddresses[i]).call{value: paymentAmounts[i]}("");
+            if (!otherSuccess) revert TransferFailed();
         }
 
         // 支付清算人奖励
-        payable(msg.sender).transfer(liquidatorReward);
+        (bool liquidatorSuccess, ) = payable(msg.sender).call{value: liquidatorReward}("");
+        if (!liquidatorSuccess) revert TransferFailed();
+
+        emit GameTableChanged(address(this));
 
         return success;
     }
@@ -779,7 +822,8 @@ contract BBGameTable is ReentrancyGuard {
         }
 
         _updateLastActivity(); // 更新最后活动时间
-        emit GameChanged(address(this));
+
+        emit GameTableChanged(address(this));
     }
 
     // 获取所有玩家数据

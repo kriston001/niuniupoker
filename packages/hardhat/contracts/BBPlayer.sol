@@ -2,12 +2,13 @@
 pragma solidity ^0.8.28;
 
 import "./BBTypes.sol";
+import "./BBVersion.sol";
 
 struct BBPlayer {
     address playerAddr;
     bool isBanker;
     BBTypes.PlayerState state;
-    
+
     // 下注信息
     uint256 initialBet;
     uint256 additionalBet1;
@@ -18,6 +19,10 @@ struct BBPlayer {
 }
 
 library BBPlayerLib {
+    // 使用集中版本管理
+    function getVersion() public pure returns (string memory) {
+        return BBVersion.VERSION;
+    }
     /**
      * @dev 玩家准备
      */
@@ -49,7 +54,7 @@ library BBPlayerLib {
             self.state = BBTypes.PlayerState.SECOND_FOLDED;
         }
     }
-    
+
     /**
      * @dev 玩家继续游戏
      */
@@ -62,7 +67,7 @@ library BBPlayerLib {
             self.state = BBTypes.PlayerState.SECOND_CONTINUED;
         }
     }
-    
+
     /**
      * @dev 获取玩家总下注
      */
