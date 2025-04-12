@@ -69,6 +69,18 @@ library BBPlayerLib {
     }
 
     /**
+     * @dev 重置玩家数据
+     */
+    function playerReset(BBPlayer storage self) internal {
+        self.state = BBTypes.PlayerState.JOINED;
+        self.initialBet = 0;
+        self.additionalBet1 = 0;
+        self.additionalBet2 = 0;
+        self.cards = [0, 0, 0, 0, 0];
+        self.cardType = BBTypes.CardType.NONE;
+    }
+
+    /**
      * @dev 获取玩家总下注
      */
     function totalBet(BBPlayer storage self) internal view returns (uint256) {

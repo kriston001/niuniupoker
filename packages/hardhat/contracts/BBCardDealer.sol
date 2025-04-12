@@ -16,6 +16,7 @@ library BBCardDealer {
         return BBVersion.VERSION;
     }
     struct DealerState {
+        address[] playerAddresses;
         mapping(address => uint8[5]) playerCards;  // 每个玩家的牌
         mapping(address => uint8) cardCount;       // 每个玩家已发的牌数量
         mapping(address => BBTypes.CardType) cardTypes; // 每个玩家的牌型
@@ -27,6 +28,24 @@ library BBCardDealer {
      */
     function initialize(DealerState storage self, uint256 seed) internal {
         self.lastSeed = seed;
+    }
+
+    function reset(DealerState storage self) internal {
+        // 清空每个玩家的数据
+        for (uint i = 0; i < self.playerAddresses.length; i++) {
+            address playerAddr = self.playerAddresses[i];
+            // 清空玩家的牌
+            for (uint8 j = 0; j < 5; j++) {
+                self.playerCards[playerAddr][j] = 0;
+            }
+            // 清空牌数量
+            self.cardCount[playerAddr] = 0;
+            // 清空牌型
+            self.cardTypes[playerAddr] = BBTypes.CardType.NONE;
+        }
+
+        // 清空玩家地址数组
+        delete self.playerAddresses;
     }
 
     /**

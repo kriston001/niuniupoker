@@ -37,6 +37,8 @@ error GameNotInCalculatingState();
 error GameNotInSettlingState();
 error GameAlreadyStarted();
 error GameNotNextStep();
+error GameNotEnded();
+error GameNotTimeToReset();
 
 // Table related errors
 error TableNotActive();

@@ -420,12 +420,35 @@ contract BBGameTable is ReentrancyGuard {
         if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
         if (playerCount < 2) revert NotEnoughPlayers();
 
+        dealerState.playerAddresses = playerAddresses;
+
         // 第一轮发牌
         dealerState.dealCardsByRoundForPlayers(playerAddresses, 1);
 
         gameStartTimestamp = block.timestamp;
 
         setState(BBTypes.GameState.FIRST_BETTING);
+
+        emit GameTableChanged(address(this));
+    }
+
+    function _resetGame() internal {
+        if (state != BBTypes.GameState.ENDED) revert GameNotEnded();
+        if (gameEndTimestamp + 20000 > block.timestamp) revert GameNotTimeToReset();   //20秒后才能重新开局
+
+        playerContinuedCount = 0;
+        playerFoldCount = 0;
+        gameStartTimestamp = block.timestamp;
+        gameEndTimestamp = 0;
+        playerReadyCount = 0;
+        totalPrizePool = 0;
+        dealerState.reset();
+        for(uint i = 0; i < playerAddresses.length; i++){
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+            player.playerReset();
+        }
+        setState(BBTypes.GameState.WAITING);
 
         emit GameTableChanged(address(this));
     }
@@ -446,7 +469,7 @@ contract BBGameTable is ReentrancyGuard {
                     setState(BBTypes.GameState.SECOND_BETTING);
                     playerContinuedCount = 0;
                     playerFoldCount = 0;
-                }else{
+                }else if(state == BBTypes.GameState.SECOND_BETTING){
                     // 第三轮发牌
                     dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
                     playerContinuedCount = 0;
@@ -457,6 +480,9 @@ contract BBGameTable is ReentrancyGuard {
                 // 只有一个玩家继续，进入结算阶段
                 _endGame();
             }
+        }else if(state == BBTypes.GameState.ENDED){
+            //游戏已经结束，开始下一轮
+            _resetGame();
         }
 
         _updateLastActivity();
@@ -575,7 +601,6 @@ contract BBGameTable is ReentrancyGuard {
     function _endGame() internal {
         // 设置游戏状态为结束
         setState(BBTypes.GameState.ENDED);
-        gameEndTimestamp = block.timestamp;
 
         // 计算平台费用
         uint256 platformFee = (totalPrizePool * platformFeePercent) / 100;
@@ -684,6 +709,7 @@ contract BBGameTable is ReentrancyGuard {
                 if (!success) revert TransferFailed();
             }
         }
+        gameEndTimestamp = block.timestamp;
 
         emit GameTableChanged(address(this));
     }
