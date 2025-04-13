@@ -27,6 +27,12 @@ struct BBPlayerEntry {
     BBPlayer playerData;
 }
 
+struct BBPlayerCardEntry {
+    address playerAddr;
+    uint8[5] cards;
+    BBTypes.CardType cardType;
+}
+
 // 添加一个新的结构体用于返回游戏桌信息
 struct GameTableView {
     // uint256 balance;
@@ -858,9 +864,6 @@ contract BBGameTable is ReentrancyGuard {
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
             playerData[i] = players[playerAddr];
-
-            // 获取玩家的牌数据，并赋值给 playerData[i] 的 cards 字段
-            playerData[i].cards = dealerState.getPlayerAllCards(playerAddr);
         }
 
         return playerData;
@@ -868,7 +871,25 @@ contract BBGameTable is ReentrancyGuard {
 
     // 获取单个玩家数据
     function getPlayerData(address playerAddr) external view returns (BBPlayer memory) {
+        if (players[playerAddr].playerAddr == address(0)) revert PlayerNotFound();
         return players[playerAddr];
+    }
+
+    // 获取玩家卡牌数据
+    function getAllPlayerCards() external view returns (BBPlayerCardEntry[] memory) {
+       BBPlayerCardEntry[] memory playerCardsData = new BBPlayerCardEntry[](playerAddresses.length);
+        for (uint i = 0; i < playerAddresses.length; i++) {
+            address playerAddr = playerAddresses[i];
+            uint8[5] memory cards = dealerState.getPlayerAllCards(playerAddr);
+            BBTypes.CardType cardType = BBCardUtils.calculateCardType(cards);
+            playerCardsData[i] = BBPlayerCardEntry({
+                playerAddr: playerAddr,
+                cards: cards,
+                cardType: cardType
+            });
+        }
+
+        return playerCardsData;
     }
 
 

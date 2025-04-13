@@ -4,7 +4,7 @@ import { type Abi } from "abitype";
 import { Address } from "viem";
 import { usePublicClient, useReadContract, useWatchContractEvent } from "wagmi";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
-import { GameTable, Player } from "~~/utils/my-tools/types";
+import { GameTable, Player, PlayerCard } from "~~/utils/my-tools/types";
 
 /**
  * 游戏桌数据钩子
@@ -60,6 +60,21 @@ export function useGameTableData({
     address: tableAddress,
     abi: gameTableAbi,
     functionName: "getAllPlayerData",
+    query: {
+      enabled: Boolean(tableAddress && tableAddress !== ""),
+    },
+  });
+
+  // 读取所有玩家卡牌数据
+  const {
+    data: allPlayersCardData,
+    isLoading: isLoadingAllPlayersCards,
+    isError: isAllPlayersCardError,
+    refetch: refetchAllPlayersCard,
+  } = useReadContract({
+    address: tableAddress,
+    abi: gameTableAbi,
+    functionName: "getAllPlayerCards",
     query: {
       enabled: Boolean(tableAddress && tableAddress !== ""),
     },
@@ -172,6 +187,7 @@ export function useGameTableData({
       await Promise.all([
         refetchTableInfo(),
         refetchAllPlayers(),
+        refetchAllPlayersCard(),
         playerAddress ? refetchPlayerData() : Promise.resolve(),
       ]);
     } catch (error) {
@@ -213,6 +229,7 @@ export function useGameTableData({
     // 数据
     playerData: isValidPlayer ? validPlayerData : undefined,
     allPlayers: allPlayersData as Player[] | undefined,
+    allPlayersCard: allPlayersCardData as PlayerCard[] | undefined,
     tableInfo: tableInfo as GameTable | undefined,
 
     // 加载状态

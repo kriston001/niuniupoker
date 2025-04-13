@@ -212,7 +212,7 @@ library BBCardDealer {
     }
 
     /**
-     * @dev 计算玩家的牌型（当有5张牌时）
+     * @dev 计算玩家的牌型（不满5张牌时返回none）
      * @param self 发牌状态
      * @param player 玩家地址
      * @return 计算出的牌型
@@ -221,7 +221,7 @@ library BBCardDealer {
         DealerState storage self, 
         address player
     ) internal returns (BBTypes.CardType) {
-        if (self.cardCount[player] != 5) revert InvalidCardCount();
+        if (self.cardCount[player] != 5) return BBTypes.CardType.NONE;
 
         uint8[5] memory cards;
         for (uint8 i = 0; i < 5; i++) {

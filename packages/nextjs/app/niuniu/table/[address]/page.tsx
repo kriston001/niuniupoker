@@ -16,6 +16,7 @@ import {
   getCardTypeName,
   getGameStateName,
   getPlayerStateName,
+  PlayerCard
 } from "~~/utils/my-tools/types";
 
 // 卡牌组件
@@ -72,6 +73,7 @@ const GameTablePage = () => {
     tableInfo,
     playerData: selfPlayerData,
     allPlayers: players,
+    allPlayersCard: playerCards,
     isLoading: isLoadingTableInfo,
     refreshData,
   } = useGameTableData({
@@ -317,13 +319,6 @@ const GameTablePage = () => {
     }
   };
 
-  if (isLoadingTableInfo) {
-    return (
-      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   // 如果地址无效或游戏桌不存在
   if (!tableAddress) {
@@ -454,18 +449,54 @@ const GameTablePage = () => {
         </div>
       </div>
 
-      {/* 玩家卡牌区域 - 模拟数据 */}
+      {/* 玩家卡牌区域 */}
       <div className="bg-base-200 rounded-box p-6 mb-8">
         <h2 className="text-2xl font-bold mb-4">您的卡牌</h2>
         <div className="flex flex-wrap gap-4 justify-center mb-4">
-          <Card value={0} />
-          <Card value={0} />
-          <Card value={0} />
-          <Card value={0} />
-          <Card value={0} />
+          {selfPlayerData && playerCards && playerCards.length > 0 ? (
+            // 找到当前玩家的卡牌数据
+            (() => {
+              const myCardData = playerCards.find(
+                (card: PlayerCard) => 
+                  card.playerAddr.toLowerCase() === connectedAddress?.toLowerCase()
+              );
+              
+              if (myCardData && myCardData.cards && myCardData.cards.length > 0) {
+                // 显示玩家实际的卡牌
+                return myCardData.cards.map((cardValue: number, index: number) => (
+                  <Card key={`player-card-${index}`} value={cardValue} />
+                ));
+              } else {
+                // 如果找不到卡牌数据，显示5张背面朝上的卡牌
+                return Array(5).fill(0).map((_, index) => (
+                  <Card key={`empty-card-${index}`} value={0} />
+                ));
+              }
+            })()
+          ) : (
+            // 如果没有卡牌数据，显示5张背面朝上的卡牌
+            Array(5).fill(0).map((_, index) => (
+              <Card key={`empty-card-${index}`} value={0} />
+            ))
+          )}
         </div>
         <div className="text-center">
-          <p className="text-xl font-bold">牌型: {getCardTypeName(CardType.NONE)}</p>
+          <p className="text-xl font-bold">
+            牌型: {
+              (() => {
+                if (selfPlayerData && playerCards && playerCards.length > 0) {
+                  const myCardData = playerCards.find(
+                    (card: PlayerCard) => 
+                      card.playerAddr.toLowerCase() === connectedAddress?.toLowerCase()
+                  );
+                  if (myCardData) {
+                    return getCardTypeName(myCardData.cardType);
+                  }
+                }
+                return getCardTypeName(CardType.NONE);
+              })()
+            }
+          </p>
         </div>
       </div>
 
@@ -493,12 +524,48 @@ const GameTablePage = () => {
                   </div>
                   <Address address={player.playerAddr} size="sm" />
                   <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                    <Card value={0} />
-                    <Card value={0} />
-                    <Card value={0} />
-                    <Card value={0} />
-                    <Card value={0} />
+                    {playerCards && playerCards.length > 0 ? (
+                      (() => {
+                        const playerCardData = playerCards.find(
+                          (card: PlayerCard) => 
+                            card.playerAddr.toLowerCase() === player.playerAddr.toLowerCase()
+                        );
+                        
+                        if (playerCardData && playerCardData.cards && playerCardData.cards.length > 0) {
+                          // 显示玩家实际的卡牌
+                          return playerCardData.cards.map((cardValue: number, index: number) => (
+                            <Card key={`player-${player.playerAddr}-card-${index}`} value={cardValue} />
+                          ));
+                        } else {
+                          // 如果找不到卡牌数据，显示5张背面朝上的卡牌
+                          return Array(5).fill(0).map((_, index) => (
+                            <Card key={`player-${player.playerAddr}-empty-${index}`} value={0} />
+                          ));
+                        }
+                      })()
+                    ) : (
+                      // 如果没有卡牌数据，显示5张背面朝上的卡牌
+                      Array(5).fill(0).map((_, index) => (
+                        <Card key={`player-${player.playerAddr}-default-${index}`} value={0} />
+                      ))
+                    )}
                   </div>
+                  {playerCards && playerCards.length > 0 && (
+                    <div className="text-center mt-2">
+                      <p className="font-bold">
+                        {(() => {
+                          const playerCardData = playerCards.find(
+                            (card: PlayerCard) => 
+                              card.playerAddr.toLowerCase() === player.playerAddr.toLowerCase()
+                          );
+                          if (playerCardData) {
+                            return `牌型: ${getCardTypeName(playerCardData.cardType)}`;
+                          }
+                          return "";
+                        })()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
 

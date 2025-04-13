@@ -128,7 +128,12 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
-      "name": "PlatformFeePercentTooHigh",
+      "name": "PlatformFeePercentMustBePositive",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PlayerTimeoutMustBePositive",
       "type": "error"
     },
     {
@@ -139,6 +144,11 @@ const BBContractAbis = {
     {
       "inputs": [],
       "name": "TableDoesNotExist",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TableInactiveTimeoutMustBePositive",
       "type": "error"
     },
     {
@@ -190,19 +200,6 @@ const BBContractAbis = {
         }
       ],
       "name": "GameConfigUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "gameHistoryAddress",
-          "type": "address"
-        }
-      ],
-      "name": "GameHistoryAddressSet",
       "type": "event"
     },
     {
@@ -1091,6 +1088,16 @@ const BBContractAbis = {
           "internalType": "uint256",
           "name": "_platformFeePercent",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_playerTimeout",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_tableInactiveTimeout",
+          "type": "uint256"
         }
       ],
       "name": "updateGameConfig",
@@ -1859,6 +1866,21 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
+      "name": "CardLimitExceeded",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FailedToGenerateUniqueCard",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "GameNotEnded",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "GameNotInPlayingState",
       "type": "error"
     },
@@ -1869,12 +1891,17 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
-      "name": "InsufficientFunds",
+      "name": "GameNotNextStep",
       "type": "error"
     },
     {
       "inputs": [],
-      "name": "InvalidCardCount",
+      "name": "GameNotTimeToReset",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientFunds",
       "type": "error"
     },
     {
@@ -1934,6 +1961,11 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
+      "name": "PlayerAlreadyJoined",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "PlayerNotFound",
       "type": "error"
     },
@@ -1968,48 +2000,17 @@ const BBContractAbis = {
         {
           "indexed": true,
           "internalType": "address",
-          "name": "tableAddr",
+          "name": "player",
           "type": "address"
-        }
-      ],
-      "name": "GameChanged",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "totalPrizePool",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "winnerAddrs",
-          "type": "address[]"
         },
         {
           "indexed": false,
           "internalType": "enum BBTypes.CardType",
-          "name": "maxCardType",
+          "name": "cardType",
           "type": "uint8"
         }
       ],
-      "name": "GameEnded",
+      "name": "CardTypeCalculated",
       "type": "event"
     },
     {
@@ -2018,54 +2019,29 @@ const BBContractAbis = {
         {
           "indexed": true,
           "internalType": "address",
-          "name": "tableAddr",
+          "name": "player",
           "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
         },
         {
           "indexed": false,
           "internalType": "uint8",
-          "name": "playerCount",
+          "name": "count",
           "type": "uint8"
-        }
-      ],
-      "name": "GameStarted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
         },
         {
           "indexed": false,
-          "internalType": "uint256",
-          "name": "betAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint8",
-          "name": "round",
-          "type": "uint8"
+          "internalType": "uint8[]",
+          "name": "cards",
+          "type": "uint8[]"
         }
       ],
-      "name": "PlayerContinued",
+      "name": "CardsDealt",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "DealerReset",
       "type": "event"
     },
     {
@@ -2076,178 +2052,9 @@ const BBContractAbis = {
           "internalType": "address",
           "name": "tableAddr",
           "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
         }
       ],
-      "name": "PlayerFolded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
-        }
-      ],
-      "name": "PlayerJoined",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
-        }
-      ],
-      "name": "PlayerQuit",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "betAmount",
-          "type": "uint256"
-        }
-      ],
-      "name": "PlayerReady",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "bankerAddr",
-          "type": "address"
-        }
-      ],
-      "name": "PlayerRemoved",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "playerAddr",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "betAmount",
-          "type": "uint256"
-        }
-      ],
-      "name": "PlayerUnready",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "bankerAddr",
-          "type": "address"
-        }
-      ],
-      "name": "TableDisbanded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "tableAddr",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "liquidator",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "liquidatorReward",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "platformFee",
-          "type": "uint256"
-        }
-      ],
-      "name": "TableLiquidated",
+      "name": "GameTableChanged",
       "type": "event"
     },
     {
@@ -2399,6 +2206,36 @@ const BBContractAbis = {
           "internalType": "address",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAllPlayerCards",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "playerAddr",
+              "type": "address"
+            },
+            {
+              "internalType": "uint8[5]",
+              "name": "cards",
+              "type": "uint8[5]"
+            },
+            {
+              "internalType": "enum BBTypes.CardType",
+              "name": "cardType",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct BBPlayerCardEntry[]",
+          "name": "",
+          "type": "tuple[]"
         }
       ],
       "stateMutability": "view",

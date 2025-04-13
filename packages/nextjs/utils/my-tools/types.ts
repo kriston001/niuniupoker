@@ -67,6 +67,13 @@ export type Player = {
   cards: number[];
   cardType: CardType;
 };
+
+// 玩家卡牌信息定义
+export type PlayerCard = {
+  playerAddr: string;
+  cards: number[];
+  cardType: CardType;
+};
   
   // 获取牌型名称
   export const getCardTypeName = (cardType: number) => {

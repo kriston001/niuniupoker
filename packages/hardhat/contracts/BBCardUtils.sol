@@ -36,6 +36,13 @@ library BBCardUtils {
      * @dev 计算牌型
      */
     function calculateCardType(uint8[5] memory cards) internal pure returns (BBTypes.CardType) {
+        // 检查是否有无效牌（0表示无效牌）
+        for (uint8 i = 0; i < 5; i++) {
+            if (cards[i] == 0) {
+                return BBTypes.CardType.NONE;
+            }
+        }
+        
         // 转换牌面值（1-13）和花色（0-3）
         uint8[5] memory values;
         for (uint8 i = 0; i < 5; i++) {
@@ -46,7 +53,7 @@ library BBCardUtils {
         if (isFiveFlower(values)) {
             return BBTypes.CardType.FIVE_FLOWERS;
         }
-
+        
         if (isFiveBomb(values)) {
             return BBTypes.CardType.FIVE_BOMB;
         }
