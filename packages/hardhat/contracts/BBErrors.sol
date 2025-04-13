@@ -13,6 +13,8 @@ error InvalidCardIndex();
 error InvalidCardCount();
 error CardAlreadyDealt();
 error CardTypeAlreadyCalculated();
+error CardLimitExceeded();
+error FailedToGenerateUniqueCard();
 
 // Player related errors
 error InvalidPlayerAddress();

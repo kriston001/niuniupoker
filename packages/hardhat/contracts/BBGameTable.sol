@@ -858,6 +858,9 @@ contract BBGameTable is ReentrancyGuard {
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
             playerData[i] = players[playerAddr];
+
+            // 获取玩家的牌数据，并赋值给 playerData[i] 的 cards 字段
+            playerData[i].cards = dealerState.getPlayerAllCards(playerAddr);
         }
 
         return playerData;
