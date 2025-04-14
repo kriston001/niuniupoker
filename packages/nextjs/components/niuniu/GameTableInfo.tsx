@@ -1,19 +1,8 @@
 "use client";
 
-import { Address } from "~~/components/scaffold-eth";
 import { formatEther } from "viem";
-import {
-  GameTable,
-  CardType,
-  GameState,
-  Player,
-  PlayerState,
-  getCardTypeName,
-  getGameStateName,
-  getPlayerStateName,
-  PlayerCard
-} from "~~/utils/my-tools/types";
-
+import { Address } from "~~/components/scaffold-eth";
+import { GameTable, getGameStateName } from "~~/utils/my-tools/types";
 
 interface GameTableInfoProps {
   tableInfo: GameTable;
@@ -46,7 +35,9 @@ const GameTableInfo = ({ tableInfo }: GameTableInfoProps) => {
         </div>
         <div>
           <h3 className="font-bold mb-2">玩家数量</h3>
-          <p className="text-lg">{tableInfo.playerCount}/{tableInfo.maxPlayers}</p>
+          <p className="text-lg">
+            {tableInfo.playerCount}/{tableInfo.maxPlayers}
+          </p>
         </div>
       </div>
     </div>

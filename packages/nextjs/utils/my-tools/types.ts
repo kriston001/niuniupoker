@@ -48,8 +48,8 @@ export type GameTable = {
   maxPlayers: number;
   creationTimestamp: bigint;
   state: number;
-  continuedPlayerCount: number;
-  foldPlayerCount: number;
+  playerContinuedCount: number;
+  playerFoldCount: number;
   playerReadyCount: number;
   playerAddresses: string[];
   currentRoundDeadline: bigint;

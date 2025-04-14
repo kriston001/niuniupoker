@@ -38,9 +38,11 @@ export function checkNext(tableInfo: GameTable): { b: boolean; name: string } {
     }
   } else if (tableInfo.state == GameState.FIRST_BETTING || tableInfo.state == GameState.SECOND_BETTING) {
     //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
+    console.log(new Date(Number(tableInfo.currentRoundDeadline) * 1000).toLocaleString());
+    console.log(tableInfo.playerContinuedCount, tableInfo.playerFoldCount, tableInfo.playerCount);
     if (
-      tableInfo.continuedPlayerCount + tableInfo.foldPlayerCount == tableInfo.playerCount ||
-      tableInfo.currentRoundDeadline < Date.now()
+      tableInfo.playerContinuedCount + tableInfo.playerFoldCount == tableInfo.playerCount ||
+      Number(tableInfo.currentRoundDeadline) * 1000 < Date.now()
     ) {
       return { b: true, name: "进入下一轮" };
     } else {
