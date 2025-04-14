@@ -465,33 +465,73 @@ contract BBGameTable is ReentrancyGuard {
     function nextStep() external onlyBanker nonReentrant {
         if (!_checkCanNext()) revert GameNotNextStep();
 
-        if(state == BBTypes.GameState.WAITING){
+        // if(state == BBTypes.GameState.WAITING){
+        //     _startGame();
+        // }else if (state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING) {
+        //     if(playerContinuedCount > 1){
+        //         if(state == BBTypes.GameState.FIRST_BETTING){
+        //             // 第二轮发牌
+        //             dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
+        //             setState(BBTypes.GameState.SECOND_BETTING);
+        //             playerContinuedCount = 0;
+        //             playerFoldCount = 0;
+        //         }else if(state == BBTypes.GameState.SECOND_BETTING){
+        //             // 第三轮发牌
+        //             dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
+        //             playerContinuedCount = 0;
+        //             playerFoldCount = 0;
+        //             setState(BBTypes.GameState.ENDED);
+        //             _settleGame();
+        //         }
+        //     }else{
+        //         // 只有一个玩家继续，进入结算阶段
+        //         setState(BBTypes.GameState.ENDED);
+        //         _settleGame();
+        //     }
+        // }else if(state == BBTypes.GameState.ENDED){
+        //     //游戏已经结束，开始下一轮
+        //     _resetGame();
+        // }
+
+        if(state == BBTypes.GameState.WAITING) {
             _startGame();
-        }else if (state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING) {
-            if(playerContinuedCount > 1){
-                if(state == BBTypes.GameState.FIRST_BETTING){
-                    // 第二轮发牌
-                    dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
-                    setState(BBTypes.GameState.SECOND_BETTING);
-                    playerContinuedCount = 0;
-                    playerFoldCount = 0;
-                }else if(state == BBTypes.GameState.SECOND_BETTING){
-                    // 第三轮发牌
-                    dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
-                    playerContinuedCount = 0;
-                    playerFoldCount = 0;
-                    _endGame();
-                }
-            }else{
-                // 只有一个玩家继续，进入结算阶段
-                _endGame();
-            }
-        }else if(state == BBTypes.GameState.ENDED){
-            //游戏已经结束，开始下一轮
+        }
+        else if(state == BBTypes.GameState.ENDED) {
             _resetGame();
+        }
+        else if(state == BBTypes.GameState.FIRST_BETTING) {
+            _handleFirstBetting();
+        }
+        else if(state == BBTypes.GameState.SECOND_BETTING) {
+            _handleSecondBetting();
         }
 
         _updateLastActivity();
+    }
+
+    function _handleFirstBetting() internal {
+        if(playerContinuedCount > 1) {
+            dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
+            setState(BBTypes.GameState.SECOND_BETTING);
+            playerContinuedCount = 0;
+            playerFoldCount = 0;
+        } else {
+            setState(BBTypes.GameState.ENDED);
+            _settleGame();
+        }
+    }
+
+    function _handleSecondBetting() internal {
+        if(playerContinuedCount > 1) {
+            dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
+            playerContinuedCount = 0;
+            playerFoldCount = 0;
+            setState(BBTypes.GameState.ENDED);
+            _settleGame();
+        } else {
+            setState(BBTypes.GameState.ENDED);
+            _settleGame();
+        }
     }
 
     // 获取是否可以进入下一步
@@ -504,8 +544,8 @@ contract BBGameTable is ReentrancyGuard {
             //等待状态，人数大于一人并且都已准备，则可以开始游戏
             return playerCount >= 2 && playerReadyCount == playerCount;
         }else if(state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING){
-            //第一、二轮下注状态，所有玩家都已行动，则可以进入下一轮
-            return playerContinuedCount + playerFoldCount + _timeoutPlayerCount() == playerCount;
+            //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
+            return playerContinuedCount + playerFoldCount == playerCount || _isTimeOut();
         }else if(state == BBTypes.GameState.ENDED){
             return true;
         }
@@ -514,33 +554,37 @@ contract BBGameTable is ReentrancyGuard {
     }
 
     //获取超时玩家数量
-    function _timeoutPlayerCount() internal view returns (uint8) {
-        uint8 count = 0;
-        for (uint i = 0; i < playerAddresses.length; i++) {
-            address playerAddr = playerAddresses[i];
-            if(_checkTimeout(playerAddr)){
-                count++;
-            }
-        }
-        return count;
-    }
+    // function _timeoutPlayerCount() internal view returns (uint8) {
+    //     uint8 count = 0;
+    //     for (uint i = 0; i < playerAddresses.length; i++) {
+    //         address playerAddr = playerAddresses[i];
+    //         if(_checkTimeout(playerAddr)){
+    //             count++;
+    //         }
+    //     }
+    //     return count;
+    // }
 
-    function timeoutPlayerCount() external view onlyParticipants returns (uint8) {
-        return _timeoutPlayerCount();
+    // function timeoutPlayerCount() external view onlyParticipants returns (uint8) {
+    //     return _timeoutPlayerCount();
+    // }
+
+    function _isTimeOut() internal view returns (bool) {
+        return block.timestamp > currentRoundDeadline;
     }
 
     // 添加检查超时的内部函数
-    function _checkTimeout(address playerAddr) internal view returns (bool) {
-        if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) {
-            return false;
-        }
+    // function _checkTimeout(address playerAddr) internal view returns (bool) {
+    //     if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) {
+    //         return false;
+    //     }
 
-        BBPlayer storage player = players[playerAddr];
-        bool needsAction = (state == BBTypes.GameState.FIRST_BETTING && player.state == BBTypes.PlayerState.READY) ||
-                          (state == BBTypes.GameState.SECOND_BETTING && player.state == BBTypes.PlayerState.FIRST_CONTINUED);
+    //     BBPlayer storage player = players[playerAddr];
+    //     bool needsAction = (state == BBTypes.GameState.FIRST_BETTING && player.state == BBTypes.PlayerState.READY) ||
+    //                       (state == BBTypes.GameState.SECOND_BETTING && player.state == BBTypes.PlayerState.FIRST_CONTINUED);
 
-        return needsAction && block.timestamp > currentRoundDeadline;
-    }
+    //     return needsAction && block.timestamp > currentRoundDeadline;
+    // }
 
     /**
      * @dev 玩家弃牌
@@ -550,7 +594,7 @@ contract BBGameTable is ReentrancyGuard {
         address playerAddr = msg.sender;
 
         // 检查是否超时
-        if (_checkTimeout(playerAddr)) revert NotYourTurn();
+        if (_isTimeOut()) revert ActionTimeOut();
 
         BBPlayer storage player = players[playerAddr];
 
@@ -579,7 +623,7 @@ contract BBGameTable is ReentrancyGuard {
         if (msg.value != betAmount) revert InsufficientFunds();
 
         // 检查是否超时
-        if (_checkTimeout(playerAddr)) revert NotYourTurn();
+        if (_isTimeOut()) revert ActionTimeOut();
 
         BBPlayer storage player = players[playerAddr];
         if (address(player.playerAddr) == address(0)) revert PlayerNotFound();
@@ -603,10 +647,16 @@ contract BBGameTable is ReentrancyGuard {
         emit GameTableChanged(address(this));
     }
 
+    /**
+     * @dev 玩家结算游戏，如果庄家没结算的话
+     */
+    function playerSettle() external payable onlyParticipants nonReentrant{   
+        _settleGame();
+    }
 
-    function _endGame() internal {
-        // 设置游戏状态为结束
-        setState(BBTypes.GameState.ENDED);
+
+    function _settleGame() internal {
+        if (state != BBTypes.GameState.ENDED) revert GameNotInEndedState();
 
         // 计算平台费用
         uint256 platformFee = (totalPrizePool * platformFeePercent) / 100;
@@ -728,7 +778,7 @@ contract BBGameTable is ReentrancyGuard {
     function liquidateInactiveTable() external nonReentrant returns (bool) {
         // 检查游戏桌是否超时
         if (block.timestamp <= lastActivityTimestamp + tableInactiveTimeout) revert TableNotInactive();
-        if (state == BBTypes.GameState.LIQUIDATED || state == BBTypes.GameState.ENDED) revert TableAlreadyLiquidated();
+        if (state != BBTypes.GameState.FIRST_BETTING || state != BBTypes.GameState.SECOND_BETTING) revert TableNotInBetting();
 
         // 计算庄家的押金
         uint256 bankerBet = players[bankerAddr].totalBet();

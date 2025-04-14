@@ -10,7 +10,7 @@ const Card = ({ value, size = "md" }: CardProps) => {
   const sizeClasses = {
     sm: "w-10 h-14 text-xs",
     md: "w-16 h-24 text-base",
-    lg: "w-20 h-32 text-lg"
+    lg: "w-20 h-32 text-lg",
   };
 
   // 如果卡牌值为0，显示背面
@@ -24,7 +24,7 @@ const Card = ({ value, size = "md" }: CardProps) => {
 
   // 计算牌面值和花色
   const suit = Math.floor((value - 1) / 13);
-  const rank = (value - 1) % 13 + 1;
+  const rank = ((value - 1) % 13) + 1;
 
   // 花色符号
   const suitSymbols = ["♠", "♥", "♣", "♦"];
@@ -39,15 +39,17 @@ const Card = ({ value, size = "md" }: CardProps) => {
   if (rank === 13) rankDisplay = "K";
 
   return (
-    <div className={`${sizeClasses[size]} bg-white rounded-lg flex flex-col items-center justify-center border border-gray-300 shadow-md relative overflow-hidden`}>
+    <div
+      className={`${sizeClasses[size]} bg-white rounded-lg flex flex-col items-center justify-center border border-gray-300 shadow-md relative overflow-hidden`}
+    >
       <div className="absolute top-1 left-1">
         <div className={`text-sm font-bold ${isRed ? "text-red-600" : "text-black"}`}>{rankDisplay}</div>
-        <div className={`text-sm ${isRed ? "text-red-600" : "text-black"}`}>{suitSymbol}</div>
+        {/* <div className={`text-sm ${isRed ? "text-red-600" : "text-black"}`}>{suitSymbol}</div> */}
       </div>
       <div className={`text-2xl ${isRed ? "text-red-600" : "text-black"}`}>{suitSymbol}</div>
       <div className="absolute bottom-1 right-1 rotate-180">
         <div className={`text-sm font-bold ${isRed ? "text-red-600" : "text-black"}`}>{rankDisplay}</div>
-        <div className={`text-sm ${isRed ? "text-red-600" : "text-black"}`}>{suitSymbol}</div>
+        {/* <div className={`text-sm ${isRed ? "text-red-600" : "text-black"}`}>{suitSymbol}</div> */}
       </div>
     </div>
   );

@@ -1866,6 +1866,11 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
+      "name": "ActionTimeOut",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "CardLimitExceeded",
       "type": "error"
     },
@@ -1877,6 +1882,11 @@ const BBContractAbis = {
     {
       "inputs": [],
       "name": "GameNotEnded",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "GameNotInEndedState",
       "type": "error"
     },
     {
@@ -1951,11 +1961,6 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
-      "name": "NotYourTurn",
-      "type": "error"
-    },
-    {
-      "inputs": [],
       "name": "OnlyMainContractCanCall",
       "type": "error"
     },
@@ -1981,7 +1986,7 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
-      "name": "TableAlreadyLiquidated",
+      "name": "TableNotInBetting",
       "type": "error"
     },
     {
@@ -2669,6 +2674,13 @@ const BBContractAbis = {
     },
     {
       "inputs": [],
+      "name": "playerSettle",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "playerTimeout",
       "outputs": [
         {
@@ -2783,19 +2795,6 @@ const BBContractAbis = {
           "internalType": "string",
           "name": "",
           "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "timeoutPlayerCount",
-      "outputs": [
-        {
-          "internalType": "uint8",
-          "name": "",
-          "type": "uint8"
         }
       ],
       "stateMutability": "view",

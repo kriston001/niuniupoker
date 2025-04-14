@@ -28,6 +28,7 @@ error PlayerNotInShowingState();
 error PlayerNotInSettledState();
 error InvalidPlayerState();
 error MaxPlayersReached();
+error ActionTimeOut();
 
 // Game state related errors
 error InvalidRound();
@@ -49,6 +50,7 @@ error TableAlreadyLiquidated();
 error TableNotFound();
 error TableDoesNotExist();
 error PlayerAlreadyJoined();
+error TableNotInBetting();
 
 // Role related errors
 error NotBanker();

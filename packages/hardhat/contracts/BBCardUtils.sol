@@ -141,8 +141,8 @@ library BBCardUtils {
                         if (remainder == 0) {
                             return BBTypes.CardType.BULL_BULL;
                         } else {
-                            // 返回对应的牛几
-                            return BBTypes.CardType(remainder);
+                            // 返回对应的牛几，需要加1来对应正确的枚举值
+                            return BBTypes.CardType(remainder + 1);
                         }
                     }
                 }

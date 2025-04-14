@@ -8,6 +8,7 @@ interface WriteWithCallbackParams {
   args?: any[];
   value?: bigint;
   account?: `0x${string}`;
+  gas?: bigint;
   onSuccess?: () => Promise<void>;
   onError?: (error: Error) => Promise<void>;
 }
