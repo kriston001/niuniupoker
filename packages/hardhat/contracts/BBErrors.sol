@@ -74,6 +74,7 @@ error InvalidTableInactiveTimeout();
 error MinBetMustBePositive();
 error HouseFeePercentTooHigh();
 error PlatformFeePercentMustBePositive();
+error BankerFeePercentMustBePositive();
 error PlayerTimeoutMustBePositive();
 error TableInactiveTimeoutMustBePositive();
 error InvalidGameHistoryAddress();

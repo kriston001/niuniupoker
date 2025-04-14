@@ -9,6 +9,7 @@ import "solidity-coverage";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+// import "@tenderly/hardhat-tenderly";
 import { task } from "hardhat/config";
 
 // If not set, it uses ours Alchemy's default API key.
@@ -58,6 +59,10 @@ const config: HardhatUserConfig = {
       default: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     },
   },
+  // tenderly: {
+  //   project: "niuniu",    // Tenderly 上创建的项目
+  //   username: "kriston",   // Tenderly 账户用户名
+  // },
   networks: {
     // View the networks that are pre-configured.
     // If the network you are looking for is not here you can add new network settings

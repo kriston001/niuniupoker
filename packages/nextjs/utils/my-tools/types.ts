@@ -17,6 +17,7 @@ export enum GameState {
   SECOND_BETTING = 3,
   ENDED = 4,
   LIQUIDATED = 5,
+  DISBANDED = 6,
 }
 
 // 牌型枚举
@@ -147,6 +148,10 @@ export const getGameStateName = (state: number) => {
       return "第二轮下注";
     case GameState.ENDED:
       return "已结束";
+    case GameState.LIQUIDATED:
+      return "已清算";
+    case GameState.DISBANDED:
+      return "已解散";
     default:
       return "未知";
   }

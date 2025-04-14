@@ -207,34 +207,6 @@ const GameTablePage = () => {
     }
   };
 
-  // 开始游戏
-  const handleStartGame = async () => {
-    if (!selfPlayerData || !tableInfo || !connectedAddress) return;
-    if (!selfPlayerData.isBanker) return;
-
-    try {
-      setIsDoing(true);
-
-      await writeContractWithCallback({
-        address: tableAddress as `0x${string}`,
-        abi: gameTableAbi,
-        functionName: "nextStep",
-        account: connectedAddress as `0x${string}`, // 明确指定账户
-        onSuccess: async () => {
-          console.log("✅ 交易成功");
-          await refreshData();
-        },
-        onError: async err => {
-          console.error("❌ 交易失败:", err.message);
-        },
-      });
-    } catch (error: any) {
-      console.error("开始游戏失败:", error);
-    } finally {
-      setIsDoing(false);
-    }
-  };
-
   // 继续游戏
   const handleContinueGame = async () => {
     if (!selfPlayerData || !tableInfo || !connectedAddress) return;
@@ -289,6 +261,31 @@ const GameTablePage = () => {
       console.error("弃牌失败:", error);
     } finally {
       setIsDoing(false);
+    }
+  };
+
+  // 解散游戏
+  const handleDisband = async () => {
+    if (!selfPlayerData || !tableInfo || !connectedAddress) return;
+    if (!selfPlayerData.isBanker) return;
+
+    try {
+      await writeContractWithCallback({
+        address: tableAddress as `0x${string}`,
+        abi: gameTableAbi,
+        functionName: "bankerDisband",
+        account: connectedAddress as `0x${string}`, // 明确指定账户
+        onSuccess: async () => {
+          console.log("✅ 解散游戏成功");
+          await refreshData();
+        },
+        onError: async err => {
+          console.error("❌ 解散游戏失败:", err.message);
+        },
+      });
+    } catch (error: any) {
+      console.error("解散游戏失败:", error);
+    } finally {
     }
   };
 
@@ -349,25 +346,6 @@ const GameTablePage = () => {
         </button>
       </div>
 
-      {/* 游戏桌信息 */}
-      {/* <div className="bg-base-200 rounded-box p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">游戏桌信息</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h3 className="font-bold mb-2">庄家</h3>
-            <Address address={tableInfo.bankerAddr} />
-          </div>
-          <div>
-            <h3 className="font-bold mb-2">下注金额</h3>
-            <p>{formatEther(tableInfo.betAmount)} ETH</p>
-          </div>
-          <div>
-            <h3 className="font-bold mb-2">创建时间</h3>
-            <p>{new Date(Number(tableInfo.creationTimestamp) * 1000).toLocaleString()}</p>
-          </div>
-        </div>
-      </div> */}
-
       <GameTableInfo tableInfo={tableInfo} />
 
       {/* 游戏状态 - 从合约中获取 */}
@@ -396,7 +374,7 @@ const GameTablePage = () => {
             </button>
           )}
 
-          {selfPlayerData &&
+          {selfPlayerData && !selfPlayerData.isBanker &&
             (selfPlayerData.state == PlayerState.JOINED || selfPlayerData.state == PlayerState.READY) &&
             tableInfo.state == GameState.WAITING && (
               <button className="btn btn-primary" onClick={handleQuitGame}>
@@ -422,6 +400,13 @@ const GameTablePage = () => {
                 return (
                   <button className="btn btn-primary" onClick={handleNextGame}>
                     {name}
+                  </button>
+                );
+              }
+              if(tableInfo.state == GameState.WAITING) {
+                return (
+                  <button className="btn btn-primary" onClick={handleDisband}>
+                    解散游戏
                   </button>
                 );
               }

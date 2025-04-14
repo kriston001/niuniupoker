@@ -6,6 +6,13 @@ const upgradeContracts: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const { deployer } = await hre.getNamedAccounts();
   const { deploy, get } = hre.deployments;
 
+  // 检查是否明确指定了 BBUpgrade 标签
+  // 如果当前运行的不是 BBUpgrade 标签，则跳过此脚本
+  if (!hre.network.tags["BBUpgrade"] && !process.env.FORCE_UPGRADE) {
+    console.log("跳过升级脚本 - 使用 --tags BBUpgrade 来运行升级");
+    return;
+  }
+
   // 升级 BBGameHistory 合约
   console.log("----------开始升级 BBGameHistory 合约----------");
   const currentHistoryDeployment = await get("BBGameHistory");

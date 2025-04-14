@@ -32,6 +32,7 @@ contract BBGameMain is
 
     // 新增一个数组来存储已清算的游戏桌地址
     address[] private liquidatedTableAddresses;
+    address[] private disbandedTableAddresses;
 
     // 游戏桌地址列表
     address[] private tableAddresses;
@@ -41,6 +42,8 @@ contract BBGameMain is
 
     // 平台费用收集相关
     uint256 public platformFeePercent; // 平台费用百分比
+    uint256 public bankerFeePercent; // 庄家费用百分比
+    uint256 public liquidatorFeePercent; // 清算人费用百分比
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -59,6 +62,8 @@ contract BBGameMain is
         uint256 _minBet,
         uint8 _maxPlayers,
         uint256 _platformFeePercent,
+        uint256 _bankerFeePercent,
+        uint256 _liquidatorFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout
     ) public initializer {
@@ -70,6 +75,8 @@ contract BBGameMain is
         minBet = _minBet;
         maxPlayers = _maxPlayers;
         platformFeePercent = _platformFeePercent;
+        bankerFeePercent = _bankerFeePercent;
+        liquidatorFeePercent = _liquidatorFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
     }
@@ -101,7 +108,9 @@ contract BBGameMain is
             playerTimeout,
             tableInactiveTimeout,
             gameHistoryAddress,
-            platformFeePercent
+            platformFeePercent,
+            bankerFeePercent,
+            liquidatorFeePercent
         );
 
         address tableAddr = address(newGameTable);
@@ -182,18 +191,21 @@ contract BBGameMain is
         uint256 _minBet,
         uint8 _maxPlayers,
         uint256 _platformFeePercent,
+        uint256 _bankerFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout
     ) external onlyOwner {
         if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
         if (_platformFeePercent == 0) revert PlatformFeePercentMustBePositive();
+        if (_bankerFeePercent == 0) revert BankerFeePercentMustBePositive();
         if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
         if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
         platformFeePercent = _platformFeePercent;
+        bankerFeePercent = _bankerFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
 
@@ -232,7 +244,7 @@ contract BBGameMain is
      * @dev 从列表中移除游戏桌
      * @param tableAddr 要移除的游戏桌地址
      */
-    function removeGameTable(address tableAddr) external nonReentrant {
+    function removeGameTable(address tableAddr, uint8 removeType) external nonReentrant {
         // 安全检查：只允许游戏桌合约自己调用此函数
         if (msg.sender != tableAddr) revert OnlyTableContractCanRemoveItself();
 
@@ -257,8 +269,14 @@ contract BBGameMain is
         // 从映射中删除
         delete gameTables[tableAddr];
 
-        // 将被清算的游戏桌地址添加到已清算的游戏桌列表中
-        liquidatedTableAddresses.push(tableAddr);
+        if (removeType == 1){
+            // 将被清算的游戏桌地址添加到已清算的游戏桌列表中
+            liquidatedTableAddresses.push(tableAddr);
+        }else if(removeType == 2){
+            // 将被清算的游戏桌地址添加到已结算的游戏桌列表中
+            disbandedTableAddresses.push(tableAddr);
+        }
+        
 
         emit GameTableRemoved(tableAddr);
     }
@@ -284,7 +302,7 @@ contract BBGameMain is
     }
 
     /**
-     * @dev 获取所有非活跃可悲清算的游戏桌信息
+     * @dev 获取所有非活跃可被清算的游戏桌信息
      * @return 返回游戏桌信息数组
      */
     function getAllGameTablesInactive() external view returns(GameTableView[] memory) {
@@ -295,9 +313,9 @@ contract BBGameMain is
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[i];
             BBGameTable gameTable = gameTables[tableAddr];
-            //超过清算时间并且状态不是清算或者结束的table可以被清算
+            //超过清算时间并且游戏在进行中的table可以被清算
             if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp && 
-            gameTable.state() != BBTypes.GameState.ENDED && gameTable.state() != BBTypes.GameState.LIQUIDATED){
+            (gameTable.state() == BBTypes.GameState.FIRST_BETTING && gameTable.state() == BBTypes.GameState.SECOND_BETTING)){
                 tempTables[i] = gameTable.getTableInfo();
                 validCount++;
             }

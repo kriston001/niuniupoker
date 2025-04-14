@@ -8,6 +8,7 @@ import "./BBPlayer.sol";
 import "./BBCardDealer.sol";
 import "./BBVersion.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 interface IBBGameHistory {
     function recordGame(
@@ -84,6 +85,9 @@ contract BBGameTable is ReentrancyGuard {
     uint8 public playerReadyCount;
     uint256 public totalPrizePool;  //奖池金额
     uint256 public platformFeePercent; // 平台费用百分比
+    uint256 public bankerFeePercent; // 庄家费用百分比
+    uint256 public liquidatorFeePercent; // 庄家费用百分比
+    
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
         return BBVersion.VERSION;
@@ -124,12 +128,12 @@ contract BBGameTable is ReentrancyGuard {
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
         address _gameHistoryAddr,
-        uint256 _platformFeePercent
+        uint256 _platformFeePercent,
+        uint256 _bankerFeePercent,
+        uint256 _liquidatorFeePercent
     ) {
         // 参数验证
-        if (_maxPlayers < 2 || _maxPlayers > 10) revert InvalidMaxPlayers();
-        if (_playerTimeout < 60) revert InvalidPlayerTimeout(); // 玩家操作最小超时时间为60秒
-        if (_tableInactiveTimeout < 3600) revert InvalidTableInactiveTimeout(); // 赌桌最小不活跃超时时间为1小时
+        if (_maxPlayers < 2) revert InvalidMaxPlayers();
 
         tableName = _tableName;
         bankerAddr = _bankerAddr;
@@ -143,6 +147,8 @@ contract BBGameTable is ReentrancyGuard {
         lastActivityTimestamp = block.timestamp; // 初始化最后活动时间
         gameHistoryAddr = _gameHistoryAddr;
         platformFeePercent = _platformFeePercent;
+        bankerFeePercent = _bankerFeePercent;
+        liquidatorFeePercent = _liquidatorFeePercent;
 
 
         // 创建庄家对象
@@ -342,13 +348,19 @@ contract BBGameTable is ReentrancyGuard {
         playerCount = 0;
         playerReadyCount = 0;
         totalPrizePool = 0;
-        setState(BBTypes.GameState.NONE);
+        setState(BBTypes.GameState.DISBANDED);
 
         // 最后进行所有转账
         for (uint i = 0; i < refundCount; i++) {
             (bool success, ) = payable(refundAddresses[i]).call{value: refundAmounts[i]}("");
             if (!success) revert TransferFailed();
         }
+
+        // 通知 GameMain 合约移除这个游戏桌
+        (bool successRemoved, ) = gameMainAddr.call(
+            abi.encodeWithSignature("removeGameTable(address, uint)", address(this), 2)
+        );
+        if (!successRemoved) revert OnlyMainContractCanCall();
 
         emit GameTableChanged(address(this));
     }
@@ -440,11 +452,11 @@ contract BBGameTable is ReentrancyGuard {
 
     function _resetGame() internal {
         if (state != BBTypes.GameState.ENDED) revert GameNotEnded();
-        if (gameEndTimestamp + 20000 > block.timestamp) revert GameNotTimeToReset();   //20秒后才能重新开局
+        if (block.timestamp < gameEndTimestamp + 20) revert GameNotTimeToReset();   //20秒后才能重新开局
 
         playerContinuedCount = 0;
         playerFoldCount = 0;
-        gameStartTimestamp = block.timestamp;
+        gameStartTimestamp = 0;
         gameEndTimestamp = 0;
         playerReadyCount = 0;
         totalPrizePool = 0;
@@ -465,39 +477,8 @@ contract BBGameTable is ReentrancyGuard {
     function nextStep() external onlyBanker nonReentrant {
         if (!_checkCanNext()) revert GameNotNextStep();
 
-        // if(state == BBTypes.GameState.WAITING){
-        //     _startGame();
-        // }else if (state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING) {
-        //     if(playerContinuedCount > 1){
-        //         if(state == BBTypes.GameState.FIRST_BETTING){
-        //             // 第二轮发牌
-        //             dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
-        //             setState(BBTypes.GameState.SECOND_BETTING);
-        //             playerContinuedCount = 0;
-        //             playerFoldCount = 0;
-        //         }else if(state == BBTypes.GameState.SECOND_BETTING){
-        //             // 第三轮发牌
-        //             dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
-        //             playerContinuedCount = 0;
-        //             playerFoldCount = 0;
-        //             setState(BBTypes.GameState.ENDED);
-        //             _settleGame();
-        //         }
-        //     }else{
-        //         // 只有一个玩家继续，进入结算阶段
-        //         setState(BBTypes.GameState.ENDED);
-        //         _settleGame();
-        //     }
-        // }else if(state == BBTypes.GameState.ENDED){
-        //     //游戏已经结束，开始下一轮
-        //     _resetGame();
-        // }
-
         if(state == BBTypes.GameState.WAITING) {
             _startGame();
-        }
-        else if(state == BBTypes.GameState.ENDED) {
-            _resetGame();
         }
         else if(state == BBTypes.GameState.FIRST_BETTING) {
             _handleFirstBetting();
@@ -505,12 +486,24 @@ contract BBGameTable is ReentrancyGuard {
         else if(state == BBTypes.GameState.SECOND_BETTING) {
             _handleSecondBetting();
         }
+        else if(state == BBTypes.GameState.ENDED) {
+            _resetGame();
+        }
 
         _updateLastActivity();
     }
 
     function _handleFirstBetting() internal {
-        if(playerContinuedCount > 1) {
+        //将没有操作的玩家设置成弃牌
+        for(uint i = 0; i < playerAddresses.length; i++){
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+            if(player.state == BBTypes.PlayerState.READY){
+                player.playerFold();
+                playerFoldCount++;
+            }  
+        }
+        if(playerContinuedCount >= 2) {
             dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
             setState(BBTypes.GameState.SECOND_BETTING);
             playerContinuedCount = 0;
@@ -522,7 +515,16 @@ contract BBGameTable is ReentrancyGuard {
     }
 
     function _handleSecondBetting() internal {
-        if(playerContinuedCount > 1) {
+        //将没有操作的玩家设置成弃牌
+        for(uint i = 0; i < playerAddresses.length; i++){
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+            if(player.state == BBTypes.PlayerState.FIRST_CONTINUED){
+                player.playerFold();
+                playerFoldCount++;
+            }  
+        }
+        if(playerContinuedCount >= 2) {
             dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
             playerContinuedCount = 0;
             playerFoldCount = 0;
@@ -544,6 +546,10 @@ contract BBGameTable is ReentrancyGuard {
             //等待状态，人数大于一人并且都已准备，则可以开始游戏
             return playerCount >= 2 && playerReadyCount == playerCount;
         }else if(state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING){
+            if(playerFoldCount >= playerCount - 1){
+                //所有玩家都弃牌，则进入结算
+                return true;
+            }
             //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
             return playerContinuedCount + playerFoldCount == playerCount || _isTimeOut();
         }else if(state == BBTypes.GameState.ENDED){
@@ -553,38 +559,9 @@ contract BBGameTable is ReentrancyGuard {
         return false;
     }
 
-    //获取超时玩家数量
-    // function _timeoutPlayerCount() internal view returns (uint8) {
-    //     uint8 count = 0;
-    //     for (uint i = 0; i < playerAddresses.length; i++) {
-    //         address playerAddr = playerAddresses[i];
-    //         if(_checkTimeout(playerAddr)){
-    //             count++;
-    //         }
-    //     }
-    //     return count;
-    // }
-
-    // function timeoutPlayerCount() external view onlyParticipants returns (uint8) {
-    //     return _timeoutPlayerCount();
-    // }
-
     function _isTimeOut() internal view returns (bool) {
         return block.timestamp > currentRoundDeadline;
     }
-
-    // 添加检查超时的内部函数
-    // function _checkTimeout(address playerAddr) internal view returns (bool) {
-    //     if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) {
-    //         return false;
-    //     }
-
-    //     BBPlayer storage player = players[playerAddr];
-    //     bool needsAction = (state == BBTypes.GameState.FIRST_BETTING && player.state == BBTypes.PlayerState.READY) ||
-    //                       (state == BBTypes.GameState.SECOND_BETTING && player.state == BBTypes.PlayerState.FIRST_CONTINUED);
-
-    //     return needsAction && block.timestamp > currentRoundDeadline;
-    // }
 
     /**
      * @dev 玩家弃牌
@@ -650,79 +627,271 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家结算游戏，如果庄家没结算的话
      */
-    function playerSettle() external payable onlyParticipants nonReentrant{   
+    function playerSettle() external payable onlyParticipants nonReentrant{
         _settleGame();
     }
-
 
     function _settleGame() internal {
         if (state != BBTypes.GameState.ENDED) revert GameNotInEndedState();
 
         // 计算平台费用
         uint256 platformFee = (totalPrizePool * platformFeePercent) / 100;
-        uint256 remainingPrizePool = totalPrizePool;
+        uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100;
+        uint256 remainingPrizePool = totalPrizePool - platformFee - bankerFee;
 
-        // 如果有平台费用，则从奖池中扣除
-        if (platformFee > 0) {
-            remainingPrizePool -= platformFee;
+        bool extraFee = true;
+        // 如果只有一个玩家继续，则该玩家获胜
+        if (playerContinuedCount == 1) {    
+            _settleOneContinuedPlayer(remainingPrizePool);
+        } 
+        // 如果所有玩家都弃牌，则每个人拿回自己的钱，平台和庄家不收取费用
+        else if (playerFoldCount == playerCount) {
+            extraFee = false;
+            _settleAllFolded();
+        } 
+        // 正常比牌
+        else {
+            _settleNormalGame(remainingPrizePool);
         }
 
-        BBTypes.CardType _maxCardType = BBTypes.CardType.NONE;
-        // 计算每个玩家的牌型
+        if(extraFee){
+            // 统一处理平台费用和庄家费用转账
+            if (platformFee > 0) {
+                (bool success, ) = gameMainAddr.call{
+                    value: platformFee
+                }(abi.encodeWithSignature("addPendingPlatformFee(uint256)", platformFee));
+                if (!success) revert TransferFailed();
+            }
+
+            if (bankerFee > 0) {
+                (bool success, ) = payable(bankerAddr).call{value: bankerFee}("");
+                if (!success) revert TransferFailed();
+            }
+        }
+        
+
+        gameEndTimestamp = block.timestamp;
+        emit GameTableChanged(address(this));
+    }
+
+    /**
+     * @dev 处理只有一个玩家继续的情况
+     */
+    function _settleOneContinuedPlayer(uint256 remainingPrizePool) internal {
+        // 准备游戏结果数据
+        uint256 _endTimestamp = block.timestamp;
+        address[] memory _playerAddrs = playerAddresses;
+        address[] memory _winnerAddrs = new address[](1);
+        uint256 winnerCount = 0;
+        
+        // 创建玩家数据条目数组
+        BBPlayerEntry[] memory playerEntries = new BBPlayerEntry[](playerAddresses.length);
+        
+        // 找出继续的那个玩家
+        address continuedPlayer = address(0);
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
             BBPlayer storage player = players[playerAddr];
-
-
-            // 玩家的牌
-            uint8[5] memory allCards = dealerState.getPlayerAllCards(playerAddr);
-
-            // 计算牌型
-            BBTypes.CardType cardType = dealerState.calculateCardType(playerAddr);
-
-            // 赋值给玩家
-            player.cards = allCards;
-            player.cardType = cardType;
-
-            // 更新最大牌型
-            if (uint8(player.cardType) > uint8(_maxCardType)) {
-                _maxCardType = player.cardType;
+            
+            // 记录玩家数据
+            playerEntries[i] = BBPlayerEntry({
+                playerAddr: playerAddr,
+                playerData: player
+            });
+            
+            // 找出继续的玩家
+            if (player.state == BBTypes.PlayerState.FIRST_CONTINUED || 
+                player.state == BBTypes.PlayerState.SECOND_CONTINUED) {
+                continuedPlayer = playerAddr;
+                _winnerAddrs[winnerCount] = playerAddr;
+                winnerCount++;
             }
         }
+        
+        // 记录游戏历史
+        IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
+        historyContract.recordGame(
+            gameStartTimestamp,
+            _endTimestamp,
+            totalPrizePool,
+            _playerAddrs,
+            _winnerAddrs,
+            playerEntries,
+            BBTypes.CardType.NONE // 没有比牌，所以没有最大牌型
+        );
+        
+        
+        // 将剩余奖池给获胜者
+        if (continuedPlayer != address(0)) {
+            (bool success, ) = payable(continuedPlayer).call{value: remainingPrizePool}("");
+            if (!success) revert TransferFailed();
+        }
+    }
 
+    /**
+     * @dev 处理所有玩家都弃牌的情况
+     */
+    function _settleAllFolded() internal {
+        // 准备游戏结果数据
+        uint256 _endTimestamp = block.timestamp;
+        address[] memory _playerAddrs = playerAddresses;
+        
+        // 创建临时数组来存储需要返还资金的玩家和金额
+        address[] memory refundAddresses = new address[](playerAddresses.length);
+        uint256[] memory refundAmounts = new uint256[](playerAddresses.length);
+        uint256 refundCount = 0;
+        
+        // 创建玩家数据条目数组
+        BBPlayerEntry[] memory playerEntries = new BBPlayerEntry[](playerAddresses.length);
+        
+        // 收集所有玩家数据并计算需要返还的金额
+        for (uint i = 0; i < playerAddresses.length; i++) {
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+            
+            // 记录玩家数据
+            playerEntries[i] = BBPlayerEntry({
+                playerAddr: playerAddr,
+                playerData: player
+            });
+            
+            // 计算需要返还的金额（玩家的所有押注）
+            uint256 refundAmount = player.totalBet();
+            if (refundAmount > 0) {
+                refundAddresses[refundCount] = playerAddr;
+                refundAmounts[refundCount] = refundAmount;
+                refundCount++;
+            }
+        }
+        
+        // 记录游戏历史（没有赢家）
+        IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
+        historyContract.recordGame(
+            gameStartTimestamp,
+            _endTimestamp,
+            totalPrizePool,
+            _playerAddrs,
+            new address[](0), // 没有赢家
+            playerEntries,
+            BBTypes.CardType.NONE // 没有比牌，所以没有最大牌型
+        );
+        
+        // 返还每个玩家的押注
+        for (uint i = 0; i < refundCount; i++) {
+            (bool success, ) = payable(refundAddresses[i]).call{value: refundAmounts[i]}("");
+            if (!success) revert TransferFailed();
+        }
+    }
+
+
+    /**
+     * @dev 处理正常比牌的情况
+     */
+    function _settleNormalGame(uint256 remainingPrizePool) internal {
+        BBTypes.CardType _maxCardType = BBTypes.CardType.NONE;
+        
         // 准备游戏结果数据
         uint256 _endTimestamp = block.timestamp;
         address[] memory _playerAddrs = playerAddresses;
         address[] memory _winnerAddrs = new address[](playerAddresses.length);
         uint256 winnerCount = 0;
         
-
         // 创建玩家数据条目数组
         BBPlayerEntry[] memory playerEntries = new BBPlayerEntry[](playerAddresses.length);
-
-        // 填充玩家数据并找出最大牌型
+        
+        // 计算每个玩家的牌型
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
             BBPlayer storage player = players[playerAddr];
-
+            
+            // 玩家的牌
+            uint8[5] memory allCards = dealerState.getPlayerAllCards(playerAddr);
+            
+            // 计算牌型
+            BBTypes.CardType cardType = dealerState.calculateCardType(playerAddr);
+            
+            // 赋值给玩家
+            player.cards = allCards;
+            player.cardType = cardType;
+            
+            // 更新最大牌型
+            if (uint8(player.cardType) > uint8(_maxCardType)) {
+                _maxCardType = player.cardType;
+            }
+            
             // 记录玩家数据
             playerEntries[i] = BBPlayerEntry({
                 playerAddr: playerAddr,
                 playerData: player
             });
-
-            // 如果是获胜者，添加到获胜者数组
-            if (player.cardType == _maxCardType) {
-                _winnerAddrs[winnerCount] = playerAddr;
-                winnerCount++;
+        }
+        
+        // 如果所有玩家都没有牛牌型，则比较最大牌
+        if (_maxCardType == BBTypes.CardType.NONE) {
+            uint8 maxCard = 0;
+            
+            // 先找出所有玩家中的最大牌
+            for (uint i = 0; i < playerAddresses.length; i++) {
+                address playerAddr = playerAddresses[i];
+                BBPlayer storage player = players[playerAddr];
+                
+                // 找出玩家五张牌中的最大牌
+                uint8 playerMaxCard = 0;
+                for (uint j = 0; j < 5; j++) {
+                    uint8 cardValue = player.cards[j] % 13;
+                    // 修正：A是最小的(值为1)，K是最大的(值为13)
+                    if (cardValue == 0) cardValue = 1; // A的值为1
+                    if (cardValue > playerMaxCard) {
+                        playerMaxCard = cardValue;
+                    }
+                }
+                
+                // 更新全局最大牌
+                if (playerMaxCard > maxCard) {
+                    maxCard = playerMaxCard;
+                }
+            }
+            
+            // 找出拥有最大牌的玩家
+            for (uint i = 0; i < playerAddresses.length; i++) {
+                address playerAddr = playerAddresses[i];
+                BBPlayer storage player = players[playerAddr];
+                
+                // 检查玩家是否有最大牌
+                uint8 playerMaxCard = 0;
+                for (uint j = 0; j < 5; j++) {
+                    uint8 cardValue = player.cards[j] % 13;
+                    // 修正：A是最小的(值为1)，K是最大的(值为13)
+                    if (cardValue == 0) cardValue = 1; // A的值为1
+                    if (cardValue > playerMaxCard) {
+                        playerMaxCard = cardValue;
+                    }
+                }
+                
+                if (playerMaxCard == maxCard) {
+                    _winnerAddrs[winnerCount] = playerAddr;
+                    winnerCount++;
+                }
+            }
+        } else {
+            // 找出获胜者（有牛牌型的情况）
+            for (uint i = 0; i < playerAddresses.length; i++) {
+                address playerAddr = playerAddresses[i];
+                BBPlayer storage player = players[playerAddr];
+                
+                // 如果是获胜者，添加到获胜者数组
+                if (player.cardType == _maxCardType) {
+                    _winnerAddrs[winnerCount] = playerAddr;
+                    winnerCount++;
+                }
             }
         }
-
+        
         // 调整获胜者数组大小
         assembly {
             mstore(_winnerAddrs, winnerCount)
         }
-
+        
         // 记录游戏历史
         IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
         historyContract.recordGame(
@@ -734,30 +903,20 @@ contract BBGameTable is ReentrancyGuard {
             playerEntries,
             _maxCardType
         );
-
-        // 首先转账平台费用
-        if (platformFee > 0) {
-            // 调用主合约的函数增加待提取的平台费用
-            (bool success, ) = gameMainAddr.call{
-                value: platformFee
-            }(abi.encodeWithSignature("addPendingPlatformFee(uint256)", platformFee));
-
-            // 如果转账失败，整个结算过程失败
-            if (!success) revert TransferFailed();
-        }
-
+        
+        
         // 分配奖金给获胜者
         if (winnerCount > 0) {
             // 每个获胜者应得的奖金
             uint256 prizePerWinner = remainingPrizePool / winnerCount;
-
+            
             // 分配奖金给每个获胜者
             for (uint i = 0; i < winnerCount; i++) {
                 address winnerAddr = _winnerAddrs[i];
                 (bool success, ) = payable(winnerAddr).call{value: prizePerWinner}("");
                 if (!success) revert TransferFailed();
             }
-
+            
             // 处理可能的舍入误差，将剩余的少量奖金给第一个获胜者
             uint256 remainingPrize = remainingPrizePool - (prizePerWinner * winnerCount);
             if (remainingPrize > 0) {
@@ -765,9 +924,6 @@ contract BBGameTable is ReentrancyGuard {
                 if (!success) revert TransferFailed();
             }
         }
-        gameEndTimestamp = block.timestamp;
-
-        emit GameTableChanged(address(this));
     }
 
     /**
@@ -786,8 +942,8 @@ contract BBGameTable is ReentrancyGuard {
         // 计算平台费用 (从庄家押金中收取)
         uint256 platformFee = (bankerBet * platformFeePercent) / 100;
 
-        // 清算人的奖励 (20% 的庄家押金)
-        uint256 liquidatorReward = bankerBet * 20 / 100;
+        // 清算人的奖励 (从庄家押金中收取)
+        uint256 liquidatorReward = bankerBet * liquidatorFeePercent / 100;
 
         // 剩余的庄家押金平均分配给所有玩家
         uint256 remainingBankerBet = bankerBet - liquidatorReward - platformFee;
@@ -838,7 +994,7 @@ contract BBGameTable is ReentrancyGuard {
         }
 
         // 处理可能的舍入误差
-        uint256 actualDistributed = playerRewardTotal + liquidatorReward;
+        uint256 actualDistributed = playerRewardTotal + liquidatorReward + platformFee;
         if (actualDistributed < bankerBet) {
             liquidatorReward += (bankerBet - actualDistributed);
         }
@@ -859,7 +1015,7 @@ contract BBGameTable is ReentrancyGuard {
 
         // 通知 GameMain 合约移除这个游戏桌
         (bool success, ) = gameMainAddr.call(
-            abi.encodeWithSignature("removeGameTable(address)", address(this))
+            abi.encodeWithSignature("removeGameTable(address, uint)", address(this), 1)
         );
         if (!success) revert OnlyMainContractCanCall();
 

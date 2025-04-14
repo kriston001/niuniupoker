@@ -1,17 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "./BBVersion.sol";
-
 /**
  * @title BBTypes
  * @dev 牛牛游戏类型定义
  */
 library BBTypes {
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
     // 游戏状态
     enum GameState {
         NONE,
@@ -19,7 +13,8 @@ library BBTypes {
         FIRST_BETTING,
         SECOND_BETTING,
         ENDED,
-        LIQUIDATED
+        LIQUIDATED,
+        DISBANDED
     }
 
     // 玩家状态
