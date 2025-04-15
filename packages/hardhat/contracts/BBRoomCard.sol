@@ -11,46 +11,49 @@ import "./BBVersion.sol";
 
 /**
  * @title BBRoomCard
- * @dev Niu Niu game room card NFT contract, consumed when creating game tables
+ * @dev Niu Niu game room card NFT contract with dynamic card types
  */
-contract BBRoomCard is 
-    Initializable, 
-    ERC721Upgradeable, 
-    ERC721EnumerableUpgradeable, 
-    OwnableUpgradeable, 
-    UUPSUpgradeable 
+contract BBRoomCard is
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
 {
     using Strings for uint256;
-    // Room card type enumeration
-    enum RoomCardType {
-        SILVER,    // Silver
-        GOLD,      // Gold
-        DIAMOND    // Diamond
+
+    // Room card type structure - combines type and config in one structure
+    struct CardType {
+        uint256 id;              // Unique identifier for the card type
+        string name;             // Name of the card type (e.g., "SILVER", "GOLD", "DIAMOND")
+        uint256 maxBetAmount;    // Maximum bet amount allowed with this card
+        uint8 maxPlayers;        // Maximum number of players allowed
+        uint256 price;           // Price to purchase this card
+        string uriSuffix;        // URI suffix for metadata
+        bool active;             // Whether this card type is active
     }
-    
-    // Game parameter limits corresponding to room card types
-    struct RoomCardConfig {
-        uint256 maxBetAmount;    // Maximum bet amount
-        uint8 maxPlayers;        // Maximum number of players
-        uint256 price;           // Room card price
-        string uriSuffix;        // URI suffix
-    }
-    
+
     // Used to generate unique token IDs
     uint256 private _tokenIdCounter;
-    
+
+    // Used to generate unique card type IDs
+    uint256 private _cardTypeIdCounter;
+
     // Room card base URI
     string private _baseTokenURI;
-    
+
     // Game main contract address
     address public gameMainAddress;
-    
-    // Room card type configurations
-    mapping(RoomCardType => RoomCardConfig) public roomCardConfigs;
-    
-    // Room card type corresponding to each tokenId
-    mapping(uint256 => RoomCardType) public tokenTypes;
-    
+
+    // Card types by ID
+    mapping(uint256 => CardType) public cardTypes;
+
+    // Card type ID corresponding to each token ID
+    mapping(uint256 => uint256) public tokenCardTypes;
+
+    // Array of all card type IDs
+    uint256[] private _allCardTypeIds;
+
     // Using centralized version management
     function getVersion() public pure returns (string memory) {
         return BBVersion.VERSION;
@@ -73,41 +76,10 @@ contract BBRoomCard is
         __ERC721Enumerable_init();
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
-        
+
         _baseTokenURI = baseTokenURI;
         _tokenIdCounter = 0;
-        
-        // Initialize default room card configurations
-        _initDefaultRoomCardConfigs();
-    }
-    
-    /**
-     * @dev Initialize default room card configurations
-     */
-    function _initDefaultRoomCardConfigs() internal {
-        // Silver room card configuration
-        roomCardConfigs[RoomCardType.SILVER] = RoomCardConfig({
-            maxBetAmount: 0.1 ether,
-            maxPlayers: 5,
-            price: 0.05 ether,
-            uriSuffix: "silver"
-        });
-        
-        // Gold room card configuration
-        roomCardConfigs[RoomCardType.GOLD] = RoomCardConfig({
-            maxBetAmount: 0.5 ether,
-            maxPlayers: 8,
-            price: 0.1 ether,
-            uriSuffix: "gold"
-        });
-        
-        // Diamond room card configuration
-        roomCardConfigs[RoomCardType.DIAMOND] = RoomCardConfig({
-            maxBetAmount: 1 ether,
-            maxPlayers: 10,
-            price: 0.2 ether,
-            uriSuffix: "diamond"
-        });
+        _cardTypeIdCounter = 1; // Start from 1
     }
 
     /**
@@ -120,68 +92,158 @@ contract BBRoomCard is
     }
 
     /**
+     * @dev Add a new card type
+     * @param name Name of the card type
+     * @param maxBetAmount Maximum bet amount allowed
+     * @param maxPlayers Maximum number of players allowed
+     * @param price Price to purchase this card
+     * @param uriSuffix URI suffix for metadata
+     * @return The ID of the newly created card type
+     */
+    function addCardType(
+        string memory name,
+        uint256 maxBetAmount,
+        uint8 maxPlayers,
+        uint256 price,
+        string memory uriSuffix
+    ) external onlyOwner returns (uint256) {
+        require(bytes(name).length > 0, "Name cannot be empty");
+        require(maxBetAmount > 0, "Max bet amount must be greater than 0");
+        require(maxPlayers > 1, "Max players must be greater than 1");
+        require(price > 0, "Price must be greater than 0");
+
+        // Generate new card type ID
+        uint256 newCardTypeId = _cardTypeIdCounter;
+        _cardTypeIdCounter++;
+
+        // Create new card type
+        cardTypes[newCardTypeId] = CardType({
+            id: newCardTypeId,
+            name: name,
+            maxBetAmount: maxBetAmount,
+            maxPlayers: maxPlayers,
+            price: price,
+            uriSuffix: uriSuffix,
+            active: true
+        });
+
+        // Add to list of all card types
+        _allCardTypeIds.push(newCardTypeId);
+
+        emit CardTypeAdded(newCardTypeId, name, maxBetAmount, maxPlayers, price, uriSuffix);
+        return newCardTypeId;
+    }
+
+    /**
+     * @dev Update an existing card type
+     * @param cardTypeId Card type ID to update
+     * @param maxBetAmount New maximum bet amount
+     * @param maxPlayers New maximum number of players
+     * @param price New price
+     * @param uriSuffix New URI suffix
+     */
+    function updateCardType(
+        uint256 cardTypeId,
+        uint256 maxBetAmount,
+        uint8 maxPlayers,
+        uint256 price,
+        string memory uriSuffix
+    ) external onlyOwner {
+        // Verify card type exists
+        require(cardTypes[cardTypeId].id == cardTypeId, "Card type does not exist");
+        require(maxBetAmount > 0, "Max bet amount must be greater than 0");
+        require(maxPlayers > 1, "Max players must be greater than 1");
+        require(price > 0, "Price must be greater than 0");
+
+        CardType storage cardType = cardTypes[cardTypeId];
+        cardType.maxBetAmount = maxBetAmount;
+        cardType.maxPlayers = maxPlayers;
+        cardType.price = price;
+        cardType.uriSuffix = uriSuffix;
+
+        emit CardTypeUpdated(cardTypeId, maxBetAmount, maxPlayers, price, uriSuffix);
+    }
+
+    /**
+     * @dev Set a card type's active status
+     * @param cardTypeId Card type ID
+     * @param active New active status
+     */
+    function setCardTypeActive(uint256 cardTypeId, bool active) external onlyOwner {
+        // Verify card type exists
+        require(cardTypes[cardTypeId].id == cardTypeId, "Card type does not exist");
+
+        cardTypes[cardTypeId].active = active;
+        emit CardTypeActiveStatusChanged(cardTypeId, active);
+    }
+
+    /**
      * @dev Purchase a room card
-     * @param cardType Room card type
+     * @param cardTypeId Card type ID
      * @return Returns the minted room card ID
      */
-    function buyRoomCard(RoomCardType cardType) external payable returns (uint256) {
-        uint256 price = roomCardConfigs[cardType].price;
-        require(price > 0, "Invalid card type");
-        require(msg.value >= price, "Insufficient payment");
-        
+    function buyRoomCard(uint256 cardTypeId) external payable returns (uint256) {
+        CardType memory cardType = cardTypes[cardTypeId];
+        // Verify card type exists and is active
+        require(cardType.id == cardTypeId, "Card type does not exist");
+        require(cardType.active, "Card type not active");
+        require(msg.value >= cardType.price, "Insufficient payment");
+
         // Mint new room card
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         _safeMint(msg.sender, tokenId);
-        
-        // Record room card type
-        tokenTypes[tokenId] = cardType;
-        
-        // If payment amount exceeds room card price, refund excess ETH
-        if (msg.value > price) {
-            uint256 refundAmount = msg.value - price;
+
+        // Record card type ID
+        tokenCardTypes[tokenId] = cardTypeId;
+
+        // If payment amount exceeds card price, refund excess ETH
+        if (msg.value > cardType.price) {
+            uint256 refundAmount = msg.value - cardType.price;
             (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
             require(success, "Refund failed");
         }
-        
-        emit RoomCardPurchased(msg.sender, tokenId, price, cardType);
+
+        emit RoomCardPurchased(msg.sender, tokenId, cardType.price, cardTypeId);
         return tokenId;
     }
 
     /**
      * @dev Batch purchase room cards
-     * @param cardType Room card type
+     * @param cardTypeId Card type ID
      * @param amount Purchase quantity
      * @return Returns an array of minted room card IDs
      */
-    function batchBuyRoomCard(RoomCardType cardType, uint256 amount) external payable returns (uint256[] memory) {
+    function batchBuyRoomCard(uint256 cardTypeId, uint256 amount) external payable returns (uint256[] memory) {
+        CardType memory cardType = cardTypes[cardTypeId];
+        // Verify card type exists and is active
+        require(cardType.id == cardTypeId, "Card type does not exist");
+        require(cardType.active, "Card type not active");
         require(amount > 0, "Amount must be greater than 0");
-        uint256 price = roomCardConfigs[cardType].price;
-        require(price > 0, "Invalid card type");
-        require(msg.value >= price * amount, "Insufficient payment");
-        
+        require(msg.value >= cardType.price * amount, "Insufficient payment");
+
         uint256[] memory tokenIds = new uint256[](amount);
-        
+
         // Batch mint room cards
         for (uint256 i = 0; i < amount; i++) {
             uint256 tokenId = _tokenIdCounter;
             _tokenIdCounter++;
             _safeMint(msg.sender, tokenId);
             tokenIds[i] = tokenId;
-            
-            // Record room card type
-            tokenTypes[tokenId] = cardType;
+
+            // Record card type ID
+            tokenCardTypes[tokenId] = cardTypeId;
         }
-        
-        // If payment amount exceeds total room card price, refund excess ETH
-        uint256 totalPrice = price * amount;
+
+        // If payment amount exceeds total card price, refund excess ETH
+        uint256 totalPrice = cardType.price * amount;
         if (msg.value > totalPrice) {
             uint256 refundAmount = msg.value - totalPrice;
             (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
             require(success, "Refund failed");
         }
-        
-        emit BatchRoomCardPurchased(msg.sender, tokenIds, totalPrice, cardType);
+
+        emit BatchRoomCardPurchased(msg.sender, tokenIds, totalPrice, cardTypeId);
         return tokenIds;
     }
 
@@ -194,25 +256,14 @@ contract BBRoomCard is
         // Only allow game main contract to call
         require(msg.sender == gameMainAddress, "Only game main contract can consume room cards");
         require(_ownerOf(tokenId) == owner, "Not approved or owner");
-        
+
+        // Get card type ID before burning
+        uint256 cardTypeId = tokenCardTypes[tokenId];
+
         // Burn room card
         _burn(tokenId);
-        
-        emit RoomCardConsumed(owner, tokenId, tokenTypes[tokenId]);
-    }
 
-    /**
-     * @dev Update room card type configuration
-     * @param cardType Room card type
-     * @param config New configuration
-     */
-    function updateRoomCardConfig(RoomCardType cardType, RoomCardConfig memory config) external onlyOwner {
-        require(config.price > 0, "Price must be greater than 0");
-        require(config.maxBetAmount > 0, "Max bet amount must be greater than 0");
-        require(config.maxPlayers > 0, "Max players must be greater than 0");
-        
-        roomCardConfigs[cardType] = config;
-        emit RoomCardConfigUpdated(cardType, config);
+        emit RoomCardConsumed(owner, tokenId, cardTypeId);
     }
 
     /**
@@ -229,18 +280,18 @@ contract BBRoomCard is
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
-    
+
     /**
      * @dev Override tokenURI function, returns different URIs based on room card type
      */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        _requireOwned(tokenId); // 使用_requireOwned替代_exists检查
-        
-        RoomCardType cardType = tokenTypes[tokenId];
+        _requireOwned(tokenId);
+
+        uint256 cardTypeId = tokenCardTypes[tokenId];
         string memory baseURI = _baseURI();
-        string memory suffix = roomCardConfigs[cardType].uriSuffix;
-        
-        return bytes(baseURI).length > 0 ? 
+        string memory suffix = cardTypes[cardTypeId].uriSuffix;
+
+        return bytes(baseURI).length > 0 ?
             string(abi.encodePacked(baseURI, suffix, "/", tokenId.toString())) : "";
     }
 
@@ -250,10 +301,10 @@ contract BBRoomCard is
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");
-        
+
         (bool success, ) = payable(owner()).call{value: balance}("");
         require(success, "Withdrawal failed");
-        
+
         emit Withdrawn(owner(), balance);
     }
 
@@ -266,41 +317,95 @@ contract BBRoomCard is
         return balanceOf(owner) > 0;
     }
 
-    /**
-     * @dev Get all room card IDs owned by a user
-     * @param owner User address
-     * @return Array of room card IDs
-     */
-    function getRoomCardsByOwner(address owner) external view returns (uint256[] memory) {
-        uint256 balance = balanceOf(owner);
-        uint256[] memory tokenIds = new uint256[](balance);
-        
-        for (uint256 i = 0; i < balance; i++) {
-            tokenIds[i] = tokenOfOwnerByIndex(owner, i);
-        }
-        
-        return tokenIds;
-    }
-    
-    /**
-     * @dev Get room card type
-     * @param tokenId Room card ID
-     * @return Room card type
-     */
-    function getRoomCardType(uint256 tokenId) external view returns (RoomCardType) {
-        _requireOwned(tokenId); // 使用_requireOwned替代_exists检查
-        return tokenTypes[tokenId];
-    }
-    
-    function _increaseBalance(address account, uint128 value) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
-        super._increaseBalance(account, value);
+    // 定义卡片详细信息结构体
+    struct CardDetails {
+        uint256 tokenId;       // 卡片的token ID
+        uint256 cardTypeId;    // 卡片类型ID
+        string name;           // 卡片类型名称
+        uint256 maxBetAmount;  // 最大下注金额
+        uint8 maxPlayers;      // 最大玩家数
+        string uriSuffix;      // URI后缀
     }
 
-    function getRoomCardConfig(uint256 tokenId) external view returns (RoomCardConfig memory) {
-        _requireOwned(tokenId); // 使用_requireOwned替代_exists检查
-        return roomCardConfigs[tokenTypes[tokenId]];
+    /**
+     * @dev Get all room cards with details owned by a user
+     * @param owner User address
+     * @return Array of card details including token ID and card type information
+     */
+    function getRoomCardsByOwner(address owner) external view returns (CardDetails[] memory) {
+        uint256 balance = balanceOf(owner);
+        CardDetails[] memory cards = new CardDetails[](balance);
+
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(owner, i);
+            uint256 cardTypeId = tokenCardTypes[tokenId];
+            CardType memory cardType = cardTypes[cardTypeId];
+
+            cards[i] = CardDetails({
+                tokenId: tokenId,
+                cardTypeId: cardTypeId,
+                name: cardType.name,
+                maxBetAmount: cardType.maxBetAmount,
+                maxPlayers: cardType.maxPlayers,
+                uriSuffix: cardType.uriSuffix
+            });
+        }
+
+        return cards;
     }
-    
+
+    /**
+     * @dev Get card type for a specific token
+     * @param tokenId Room card ID
+     * @return Card type information
+     */
+    function getCardType(uint256 tokenId) external view returns (CardType memory) {
+        _requireOwned(tokenId);
+        uint256 cardTypeId = tokenCardTypes[tokenId];
+        return cardTypes[cardTypeId];
+    }
+
+    /**
+     * @dev Get all card type IDs
+     * @return Array of all card type IDs
+     */
+    function getAllCardTypeIds() external view returns (uint256[] memory) {
+        return _allCardTypeIds;
+    }
+
+    /**
+     * @dev Get all active card types
+     * @return Arrays of card type IDs and card types
+     */
+    function getActiveCardTypes() external view returns (uint256[] memory, CardType[] memory) {
+        uint256 activeCount = 0;
+
+        // Count active card types
+        for (uint256 i = 0; i < _allCardTypeIds.length; i++) {
+            uint256 typeId = _allCardTypeIds[i];
+            if (cardTypes[typeId].active) {
+                activeCount++;
+            }
+        }
+
+        // Create arrays for active card types
+        uint256[] memory activeIds = new uint256[](activeCount);
+        CardType[] memory activeTypes = new CardType[](activeCount);
+
+        // Fill arrays
+        uint256 index = 0;
+        for (uint256 i = 0; i < _allCardTypeIds.length; i++) {
+            uint256 typeId = _allCardTypeIds[i];
+            if (cardTypes[typeId].active) {
+                activeIds[index] = typeId;
+                activeTypes[index] = cardTypes[typeId];
+                index++;
+            }
+        }
+
+        return (activeIds, activeTypes);
+    }
+
     /**
      * @dev Validate if room card meets game parameter requirements
      * @param tokenId Room card ID
@@ -309,15 +414,17 @@ contract BBRoomCard is
      * @return Whether requirements are met
      */
     function validateRoomCardParams(uint256 tokenId, uint256 betAmount, uint8 maxPlayers) external view returns (bool) {
-        _requireOwned(tokenId); // 使用_requireOwned替代_exists检查
-        RoomCardConfig memory config = roomCardConfigs[tokenTypes[tokenId]];
-        
-        return (betAmount <= config.maxBetAmount && 
-                maxPlayers <= config.maxPlayers);
+        _requireOwned(tokenId);
+        uint256 cardTypeId = tokenCardTypes[tokenId];
+        CardType memory cardType = cardTypes[cardTypeId];
+
+        return (betAmount <= cardType.maxBetAmount &&
+                maxPlayers <= cardType.maxPlayers);
     }
 
-    // 注意：_beforeTokenTransfer函数在OpenZeppelin合约库的最新版本中已被移除
-    // 现在使用_update函数来处理代币转移逻辑
+    function _increaseBalance(address account, uint128 value) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+        super._increaseBalance(account, value);
+    }
 
     function _update(
         address to,
@@ -332,13 +439,6 @@ contract BBRoomCard is
     ) public view override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-    
-    /**
-     * @dev Internal function to check if a token exists
-     */
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
-    }
 
     // Authorize upgrade
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -349,9 +449,11 @@ contract BBRoomCard is
     receive() external payable {}
 
     // Event definitions
-    event RoomCardPurchased(address indexed buyer, uint256 tokenId, uint256 price, RoomCardType cardType);
-    event BatchRoomCardPurchased(address indexed buyer, uint256[] tokenIds, uint256 totalPrice, RoomCardType cardType);
-    event RoomCardConsumed(address indexed owner, uint256 tokenId, RoomCardType cardType);
-    event RoomCardConfigUpdated(RoomCardType cardType, RoomCardConfig config);
+    event CardTypeAdded(uint256 indexed cardTypeId, string name, uint256 maxBetAmount, uint8 maxPlayers, uint256 price, string uriSuffix);
+    event CardTypeUpdated(uint256 indexed cardTypeId, uint256 maxBetAmount, uint8 maxPlayers, uint256 price, string uriSuffix);
+    event CardTypeActiveStatusChanged(uint256 indexed cardTypeId, bool active);
+    event RoomCardPurchased(address indexed buyer, uint256 tokenId, uint256 price, uint256 cardTypeId);
+    event BatchRoomCardPurchased(address indexed buyer, uint256[] tokenIds, uint256 totalPrice, uint256 cardTypeId);
+    event RoomCardConsumed(address indexed owner, uint256 tokenId, uint256 cardTypeId);
     event Withdrawn(address indexed to, uint256 amount);
 }

@@ -94,3 +94,13 @@ error NotAllCardsDealt();
 error NotAllTypesCalculated();
 error NotEnoughPlayers();
 
+// reward pool related errors
+error InvalidGameMainAddress();
+error InvalidRewardAmount();
+error InvalidWinProbability();
+error RewardPoolNotActive();
+error NotPoolOwner();
+error RewardPoolInUse();
+error NotTableBanker();
+error NoRewardPoolForTable();
+
