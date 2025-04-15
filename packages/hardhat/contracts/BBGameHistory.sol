@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
-import "./BBGameTable.sol";
+import "./BBGameTableImplementation.sol";
 import "./BBVersion.sol";
 import "./BBGameMain.sol";
 

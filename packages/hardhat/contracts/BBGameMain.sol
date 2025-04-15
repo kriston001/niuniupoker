@@ -8,13 +8,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 
-// 定义奖励池相关错误
-error InvalidRewardPoolAddress();
-error InvalidRoomLevelAddress();
-error RoomLevelLimitExceeded();
-error RoomLevelRequired();
+
 import "./BBTypes.sol";
-import "./BBGameTable.sol";
+import "./BBGameTableImplementation.sol";
+import "./BBGameTableFactory.sol";
 import "./BBVersion.sol";
 import "./BBRoomCard.sol";
 import "./BBRewardPool.sol";
@@ -46,7 +43,7 @@ contract BBGameMain is
 
     // 游戏桌地址列表
     address[] private tableAddresses;
-    mapping(address => BBGameTable) public gameTables;
+    mapping(address => BBGameTableImplementation) public gameTables;
 
     // 记录每个用户创建的房间数量
     mapping(address => uint256) private userCreatedRoomsCount;
@@ -65,6 +62,9 @@ contract BBGameMain is
     // 房间等级相关
     address public roomLevelAddress; // 房间等级合约地址
     bool public roomLevelEnabled;    // 是否启用房间等级功能
+
+    // 游戏桌工厂相关
+    address public gameTableFactoryAddress; // 游戏桌工厂合约地址
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -86,7 +86,8 @@ contract BBGameMain is
         uint256 _maxBankerFeePercent,
         uint256 _liquidatorFeePercent,
         uint256 _playerTimeout,
-        uint256 _tableInactiveTimeout
+        uint256 _tableInactiveTimeout,
+        address _gameTableFactoryAddress
     ) public initializer {
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
@@ -100,6 +101,12 @@ contract BBGameMain is
         liquidatorFeePercent = _liquidatorFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
+
+        // 初始化游戏桌工厂地址
+        if (_gameTableFactoryAddress != address(0)) {
+            gameTableFactoryAddress = _gameTableFactoryAddress;
+            emit GameTableFactoryAddressUpdated(_gameTableFactoryAddress);
+        }
     }
 
     /**
@@ -170,8 +177,12 @@ contract BBGameMain is
             }
         }
 
-        // 创建新游戏桌合约
-        BBGameTable newGameTable = new BBGameTable(
+        // 检查游戏桌工厂地址是否设置
+        if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
+
+        // 使用工厂合约创建游戏桌
+        BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
+        address payable tableAddr = payable(factory.createGameTable(
             tableName,
             msg.sender,
             betAmount,
@@ -184,14 +195,12 @@ contract BBGameMain is
             liquidatorFeePercent,
             bankerIsPlayer,
             rewardPoolAddress
-        );
+        ));
 
-        address tableAddr = address(newGameTable);
 
-        
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
-        gameTables[tableAddr] = newGameTable;
+        gameTables[tableAddr] = BBGameTableImplementation(tableAddr);
 
         if(bankerIsPlayer){
             // 转账到游戏桌合约 - 使用更安全的 call 方法而不是 transfer
@@ -276,7 +285,7 @@ contract BBGameMain is
 
         for (uint256 i = 0; i < tableAddresses.length && processed < batchSize; i++) {
             address tableAddr = tableAddresses[i];
-            BBGameTable gameTable = gameTables[tableAddr];
+            BBGameTableImplementation gameTable = gameTables[tableAddr];
 
             // 检查是否可以清算
             if (block.timestamp > gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() &&
@@ -356,7 +365,7 @@ contract BBGameMain is
 
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[i];
-            BBGameTable gameTable = gameTables[tableAddr];
+            BBGameTableImplementation gameTable = gameTables[tableAddr];
             // 直接从合约实例获取信息
             tables[i] = gameTable.getTableInfo();
         }
@@ -375,7 +384,7 @@ contract BBGameMain is
 
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[i];
-            BBGameTable gameTable = gameTables[tableAddr];
+            BBGameTableImplementation gameTable = gameTables[tableAddr];
             //超过清算时间并且游戏在进行中的table可以被清算
             if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp &&
             (gameTable.state() == BBTypes.GameState.FIRST_BETTING && gameTable.state() == BBTypes.GameState.SECOND_BETTING)){
@@ -400,7 +409,7 @@ contract BBGameMain is
      */
     function getGameTableInfo(address tableAddr) external view returns (GameTableView memory) {
         if (tableAddr == address(0)) revert TableDoesNotExist();
-        BBGameTable gameTable = gameTables[tableAddr];
+        BBGameTableImplementation gameTable = gameTables[tableAddr];
         return gameTable.getTableInfo();
     }
 
@@ -436,7 +445,7 @@ contract BBGameMain is
     // 添加一个内部函数来获取游戏桌信息
     function _getTableInfo(address tableAddr) internal view returns (GameTableView memory) {
         if (tableAddr == address(0) || address(gameTables[tableAddr]) == address(0)) revert TableDoesNotExist();
-        BBGameTable gameTable = gameTables[tableAddr];
+        BBGameTableImplementation gameTable = gameTables[tableAddr];
         return gameTable.getTableInfo();
     }
 
@@ -495,6 +504,33 @@ contract BBGameMain is
         BBRewardPool rewardPool = BBRewardPool(payable(rewardPoolAddress));
         rewardPool.removeTableRewardPool(tableAddr);
     }
+
+    /**
+     * @dev 设置游戏桌工厂合约地址
+     * @param _gameTableFactoryAddress 游戏桌工厂合约地址
+     */
+    function setGameTableFactoryAddress(address _gameTableFactoryAddress) external onlyOwner nonReentrant {
+        if (_gameTableFactoryAddress == address(0)) revert InvalidAddress();
+        gameTableFactoryAddress = _gameTableFactoryAddress;
+        emit GameTableFactoryAddressUpdated(_gameTableFactoryAddress);
+    }
+
+    /**
+     * @dev 升级游戏桌实现合约
+     * @param _implementation 新的实现合约地址
+     */
+    function upgradeGameTableImplementation(address _implementation) external onlyOwner nonReentrant {
+        if (_implementation == address(0)) revert InvalidAddress();
+        if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
+
+        // 调用工厂合约的升级函数
+        BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
+        factory.updateImplementation(_implementation);
+
+        emit GameTableImplementationUpgraded(_implementation, factory.version());
+    }
+
+
 
     /**
      * @dev 设置房间等级合约地址
@@ -636,5 +672,7 @@ contract BBGameMain is
     event RoomLevelAddressUpdated(address indexed roomLevelAddress);
     event RoomLevelEnabledUpdated(bool enabled);
     event RewardPoolAddressUpdated(address indexed rewardPoolAddress);
+    event GameTableFactoryAddressUpdated(address indexed gameTableFactoryAddress);
+    event GameTableImplementationUpgraded(address indexed implementation, uint256 version);
 }
 

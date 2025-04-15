@@ -7,10 +7,12 @@ import "./BBCardUtils.sol";
 import "./BBPlayer.sol";
 import "./BBCardDealer.sol";
 import "./BBVersion.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "./BBGameHistory.sol";
 import "./BBRewardPool.sol";
-import "hardhat/console.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 //用于把playerData数据转换成结构体用以在函数参数中传递
 struct BBPlayerEntry {
@@ -26,7 +28,6 @@ struct BBPlayerCardEntry {
 
 // 添加一个新的结构体用于返回游戏桌信息
 struct GameTableView {
-    // uint256 balance;
     address tableAddr; // 游戏桌合约地址
     string tableName;
     address bankerAddr;
@@ -44,13 +45,14 @@ struct GameTableView {
     uint256 playerTimeout;
     uint256 tableInactiveTimeout;
     uint256 lastActivityTimestamp;
+    uint256 implementationVersion; // 添加实现版本号
 }
 
 /**
- * @title BBGameTable
- * @dev 牛牛游戏桌合约，管理单个游戏桌的逻辑
+ * @title BBGameTableImplementation
+ * @dev 牛牛游戏桌实现合约，管理单个游戏桌的逻辑
  */
-contract BBGameTable is ReentrancyGuard {
+contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using BBPlayerLib for BBPlayer;
     using BBTypes for BBTypes.GameState;
     using BBTypes for BBTypes.PlayerState;
@@ -77,6 +79,7 @@ contract BBGameTable is ReentrancyGuard {
     uint256 public totalPrizePool;  //奖池金额
     uint256 public bankerFeePercent; // 庄家费用百分比
     uint256 public liquidatorFeePercent; // 庄家费用百分比
+    uint256 public implementationVersion; // 实现版本号
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -106,11 +109,17 @@ contract BBGameTable is ReentrancyGuard {
 
     // 事件
     event GameTableChanged(address indexed tableAddr);
+    event GameTableInitialized(address indexed tableAddr, address indexed banker, uint256 version);
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     /**
-     * @dev 构造函数
+     * @dev 初始化函数，替代构造函数
      */
-    constructor(
+    function initialize(
         string memory _tableName,
         address _bankerAddr,
         uint256 _betAmount,
@@ -122,8 +131,14 @@ contract BBGameTable is ReentrancyGuard {
         uint256 _bankerFeePercent,
         uint256 _liquidatorFeePercent,
         bool _bankerIsPlayer,
-        address _rewardPoolAddr
-    ) {
+        address _rewardPoolAddr,
+        uint256 _implementationVersion
+    ) public initializer {
+        // 初始化可升级合约
+        __Ownable_init(msg.sender);
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
         // 参数验证
         if (_maxPlayers < 2) revert InvalidMaxPlayers();
 
@@ -142,7 +157,7 @@ contract BBGameTable is ReentrancyGuard {
         liquidatorFeePercent = _liquidatorFeePercent;
         bankerIsPlayer = _bankerIsPlayer;
         rewardPoolAddr = _rewardPoolAddr;
-
+        implementationVersion = _implementationVersion;
 
         // 创建庄家对象
         BBPlayer memory _banker = BBPlayer({
@@ -168,6 +183,8 @@ contract BBGameTable is ReentrancyGuard {
         // 初始化发牌状态 - 暂时使用临时种子，后续会通过VRF更新
         uint256 tempSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
         dealerState.initialize(tempSeed);
+
+        emit GameTableInitialized(address(this), _bankerAddr, _implementationVersion);
     }
 
     // 添加一个公共函数来获取玩家地址列表，数组需要显示定义get函数，int、string等不需要
@@ -181,7 +198,6 @@ contract BBGameTable is ReentrancyGuard {
     function _updateLastActivity() internal {
         lastActivityTimestamp = block.timestamp;
     }
-
 
     /**
      * @dev 修饰器：适用于庄家
@@ -215,6 +231,13 @@ contract BBGameTable is ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev 修饰器：只允许游戏主合约调用
+     */
+    modifier onlyGameMain() {
+        if (msg.sender != gameMainAddr) revert OnlyMainContractCanCall();
+        _;
+    }
 
     /**
      * @dev 玩家加入游戏
@@ -830,51 +853,7 @@ contract BBGameTable is ReentrancyGuard {
 
         // 如果所有玩家都没有牛牌型，则比较最大牌
         if (_maxCardType == BBTypes.CardType.NONE) {
-            uint8 maxCard = 0;
-
-            // 先找出所有玩家中的最大牌
-            for (uint i = 0; i < playerAddresses.length; i++) {
-                address playerAddr = playerAddresses[i];
-                BBPlayer storage player = players[playerAddr];
-
-                // 找出玩家五张牌中的最大牌
-                uint8 playerMaxCard = 0;
-                for (uint j = 0; j < 5; j++) {
-                    uint8 cardValue = player.cards[j] % 13;
-                    // 修正：A是最小的(值为1)，K是最大的(值为13)
-                    if (cardValue == 0) cardValue = 1; // A的值为1
-                    if (cardValue > playerMaxCard) {
-                        playerMaxCard = cardValue;
-                    }
-                }
-
-                // 更新全局最大牌
-                if (playerMaxCard > maxCard) {
-                    maxCard = playerMaxCard;
-                }
-            }
-
-            // 找出拥有最大牌的玩家
-            for (uint i = 0; i < playerAddresses.length; i++) {
-                address playerAddr = playerAddresses[i];
-                BBPlayer storage player = players[playerAddr];
-
-                // 检查玩家是否有最大牌
-                uint8 playerMaxCard = 0;
-                for (uint j = 0; j < 5; j++) {
-                    uint8 cardValue = player.cards[j] % 13;
-                    // 修正：A是最小的(值为1)，K是最大的(值为13)
-                    if (cardValue == 0) cardValue = 1; // A的值为1
-                    if (cardValue > playerMaxCard) {
-                        playerMaxCard = cardValue;
-                    }
-                }
-
-                if (playerMaxCard == maxCard) {
-                    _winnerAddrs[winnerCount] = playerAddr;
-                    winnerCount++;
-                }
-            }
+            (_winnerAddrs, winnerCount) = _settleNormalGameWithNoBull(_winnerAddrs);
         } else {
             // 找出获胜者（有牛牌型的情况）
             for (uint i = 0; i < playerAddresses.length; i++) {
@@ -890,7 +869,7 @@ contract BBGameTable is ReentrancyGuard {
         }
 
         // 调整获胜者数组大小
-        assembly {
+        assembly ("memory-safe")  {
             mstore(_winnerAddrs, winnerCount)
         }
 
@@ -926,6 +905,60 @@ contract BBGameTable is ReentrancyGuard {
                 if (!success) revert TransferFailed();
             }
         }
+    }
+
+    /**
+     * @dev 处理没有牛牌型的情况
+     */
+    function _settleNormalGameWithNoBull(address[] memory _winnerAddrs) internal view returns (address[] memory, uint256){
+        uint8 maxCard = 0;
+        uint256 winnerCount = 0;
+
+        // 先找出所有玩家中的最大牌
+        for (uint i = 0; i < playerAddresses.length; i++) {
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+
+            // 找出玩家五张牌中的最大牌
+            uint8 playerMaxCard = 0;
+            for (uint j = 0; j < 5; j++) {
+                uint8 cardValue = player.cards[j] % 13;
+                // 修正：A是最小的(值为1)，K是最大的(值为13)
+                if (cardValue == 0) cardValue = 1; // A的值为1
+                if (cardValue > playerMaxCard) {
+                    playerMaxCard = cardValue;
+                }
+            }
+
+            // 更新全局最大牌
+            if (playerMaxCard > maxCard) {
+                maxCard = playerMaxCard;
+            }
+        }
+
+        // 找出拥有最大牌的玩家
+        for (uint i = 0; i < playerAddresses.length; i++) {
+            address playerAddr = playerAddresses[i];
+            BBPlayer storage player = players[playerAddr];
+
+            // 检查玩家是否有最大牌
+            uint8 playerMaxCard = 0;
+            for (uint j = 0; j < 5; j++) {
+                uint8 cardValue = player.cards[j] % 13;
+                // 修正：A是最小的(值为1)，K是最大的(值为13)
+                if (cardValue == 0) cardValue = 1; // A的值为1
+                if (cardValue > playerMaxCard) {
+                    playerMaxCard = cardValue;
+                }
+            }
+
+            if (playerMaxCard == maxCard) {
+                _winnerAddrs[winnerCount] = playerAddr;
+                winnerCount++;
+            }
+        }
+
+        return (_winnerAddrs, winnerCount);
     }
 
     /**
@@ -1106,7 +1139,8 @@ contract BBGameTable is ReentrancyGuard {
             currentRoundDeadline: currentRoundDeadline,
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
-            lastActivityTimestamp: lastActivityTimestamp
+            lastActivityTimestamp: lastActivityTimestamp,
+            implementationVersion: implementationVersion
         });
     }
 
@@ -1115,5 +1149,9 @@ contract BBGameTable is ReentrancyGuard {
     }
 
     receive() external payable {}
-}
 
+    /**
+     * @dev 授权升级函数，只有合约所有者可以升级
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+}

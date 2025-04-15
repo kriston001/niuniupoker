@@ -103,4 +103,13 @@ error NotPoolOwner();
 error RewardPoolInUse();
 error NotTableBanker();
 error NoRewardPoolForTable();
+error InvalidRewardPoolAddress();
+error InvalidRoomLevelAddress();
+
+// nft related errors
+error RoomLevelLimitExceeded();
+error RoomLevelRequired();
+
+error InvalidAddress();
+error InvalidGameTableFactoryAddress();
 

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBVersion.sol";
-import "./BBGameTable.sol";
+import "./BBGameTableImplementation.sol";
 import "./BBGameMain.sol";
 
 /**
@@ -143,7 +143,7 @@ contract BBRewardPool is
         if (!BBGameMain(payable(gameMainAddr)).isValidGameTable(_tableAddr)) revert InvalidGameTable();
 
         // 获取游戏桌信息
-        BBGameTable gameTable = BBGameTable(payable(_tableAddr));
+        BBGameTableImplementation gameTable = BBGameTableImplementation(payable(_tableAddr));
 
         // 验证调用者是游戏桌的庄家
         if (gameTable.bankerAddr() != msg.sender) revert NotTableBanker();
@@ -183,7 +183,7 @@ contract BBRewardPool is
         if (!BBGameMain(payable(gameMainAddr)).isValidGameTable(_tableAddr)) revert InvalidGameTable();
 
         // 获取游戏桌信息
-        BBGameTable gameTable = BBGameTable(payable(_tableAddr));
+        BBGameTableImplementation gameTable = BBGameTableImplementation(payable(_tableAddr));
 
         // 验证调用者是游戏桌的庄家
         if (gameTable.bankerAddr() != msg.sender) revert NotTableBanker();
