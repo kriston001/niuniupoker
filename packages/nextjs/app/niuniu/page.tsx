@@ -10,6 +10,7 @@ import { Address, Balance } from "~~/components/scaffold-eth";
 import BBContractAbis from "~~/contracts/contractABIs";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
 import { getGameStateName } from "~~/utils/my-tools/types";
+import RoomCard from "~~/components/niuniu/RoomCard";
 
 const NiuNiuPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -17,6 +18,9 @@ const NiuNiuPage = () => {
   const [tableName, setTableName] = useState("");
   const [betAmount, setBetAmount] = useState("0.01");
   const [maxPlayers, setMaxPlayers] = useState(5);
+  const [selectedRoomCardId, setSelectedRoomCardId] = useState<number | null>(null);
+  const [roomCardEnabled, setRoomCardEnabled] = useState(false);
+  const [userRoomCards, setUserRoomCards] = useState<{hasCard: boolean, cardIds: bigint[]}>({hasCard: false, cardIds: []});
 
   const gameMainAbi = BBContractAbis.BBGameMain.abi;
 
@@ -41,11 +45,29 @@ const NiuNiuPage = () => {
       setIsCreatingTable(true);
       const parsedBetAmount = parseEther(betAmount);
 
+      // 如果启用了房卡功能且没有选择房卡，提示用户
+      if (roomCardEnabled && selectedRoomCardId === null) {
+        alert("请选择一张房卡用于创建游戏桌");
+        setIsCreatingTable(false);
+        return;
+      }
+
+      // 准备合约调用参数
+      const contractArgs = roomCardEnabled && selectedRoomCardId !== null
+        ? [tableName, parsedBetAmount, maxPlayers, selectedRoomCardId]
+        : [tableName, parsedBetAmount, maxPlayers];
+      
+      console.log("创建游戏桌参数:", {
+        roomCardEnabled,
+        selectedRoomCardId,
+        contractArgs
+      });
+
       await writeContractWithCallback({
         address: BBContractAbis.BBGameMain.address,
         abi: gameMainAbi,
         functionName: "createGameTable",
-        args: [tableName, parsedBetAmount, maxPlayers],
+        args: contractArgs,
         value: parsedBetAmount,
         account: connectedAddress as `0x${string}`,
         onSuccess: async () => {
@@ -54,6 +76,7 @@ const NiuNiuPage = () => {
           setTableName("");
           setBetAmount("0.01");
           setMaxPlayers(5);
+          setSelectedRoomCardId(null);
 
           // 刷新游戏桌列表
           await refreshData();
@@ -67,6 +90,22 @@ const NiuNiuPage = () => {
     } finally {
       setIsCreatingTable(false);
     }
+  };
+
+  // 处理房卡选择
+  const handleRoomCardSelect = (cardId: number) => {
+    setSelectedRoomCardId(cardId);
+  };
+
+  // 处理房卡变化
+  const handleRoomCardChange = () => {
+    // 房卡变化后刷新数据
+    refreshData();
+  };
+
+  // 从RoomCard组件获取房卡启用状态
+  const handleRoomCardEnabledChange = (enabled: boolean) => {
+    setRoomCardEnabled(enabled);
   };
 
   return (
@@ -92,9 +131,23 @@ const NiuNiuPage = () => {
         </div>
       )}
 
+      {/* 房卡管理 */}
+      <RoomCard 
+        onRoomCardChange={handleRoomCardChange} 
+        onSelectCard={handleRoomCardSelect}
+        selectedCardId={selectedRoomCardId}
+        onRoomCardEnabledChange={handleRoomCardEnabledChange}
+      />
+
       {/* 创建游戏桌 */}
       <div className="bg-base-200 rounded-box p-6 mb-8">
         <h2 className="text-2xl font-bold mb-4">创建新游戏桌</h2>
+        {roomCardEnabled && (
+          <div className="alert alert-info mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>{selectedRoomCardId !== null ? `已选择房卡 #${selectedRoomCardId}，将使用此房卡创建游戏桌` : '请在上方选择一张房卡用于创建游戏桌'}</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="label">
@@ -140,7 +193,7 @@ const NiuNiuPage = () => {
             <button
               className={`btn btn-primary w-full ${isCreatingTable ? "loading" : ""}`}
               onClick={handleCreateTable}
-              disabled={!connectedAddress || isCreatingTable || !tableName || parseFloat(betAmount) <= 0}
+              disabled={!connectedAddress || isCreatingTable || !tableName || parseFloat(betAmount) <= 0 || (roomCardEnabled && selectedRoomCardId === null)}
             >
               {isCreatingTable ? "创建中..." : "创建游戏桌"}
             </button>

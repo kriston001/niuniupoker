@@ -9,11 +9,7 @@ import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBGameTable.sol";
 import "./BBVersion.sol";
-
-
-interface IBBGameMain {
-    function isValidGameTable(address tableAddr) external view returns (bool);
-}
+import "./BBGameMain.sol";
 
 contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // 游戏记录基础信息
@@ -75,7 +71,8 @@ contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         BBTypes.CardType maxCardType
     ) external {
         address tableAddr = msg.sender;
-        if (gameMainAddr == address(0) || !IBBGameMain(gameMainAddr).isValidGameTable(tableAddr)) revert InvalidGameTable();
+        BBGameMain gameMain = BBGameMain(payable(gameMainAddr));
+        if (gameMainAddr == address(0) || !gameMain.isValidGameTable(tableAddr)) revert InvalidGameTable();
 
         uint256 recordIndex = recordCounter;
         recordCounter++;

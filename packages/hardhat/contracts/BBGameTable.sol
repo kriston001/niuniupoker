@@ -8,19 +8,8 @@ import "./BBPlayer.sol";
 import "./BBCardDealer.sol";
 import "./BBVersion.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./BBGameHistory.sol";
 import "hardhat/console.sol";
-
-interface IBBGameHistory {
-    function recordGame(
-        uint256 startTime,
-        uint256 endTime,
-        uint256 totalPrizePool,
-        address[] memory playerAddrs,
-        address[] memory winnerAddrs,
-        BBPlayerEntry[] memory playerEntries,
-        BBTypes.CardType maxCardType
-    ) external;
-}
 
 //用于把playerData数据转换成结构体用以在函数参数中传递
 struct BBPlayerEntry {
@@ -75,6 +64,7 @@ contract BBGameTable is ReentrancyGuard {
     uint8 public playerCount;
     uint8 public maxPlayers;
     uint256 public creationTimestamp;
+    bool public bankerIsPlayer; // 庄家是否加入游戏
     BBTypes.GameState public state;
     uint256 public randomRequestId;
 
@@ -84,7 +74,6 @@ contract BBGameTable is ReentrancyGuard {
     uint8 public playerFoldCount;
     uint8 public playerReadyCount;
     uint256 public totalPrizePool;  //奖池金额
-    uint256 public platformFeePercent; // 平台费用百分比
     uint256 public bankerFeePercent; // 庄家费用百分比
     uint256 public liquidatorFeePercent; // 庄家费用百分比
     
@@ -128,9 +117,9 @@ contract BBGameTable is ReentrancyGuard {
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
         address _gameHistoryAddr,
-        uint256 _platformFeePercent,
         uint256 _bankerFeePercent,
-        uint256 _liquidatorFeePercent
+        uint256 _liquidatorFeePercent,
+        bool _bankerIsPlayer
     ) {
         // 参数验证
         if (_maxPlayers < 2) revert InvalidMaxPlayers();
@@ -146,9 +135,9 @@ contract BBGameTable is ReentrancyGuard {
         creationTimestamp = block.timestamp;
         lastActivityTimestamp = block.timestamp; // 初始化最后活动时间
         gameHistoryAddr = _gameHistoryAddr;
-        platformFeePercent = _platformFeePercent;
         bankerFeePercent = _bankerFeePercent;
         liquidatorFeePercent = _liquidatorFeePercent;
+        bankerIsPlayer = _bankerIsPlayer;
 
 
         // 创建庄家对象
@@ -163,11 +152,14 @@ contract BBGameTable is ReentrancyGuard {
             cardType: BBTypes.CardType.NONE
         });
         banker = _banker;
-        players[_bankerAddr] = banker;
-        playerAddresses.push(bankerAddr);
-        playerReadyCount = 1;
-        playerCount = 1;
-        totalPrizePool += betAmount;
+
+        if(bankerIsPlayer){
+            players[_bankerAddr] = banker;
+            playerAddresses.push(bankerAddr);
+            playerReadyCount = 1;
+            playerCount = 1;
+            totalPrizePool += betAmount;
+        } 
 
         // 初始化发牌状态 - 暂时使用临时种子，后续会通过VRF更新
         uint256 tempSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
@@ -196,9 +188,17 @@ contract BBGameTable is ReentrancyGuard {
     }
 
     /**
-     * @dev 修饰器：适用于普通玩家
+     * @dev 修饰器：适用于玩游戏的玩家，如果庄家也参与游戏，那也算在内
      */
     modifier onlyPlayers() {
+        if (players[msg.sender].playerAddr == address(0)) revert PlayerNotFound();
+        _;
+    }
+
+    /**
+     * @dev 修饰器：适用于非庄家的玩家
+     */
+    modifier onlyNotBanker() {
         if (players[msg.sender].playerAddr == address(0) || msg.sender == bankerAddr) revert PlayerNotFound();
         _;
     }
@@ -207,7 +207,7 @@ contract BBGameTable is ReentrancyGuard {
      * @dev 修饰器：适用于普通玩家和庄家
      */
     modifier onlyParticipants() {
-        if (players[msg.sender].playerAddr == address(0)) revert PlayerNotFound();
+        if (players[msg.sender].playerAddr == address(0) && msg.sender != bankerAddr) revert PlayerNotFound();
         _;
     }
 
@@ -249,7 +249,7 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家准备
      */
-    function playerReady() external payable onlyParticipants nonReentrant {
+    function playerReady() external payable onlyPlayers nonReentrant {
         if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
@@ -270,7 +270,7 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家取消准备
      */
-    function playerUnready() external payable onlyParticipants nonReentrant {
+    function playerUnready() external payable onlyPlayers nonReentrant {
         if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
@@ -294,7 +294,7 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家退出游戏
      */
-    function playerQuit() external payable onlyPlayers nonReentrant {
+    function playerQuit() external payable onlyNotBanker nonReentrant {
         if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
@@ -536,11 +536,6 @@ contract BBGameTable is ReentrancyGuard {
         }
     }
 
-    // 获取是否可以进入下一步
-    function checkCanNext() external view onlyParticipants returns (bool) {
-        return _checkCanNext();
-    }
-
     function _checkCanNext() internal view returns (bool) {
         if(state == BBTypes.GameState.WAITING){
             //等待状态，人数大于一人并且都已准备，则可以开始游戏
@@ -566,7 +561,7 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家弃牌
      */
-    function playerFold() external onlyParticipants nonReentrant{
+    function playerFold() external onlyPlayers nonReentrant{
         if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) revert GameNotInPlayingState();
         address playerAddr = msg.sender;
 
@@ -594,7 +589,7 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家继续游戏
      */
-    function playerContinue() external payable onlyParticipants nonReentrant{
+    function playerContinue() external payable onlyPlayers nonReentrant{
         if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) revert GameNotInPlayingState();
         address playerAddr = msg.sender;
         if (msg.value != betAmount) revert InsufficientFunds();
@@ -627,17 +622,16 @@ contract BBGameTable is ReentrancyGuard {
     /**
      * @dev 玩家结算游戏，如果庄家没结算的话
      */
-    function playerSettle() external payable onlyParticipants nonReentrant{
+    function playerSettle() external payable onlyPlayers nonReentrant{
         _settleGame();
     }
 
     function _settleGame() internal {
         if (state != BBTypes.GameState.ENDED) revert GameNotInEndedState();
 
-        // 计算平台费用
-        uint256 platformFee = (totalPrizePool * platformFeePercent) / 100;
+        // 计算费用
         uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100;
-        uint256 remainingPrizePool = totalPrizePool - platformFee - bankerFee;
+        uint256 remainingPrizePool = totalPrizePool - bankerFee;
 
         bool extraFee = true;
         // 如果只有一个玩家继续，则该玩家获胜
@@ -655,14 +649,7 @@ contract BBGameTable is ReentrancyGuard {
         }
 
         if(extraFee){
-            // 统一处理平台费用和庄家费用转账
-            if (platformFee > 0) {
-                (bool success, ) = gameMainAddr.call{
-                    value: platformFee
-                }(abi.encodeWithSignature("addPendingPlatformFee(uint256)", platformFee));
-                if (!success) revert TransferFailed();
-            }
-
+            // 统一处理庄家费用转账
             if (bankerFee > 0) {
                 (bool success, ) = payable(bankerAddr).call{value: bankerFee}("");
                 if (!success) revert TransferFailed();
@@ -709,7 +696,7 @@ contract BBGameTable is ReentrancyGuard {
         }
         
         // 记录游戏历史
-        IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
+        BBGameHistory historyContract = BBGameHistory(gameHistoryAddr);
         historyContract.recordGame(
             gameStartTimestamp,
             _endTimestamp,
@@ -765,7 +752,7 @@ contract BBGameTable is ReentrancyGuard {
         }
         
         // 记录游戏历史（没有赢家）
-        IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
+        BBGameHistory historyContract = BBGameHistory(gameHistoryAddr);
         historyContract.recordGame(
             gameStartTimestamp,
             _endTimestamp,
@@ -891,9 +878,9 @@ contract BBGameTable is ReentrancyGuard {
         assembly {
             mstore(_winnerAddrs, winnerCount)
         }
-        
+            
         // 记录游戏历史
-        IBBGameHistory historyContract = IBBGameHistory(gameHistoryAddr);
+        BBGameHistory historyContract = BBGameHistory(gameHistoryAddr);
         historyContract.recordGame(
             gameStartTimestamp,
             _endTimestamp,
@@ -939,14 +926,11 @@ contract BBGameTable is ReentrancyGuard {
         // 计算庄家的押金
         uint256 bankerBet = players[bankerAddr].totalBet();
 
-        // 计算平台费用 (从庄家押金中收取)
-        uint256 platformFee = (bankerBet * platformFeePercent) / 100;
-
         // 清算人的奖励 (从庄家押金中收取)
         uint256 liquidatorReward = bankerBet * liquidatorFeePercent / 100;
 
         // 剩余的庄家押金平均分配给所有玩家
-        uint256 remainingBankerBet = bankerBet - liquidatorReward - platformFee;
+        uint256 remainingBankerBet = bankerBet - liquidatorReward;
         uint256 playerRewardTotal = 0;
 
         // 计算有多少玩家可以分配奖励（不包括庄家）
@@ -994,7 +978,7 @@ contract BBGameTable is ReentrancyGuard {
         }
 
         // 处理可能的舍入误差
-        uint256 actualDistributed = playerRewardTotal + liquidatorReward + platformFee;
+        uint256 actualDistributed = playerRewardTotal + liquidatorReward;
         if (actualDistributed < bankerBet) {
             liquidatorReward += (bankerBet - actualDistributed);
         }
@@ -1020,18 +1004,6 @@ contract BBGameTable is ReentrancyGuard {
         if (!success) revert OnlyMainContractCanCall();
 
         // 所有状态更新完成后，进行转账操作
-
-        // 首先转账平台费用
-        if (platformFee > 0) {
-            // 调用主合约的函数增加待提取的平台费用
-            (bool feeSuccess, ) = gameMainAddr.call{
-                value: platformFee
-            }(abi.encodeWithSignature("addPendingPlatformFee(uint256)", platformFee));
-
-            // 如果转账失败，整个清算过程失败
-            if (!feeSuccess) revert TransferFailed();
-        }
-
         // 然后进行其他转账
         for (uint i = 0; i < paymentCount; i++) {
             (bool otherSuccess, ) = payable(paymentAddresses[i]).call{value: paymentAmounts[i]}("");

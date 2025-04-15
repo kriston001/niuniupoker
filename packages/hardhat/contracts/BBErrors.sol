@@ -16,6 +16,13 @@ error CardTypeAlreadyCalculated();
 error CardLimitExceeded();
 error FailedToGenerateUniqueCard();
 
+// Room Card related errors
+error NoRoomCardOwned();
+error RoomCardNotApproved();
+error InvalidRoomCardContract();
+error RoomCardConsumptionFailed();
+error InvalidRoomCardParams();
+
 // Player related errors
 error InvalidPlayerAddress();
 error PlayerNotFound();
@@ -73,13 +80,13 @@ error InvalidPlayerTimeout();
 error InvalidTableInactiveTimeout();
 error MinBetMustBePositive();
 error HouseFeePercentTooHigh();
-error PlatformFeePercentMustBePositive();
 error BankerFeePercentMustBePositive();
 error PlayerTimeoutMustBePositive();
 error TableInactiveTimeoutMustBePositive();
 error InvalidGameHistoryAddress();
 error MaxPlayersTooSmall();
 error ContractPaused();
+error InvalidBankerFeePercent();
 
 // Game progress related errors
 error NotAllPlayersReady();

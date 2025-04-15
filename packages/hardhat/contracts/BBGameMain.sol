@@ -10,6 +10,7 @@ import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBGameTable.sol";
 import "./BBVersion.sol";
+import "./BBRoomCard.sol";
 
 /**
  * @title BBGameMain
@@ -29,6 +30,9 @@ contract BBGameMain is
     uint256 public pendingPlatformFee;  // 平台赚取的手续费
     uint256 public playerTimeout;  // 玩家超时时间
     uint256 public tableInactiveTimeout;  // 游戏桌不活跃超时时间
+    
+    // 房卡NFT合约地址
+    address public roomCardAddress;
 
     // 新增一个数组来存储已清算的游戏桌地址
     address[] private liquidatedTableAddresses;
@@ -40,10 +44,12 @@ contract BBGameMain is
 
     address public gameHistoryAddress;  // 游戏历史记录合约地址
 
-    // 平台费用收集相关
-    uint256 public platformFeePercent; // 平台费用百分比
-    uint256 public bankerFeePercent; // 庄家费用百分比
+    // 费用收集相关
+    uint256 public maxBankerFeePercent; // 庄家抽成最大百分比
     uint256 public liquidatorFeePercent; // 清算人费用百分比
+    
+    // 是否启用房卡功能
+    bool public roomCardEnabled;
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -61,8 +67,7 @@ contract BBGameMain is
     function initialize(
         uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _platformFeePercent,
-        uint256 _bankerFeePercent,
+        uint256 _maxBankerFeePercent,
         uint256 _liquidatorFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout
@@ -74,8 +79,7 @@ contract BBGameMain is
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
-        platformFeePercent = _platformFeePercent;
-        bankerFeePercent = _bankerFeePercent;
+        maxBankerFeePercent = _maxBankerFeePercent;
         liquidatorFeePercent = _liquidatorFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
@@ -86,17 +90,43 @@ contract BBGameMain is
      * @param tableName 游戏桌名称
      * @param betAmount 固定押注金额
      * @param tableMaxPlayers 最大玩家数量
+     * @param roomCardTokenId 房卡NFT的tokenId，如果不启用房卡功能，可以传入0
      */
     function createGameTable(
         string memory tableName,
         uint256 betAmount,
-        uint8 tableMaxPlayers
+        uint8 tableMaxPlayers,
+        uint256 bankerFeePercent,
+        uint256 roomCardTokenId
     ) external payable nonReentrant {
         if (paused()) revert ContractPaused();
         if (betAmount < minBet) revert BetAmountTooSmall();
-        if (tableMaxPlayers == 0 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
+        if (tableMaxPlayers <= 1 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
+        if (bankerFeePercent > maxBankerFeePercent) revert InvalidBankerFeePercent();
+        
 
         if (msg.value != betAmount) revert InsufficientFunds();
+        
+        // 如果启用了房卡功能，验证并消耗房卡
+        if (roomCardEnabled) {
+            if (roomCardAddress == address(0)) revert InvalidRoomCardContract();
+            
+            // 验证用户是否拥有房卡
+            BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
+            if (!roomCard.hasRoomCard(msg.sender)) revert NoRoomCardOwned();
+            
+            // 验证房卡参数是否符合游戏设置
+            if (!roomCard.validateRoomCardParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
+                revert InvalidRoomCardParams();
+            }
+            
+            // 消耗房卡
+            try roomCard.consumeRoomCard(msg.sender, roomCardTokenId) {
+                // 房卡消耗成功
+            } catch {
+                revert RoomCardConsumptionFailed();
+            }
+        }
 
         // 创建新游戏桌合约
         BBGameTable newGameTable = new BBGameTable(
@@ -108,7 +138,6 @@ contract BBGameMain is
             playerTimeout,
             tableInactiveTimeout,
             gameHistoryAddress,
-            platformFeePercent,
             bankerFeePercent,
             liquidatorFeePercent
         );
@@ -124,11 +153,8 @@ contract BBGameMain is
         gameTables[tableAddr] = newGameTable;
 
         // 触发事件
-        emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers);
+        emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, roomCardTokenId);
     }
-
-
-
 
     /**
      * @dev 平台提取平台费用
@@ -190,26 +216,47 @@ contract BBGameMain is
     function updateGameConfig(
         uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _platformFeePercent,
-        uint256 _bankerFeePercent,
+        uint256 _maxBankerFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout
     ) external onlyOwner {
         if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
-        if (_platformFeePercent == 0) revert PlatformFeePercentMustBePositive();
-        if (_bankerFeePercent == 0) revert BankerFeePercentMustBePositive();
+        if (_maxBankerFeePercent == 0) revert BankerFeePercentMustBePositive();
         if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
         if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
-        platformFeePercent = _platformFeePercent;
-        bankerFeePercent = _bankerFeePercent;
+        maxBankerFeePercent = _maxBankerFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
 
-        emit GameConfigUpdated(_minBet, _maxPlayers, _platformFeePercent);
+        emit GameConfigUpdated(_minBet, _maxPlayers);
+    }
+    
+    /**
+     * @dev 设置房卡合约地址
+     * @param _roomCardAddress 房卡合约地址
+     */
+    function setRoomCardAddress(address _roomCardAddress) external onlyOwner {
+        if (_roomCardAddress == address(0)) revert InvalidRoomCardContract();
+        roomCardAddress = _roomCardAddress;
+        
+        // 设置房卡合约的游戏主合约地址
+        BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
+        roomCard.setGameMainAddress(address(this));
+        
+        emit RoomCardAddressUpdated(_roomCardAddress);
+    }
+    
+    /**
+     * @dev 启用或禁用房卡功能
+     * @param _enabled 是否启用
+     */
+    function setRoomCardEnabled(bool _enabled) external onlyOwner {
+        roomCardEnabled = _enabled;
+        emit RoomCardEnabledUpdated(_enabled);
     }
 
     /**
@@ -387,6 +434,27 @@ contract BBGameMain is
         if (_gameHistoryAddress == address(0)) revert InvalidGameHistoryAddress();
         gameHistoryAddress = _gameHistoryAddress;
     }
+    
+    /**
+     * @dev 获取用户拥有的房卡信息
+     * @param userAddress 用户地址
+     * @return hasCard 是否拥有房卡
+     * @return cardIds 拥有的房卡ID数组
+     */
+    function getUserRoomCards(address userAddress) external view returns (bool hasCard, uint256[] memory cardIds) {
+        if (roomCardAddress == address(0)) return (false, new uint256[](0));
+        
+        BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
+        hasCard = roomCard.hasRoomCard(userAddress);
+        
+        if (hasCard) {
+            cardIds = roomCard.getRoomCardsByOwner(userAddress);
+        } else {
+            cardIds = new uint256[](0);
+        }
+        
+        return (hasCard, cardIds);
+    }
 
     // 授权升级
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -397,8 +465,10 @@ contract BBGameMain is
     receive() external payable {}
 
     // 事件定义
-    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers);
+    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers, uint256 roomCardTokenId);
     event GameTableRemoved(address indexed tableAddr);
-    event GameConfigUpdated(uint256 minBet, uint8 maxPlayers, uint256 platformFeePercent);
+    event GameConfigUpdated(uint256 minBet, uint8 maxPlayers);
+    event RoomCardAddressUpdated(address indexed roomCardAddress);
+    event RoomCardEnabledUpdated(bool enabled);
 }
 
