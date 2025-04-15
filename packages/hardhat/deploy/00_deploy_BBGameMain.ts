@@ -102,6 +102,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
             liquidatorFeePercent, // liquidatorFeePercent
             true, // bankerIsPlayer
             ethers.ZeroAddress, // rewardPoolAddr
+            ethers.ZeroAddress, // randomnessManagerAddr - 先设置为零地址，后面会更新
             1, // implementationVersion
           ],
         },
@@ -132,6 +133,27 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   });
   console.log("BBGameTableFactory合约已部署到地址:", bbGameTableFactory.address);
 
+  // 部署 BBRandomnessManager 合约
+  console.log("----------开始部署BBRandomnessManager合约----------");
+  console.log("部署账户:", deployer);
+  const bbRandomnessManager = await deploy("BBRandomnessManager", {
+    from: deployer,
+    args: [], // 构造函数参数为空，因为使用initialize初始化
+    log: true,
+    proxy: {
+      owner: deployer,
+      proxyContract: "UUPS",
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [bbGameMain.address],
+        },
+      },
+    },
+    waitConfirmations: 1,
+  });
+  console.log("BBRandomnessManager合约已部署到地址:", bbRandomnessManager.address);
+
   // 设置BBGameHistory合约的BBGameMain合约地址
   console.log("----------设置BBGameHistory合约的BBGameMain合约地址----------");
   const bbGameHistoryContract = await ethers.getContractAt("BBGameHistory", bbGameHistory.address);
@@ -148,6 +170,11 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log("----------设置BBGameMain合约的BBGameTableFactory合约地址----------");
   await bbGameMainContract.setGameTableFactoryAddress(bbGameTableFactory.address);
   console.log("BBGameMain合约的BBGameTableFactory合约地址已设置为:", bbGameTableFactory.address);
+
+  // 设置BBGameMain合约的BBRandomnessManager合约地址
+  console.log("----------设置BBGameMain合约的BBRandomnessManager合约地址----------");
+  await bbGameMainContract.setRandomnessManagerAddress(bbRandomnessManager.address);
+  console.log("BBGameMain合约的BBRandomnessManager合约地址已设置为:", bbRandomnessManager.address);
 
   // 如果不是本地网络，进行合约验证
   if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
@@ -180,6 +207,13 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
         constructorArguments: [],
       });
       console.log("BBGameTableFactory 验证成功!");
+
+      // 验证 BBRandomnessManager 合约
+      await hre.run("verify:verify", {
+        address: bbRandomnessManager.address,
+        constructorArguments: [],
+      });
+      console.log("BBRandomnessManager 验证成功!");
     } catch (error) {
       console.log("验证失败:", error);
     }
@@ -232,6 +266,23 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   } catch (error) {
     console.log(`BBGameTableImplementation.implementationVersion: 无法读取 ❌，错误信息: ${error}`);
   }
+
+  // 验证 BBRandomnessManager 关联
+  const bbRandomnessManagerContract = await ethers.getContractAt("BBRandomnessManager", bbRandomnessManager.address);
+  const randomnessManagerGameMainAddr = await bbRandomnessManagerContract.gameMainAddr();
+  const isRandomnessManagerGameMainAddrValid = randomnessManagerGameMainAddr === bbGameMain.address;
+  console.log(
+    `BBRandomnessManager.gameMainAddr: ${randomnessManagerGameMainAddr} ${isRandomnessManagerGameMainAddrValid ? "✅" : "❌"}`,
+  );
+
+  // 验证 BBGameMain 的 randomnessManagerAddress
+  const randomnessManagerAddress = await (bbGameMainContract as any).randomnessManagerAddress();
+  const isRandomnessManagerAddressValid = randomnessManagerAddress === bbRandomnessManager.address;
+  console.log(
+    `BBGameMain.randomnessManagerAddress: ${randomnessManagerAddress} ${isRandomnessManagerAddressValid ? "✅" : "❌"}`,
+  );
+
+  console.log("----------部署完成----------");
 };
 
 deployBBGameMain.tags = ["BBDeploy"];

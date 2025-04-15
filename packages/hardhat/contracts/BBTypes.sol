@@ -10,6 +10,8 @@ library BBTypes {
     enum GameState {
         NONE,
         WAITING,
+        COMMITTING,   // 提交随机数阶段
+        REVEALING,    // 揭示随机数阶段
         FIRST_BETTING,
         SECOND_BETTING,
         ENDED,

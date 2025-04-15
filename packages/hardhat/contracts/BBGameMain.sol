@@ -16,6 +16,7 @@ import "./BBVersion.sol";
 import "./BBRoomCard.sol";
 import "./BBRewardPool.sol";
 import "./BBRoomLevel.sol";
+import "./BBRandomnessManager.sol";
 
 /**
  * @title BBGameMain
@@ -65,6 +66,9 @@ contract BBGameMain is
 
     // 游戏桌工厂相关
     address public gameTableFactoryAddress; // 游戏桌工厂合约地址
+
+    // 随机数管理器相关
+    address public randomnessManagerAddress; // 随机数管理器合约地址
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -180,6 +184,9 @@ contract BBGameMain is
         // 检查游戏桌工厂地址是否设置
         if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
 
+        // 检查随机数管理器地址是否设置
+        if (randomnessManagerAddress == address(0)) revert InvalidAddress();
+
         // 使用工厂合约创建游戏桌
         BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
         address payable tableAddr = payable(factory.createGameTable(
@@ -194,7 +201,8 @@ contract BBGameMain is
             bankerFeePercent,
             liquidatorFeePercent,
             bankerIsPlayer,
-            rewardPoolAddress
+            rewardPoolAddress,
+            randomnessManagerAddress
         ));
 
 
@@ -530,6 +538,28 @@ contract BBGameMain is
         emit GameTableImplementationUpgraded(_implementation, factory.version());
     }
 
+    /**
+     * @dev 设置随机数管理器地址
+     * @param _randomnessManagerAddress 随机数管理器地址
+     */
+    function setRandomnessManagerAddress(address _randomnessManagerAddress) external onlyOwner nonReentrant {
+        if (_randomnessManagerAddress == address(0)) revert InvalidAddress();
+        randomnessManagerAddress = _randomnessManagerAddress;
+
+        // 设置随机数管理器的游戏主合约地址
+        // BBRandomnessManager randomnessManager = BBRandomnessManager(_randomnessManagerAddress);
+        // randomnessManager.setGameMainAddress(address(this));
+
+        // 如果已经有游戏桌，为所有游戏桌设置随机数管理器地址
+        // for (uint256 i = 0; i < tableAddresses.length; i++) {
+        //     address tableAddr = tableAddresses[i];
+        //     BBGameTableImplementation gameTable = gameTables[tableAddr];
+        //     gameTable.setRandomnessManagerAddress(_randomnessManagerAddress);
+        // }
+
+        emit RandomnessManagerAddressUpdated(_randomnessManagerAddress);
+    }
+
 
 
     /**
@@ -674,5 +704,6 @@ contract BBGameMain is
     event RewardPoolAddressUpdated(address indexed rewardPoolAddress);
     event GameTableFactoryAddressUpdated(address indexed gameTableFactoryAddress);
     event GameTableImplementationUpgraded(address indexed implementation, uint256 version);
+    event RandomnessManagerAddressUpdated(address indexed randomnessManagerAddress);
 }
 

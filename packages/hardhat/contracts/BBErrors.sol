@@ -113,3 +113,17 @@ error RoomLevelRequired();
 error InvalidAddress();
 error InvalidGameTableFactoryAddress();
 
+// Randomness related errors
+error SessionNotFound();
+error CommitDeadlineExpired();
+error RevealPhaseNotStarted();
+error RevealDeadlineExpired();
+error SessionAlreadyCompleted();
+error NotAParticipant();
+error AlreadyCommitted();
+error NotCommitted();
+error AlreadyRevealed();
+error InvalidReveal();
+error InvalidParticipants();
+error InvalidRandomnessManagerAddress();
+
