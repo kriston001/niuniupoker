@@ -21,8 +21,12 @@ export const menuLinks: HeaderMenuLink[] = [
     href: "/",
   },
   {
-    label: "牛牛游戏",
-    href: "/niuniu",
+    label: "游戏大厅",
+    href: "/lobby",
+  },
+  {
+    label: "NFT",
+    href: "/nft",
   },
   {
     label: "Debug Contracts",

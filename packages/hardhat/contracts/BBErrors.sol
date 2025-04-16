@@ -87,6 +87,7 @@ error InvalidGameHistoryAddress();
 error MaxPlayersTooSmall();
 error ContractPaused();
 error InvalidBankerFeePercent();
+error InvalidLiquidatorFeePercent();
 
 // Game progress related errors
 error NotAllPlayersReady();

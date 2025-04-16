@@ -4,7 +4,7 @@ import { type Abi } from "abitype";
 import { Address } from "viem";
 import { usePublicClient, useReadContract, useWatchContractEvent } from "wagmi";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
-import { GameTable, Player, PlayerCard } from "~~/utils/my-tools/types";
+import { GameTable, Player, PlayerCard } from "~~/types/game-types";
 
 /**
  * 游戏桌数据钩子

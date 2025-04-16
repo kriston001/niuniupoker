@@ -39,8 +39,25 @@ export enum CardType {
   FIVE_FLOWERS = 14,
 }
 
+export interface GameConfig {
+  minBet: bigint;
+  maxPlayers: number;
+  maxBankerFeePercent: bigint;
+  playerTimeout: bigint;
+  tableInactiveTimeout: bigint;
+  liquidatorFeePercent: bigint;
+  roomCardEnabled: boolean;
+  roomLevelEnabled: boolean;
+  gameHistoryAddress: string;
+  rewardPoolAddress: string;
+  randomnessManagerAddress: string;
+  roomCardAddress: string;
+  roomLevelAddress: string;
+  gameTableFactoryAddress: string;
+}
+
 // 游戏桌信息类型定义
-export type GameTable = {
+export interface GameTable {
   tableAddr: string;
   tableName: string;
   bankerAddr: string;
@@ -57,7 +74,7 @@ export type GameTable = {
 };
 
 // 玩家信息类型定义
-export type Player = {
+export interface Player {
   playerAddr: string;
   isBanker: boolean;
   state: PlayerState;
@@ -66,14 +83,45 @@ export type Player = {
   additionalBet2: bigint;
   cards: number[];
   cardType: CardType;
-};
+}
 
 // 玩家卡牌信息定义
-export type PlayerCard = {
+export interface PlayerCard {
   playerAddr: string;
   cards: number[];
   cardType: CardType;
-};
+}
+
+export interface RoomCardNftType {
+  id: bigint;
+  name: string;
+  maxBetAmount: bigint;
+  maxPlayers: number;
+  price: bigint;
+  uriSuffix: string;
+  active: boolean;
+}
+
+// 房卡详细信息
+export interface RoomCardNftDetail {
+  tokenId: bigint;
+  cardType: RoomCardNftType;
+}
+
+export interface RoomLevelNftType {
+  id: bigint;
+  name: string;
+  maxRooms: bigint;
+  price: bigint;
+  uriSuffix: string;
+  active: boolean;
+}
+
+// 房间等级信息
+export interface RoomLevelNftDetail {
+  tokenId: bigint;
+  levelType: RoomLevelNftType;
+}
 
 // 获取牌型名称
 export const getCardTypeName = (cardType: number) => {

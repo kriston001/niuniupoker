@@ -13,7 +13,7 @@ import "./BBVersion.sol";
  * @title BBRoomCard
  * @dev Niu Niu game room card NFT contract with dynamic card types
  */
-contract BBRoomCard is
+contract BBRoomCardNFT is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -318,13 +318,9 @@ contract BBRoomCard is
     }
 
     // 定义卡片详细信息结构体
-    struct CardDetails {
+    struct CardDetail {
         uint256 tokenId;       // 卡片的token ID
-        uint256 cardTypeId;    // 卡片类型ID
-        string name;           // 卡片类型名称
-        uint256 maxBetAmount;  // 最大下注金额
-        uint8 maxPlayers;      // 最大玩家数
-        string uriSuffix;      // URI后缀
+        CardType cardType;     // 继承CardType的所有属性
     }
 
     /**
@@ -332,26 +328,50 @@ contract BBRoomCard is
      * @param owner User address
      * @return Array of card details including token ID and card type information
      */
-    function getRoomCardsByOwner(address owner) external view returns (CardDetails[] memory) {
+    function getRoomCardsByOwner(address owner) external view returns (CardDetail[] memory) {
         uint256 balance = balanceOf(owner);
-        CardDetails[] memory cards = new CardDetails[](balance);
+        CardDetail[] memory cards = new CardDetail[](balance);
 
         for (uint256 i = 0; i < balance; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(owner, i);
             uint256 cardTypeId = tokenCardTypes[tokenId];
-            CardType memory cardType = cardTypes[cardTypeId];
-
-            cards[i] = CardDetails({
+            
+            cards[i] = CardDetail({
                 tokenId: tokenId,
-                cardTypeId: cardTypeId,
-                name: cardType.name,
-                maxBetAmount: cardType.maxBetAmount,
-                maxPlayers: cardType.maxPlayers,
-                uriSuffix: cardType.uriSuffix
+                cardType: cardTypes[cardTypeId]
             });
         }
 
         return cards;
+    }
+
+    /**
+     * @dev 获取用户拥有的房卡信息
+     * @param userAddress 用户地址
+     * @return hasCard 是否拥有房卡
+     * @return cardDetails 房卡详细信息数组
+     */
+    function getUserRoomCards(address userAddress) external view returns (bool hasCard, CardDetail[] memory cardDetails) {
+        hasCard = balanceOf(userAddress) > 0;
+
+        if (hasCard) {
+            uint256 balance = balanceOf(userAddress);
+            cardDetails = new CardDetail[](balance);
+
+            for (uint256 i = 0; i < balance; i++) {
+                uint256 tokenId = tokenOfOwnerByIndex(userAddress, i);
+                uint256 cardTypeId = tokenCardTypes[tokenId];
+                
+                cardDetails[i] = CardDetail({
+                    tokenId: tokenId,
+                    cardType: cardTypes[cardTypeId]
+                });
+            }
+        } else {
+            cardDetails = new CardDetail[](0);
+        }
+
+        return (hasCard, cardDetails);
     }
 
     /**

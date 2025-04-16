@@ -13,7 +13,7 @@ import "./BBVersion.sol";
  * @title BBRoomLevel
  * @dev Niu Niu game room level NFT contract that determines how many rooms a player can create
  */
-contract BBRoomLevel is
+contract BBRoomLevelNFT is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -33,12 +33,9 @@ contract BBRoomLevel is
     }
 
     // Level details structure for returning comprehensive information
-    struct LevelDetails {
+    struct LevelDetail {
         uint256 tokenId;         // Level token ID
-        uint256 levelTypeId;     // Level type ID
-        string name;             // Level type name
-        uint256 maxRooms;        // Maximum number of rooms allowed
-        string uriSuffix;        // URI suffix
+        LevelType levelType;     // Level type information
     }
 
     // Used to generate unique token IDs
@@ -209,6 +206,45 @@ contract BBRoomLevel is
     }
 
     /**
+     * @dev Batch purchase room levels
+     * @param levelTypeId Level type ID
+     * @param amount Purchase quantity
+     * @return Returns an array of minted room level IDs
+     */
+    function batchBuyRoomLevel(uint256 levelTypeId, uint256 amount) external payable returns (uint256[] memory) {
+        LevelType memory levelType = levelTypes[levelTypeId];
+        // Verify level type exists and is active
+        require(levelType.id == levelTypeId, "Level type does not exist");
+        require(levelType.active, "Level type not active");
+        require(amount > 0, "Amount must be greater than 0");
+        require(msg.value >= levelType.price * amount, "Insufficient payment");
+
+        uint256[] memory tokenIds = new uint256[](amount);
+
+        // Batch mint room levels
+        for (uint256 i = 0; i < amount; i++) {
+            uint256 tokenId = _tokenIdCounter;
+            _tokenIdCounter++;
+            _safeMint(msg.sender, tokenId);
+            tokenIds[i] = tokenId;
+
+            // Record level type ID
+            tokenLevelTypes[tokenId] = levelTypeId;
+        }
+
+        // If payment amount exceeds total level price, refund excess ETH
+        uint256 totalPrice = levelType.price * amount;
+        if (msg.value > totalPrice) {
+            uint256 refundAmount = msg.value - totalPrice;
+            (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
+            require(success, "Refund failed");
+        }
+
+        emit BatchRoomLevelPurchased(msg.sender, tokenIds, totalPrice, levelTypeId);
+        return tokenIds;
+    }
+
+    /**
      * @dev Upgrade a room level
      * @param tokenId Current level token ID
      * @param newLevelTypeId New level type ID
@@ -331,33 +367,64 @@ contract BBRoomLevel is
      * @param user User address
      * @return Array of level details for all NFTs owned by the user
      */
-    function getUserLevelDetails(address user) external view returns (LevelDetails[] memory) {
+    function getUserLevelDetails(address user) external view returns (LevelDetail[] memory) {
         uint256 balance = balanceOf(user);
 
         if (balance == 0) {
-            // Return empty array if user has no levels
-            return new LevelDetails[](0);
+            return new LevelDetail[](0);
         }
 
-        // Create array to hold all level details
-        LevelDetails[] memory details = new LevelDetails[](balance);
+        LevelDetail[] memory details = new LevelDetail[](balance);
 
-        // Populate details for each level token
         for (uint256 i = 0; i < balance; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(user, i);
             uint256 levelTypeId = tokenLevelTypes[tokenId];
-            LevelType memory levelType = levelTypes[levelTypeId];
-
-            details[i] = LevelDetails({
+            
+            details[i] = LevelDetail({
                 tokenId: tokenId,
-                levelTypeId: levelTypeId,
-                name: levelType.name,
-                maxRooms: levelType.maxRooms,
-                uriSuffix: levelType.uriSuffix
+                levelType: levelTypes[levelTypeId]
             });
         }
 
         return details;
+    }
+
+    /**
+     * @dev Get user's room level information
+     * @param userAddress User address to check
+     * @return hasLevel Whether the user has any room level
+     * @return levelDetails Array of level details
+     * @return totalMaxRooms Total maximum rooms allowed
+     */
+    function getUserRoomLevel(address userAddress) external view returns (
+        bool hasLevel,
+        LevelDetail[] memory levelDetails,
+        uint256 totalMaxRooms
+    ) {
+        hasLevel = balanceOf(userAddress) > 0;
+
+        if (hasLevel) {
+            uint256 balance = balanceOf(userAddress);
+            levelDetails = new LevelDetail[](balance);
+
+            totalMaxRooms = 0;
+            for (uint256 i = 0; i < balance; i++) {
+                uint256 tokenId = tokenOfOwnerByIndex(userAddress, i);
+                uint256 levelTypeId = tokenLevelTypes[tokenId];
+                
+                levelDetails[i] = LevelDetail({
+                    tokenId: tokenId,
+                    levelType: levelTypes[levelTypeId]
+                });
+                
+                totalMaxRooms += levelTypes[levelTypeId].maxRooms;
+            }
+        } else {
+            levelDetails = new LevelDetail[](0);
+            totalMaxRooms = 0;
+        }
+
+        return (hasLevel, levelDetails, totalMaxRooms);
     }
 
     /**
@@ -454,6 +521,8 @@ contract BBRoomLevel is
     event LevelTypeUpdated(uint256 indexed levelTypeId, uint256 maxRooms, uint256 price, string uriSuffix);
     event LevelTypeActiveStatusChanged(uint256 indexed levelTypeId, bool active);
     event RoomLevelPurchased(address indexed buyer, uint256 tokenId, uint256 price, uint256 levelTypeId);
+    event BatchRoomLevelPurchased(address indexed buyer, uint256[] tokenIds, uint256 totalPrice, uint256 levelTypeId);
     event RoomLevelUpgraded(address indexed owner, uint256 tokenId, uint256 oldLevelTypeId, uint256 newLevelTypeId, uint256 pricePaid);
     event Withdrawn(address indexed to, uint256 amount);
 }
+

@@ -1,27 +1,21 @@
-import { useEffect, useRef, useState } from "react";
-import { type Abi } from "abitype";
-import { useWatchContractEvent } from "wagmi";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useEffect, useRef } from "react";
+import { useReadContract, useWatchContractEvent } from "wagmi";
+import { GameTableCreated, GameTableRemoved, getAllGameTables } from "~~/contracts/abis/BBGameMainABI";
 import scaffoldConfig from "~~/scaffold.config";
-import { GameTable } from "~~/utils/my-tools/types";
+import { GameTable } from "~~/types/game-types";
 
-export function useGameLobbyData({
-  gameMainAbi,
-  refreshInterval = 15000,
-}: {
-  gameMainAbi: Abi;
-  refreshInterval?: number;
-}) {
+export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?: number }) {
   const refreshLockRef = useRef(false);
-  const lastRefreshTimeRef = useRef<number>(0);
+  // const lastRefreshTimeRef = useRef<number>(0);
   const refreshIntervalRef = useRef(refreshInterval);
 
   const {
     data: gameTables,
     isLoading: isLoadingTables,
     refetch: refetchGameTables,
-  } = useScaffoldReadContract({
-    contractName: "BBGameMain",
+  } = useReadContract({
+    address: scaffoldConfig.contracts.BBGameMain,
+    abi: [getAllGameTables],
     functionName: "getAllGameTables",
   });
 
@@ -30,18 +24,19 @@ export function useGameLobbyData({
   refetchRef.current = refetchGameTables;
 
   const refreshData = async () => {
-    // 添加节流：如果距离上次刷新不足1秒，则跳过
-    const now = Date.now();
-    if (now - lastRefreshTimeRef.current < 1000) {
-      return;
-    }
+    // 添加节流：如果距离上次刷新不足2秒，则跳过
+    // const now = Date.now();
+    // if (now - lastRefreshTimeRef.current < 2000) {
+    //   return;
+    // }
+    console.log("刷新lobby数据");
 
     if (refreshLockRef.current) return;
     refreshLockRef.current = true;
 
     try {
       await refetchRef.current();
-      lastRefreshTimeRef.current = now;
+      // lastRefreshTimeRef.current = now;
     } catch (err) {
       console.error("刷新游戏桌失败:", err);
     } finally {
@@ -76,7 +71,7 @@ export function useGameLobbyData({
   // ✅ 事件监听（创建）
   useWatchContractEvent({
     address: scaffoldConfig.contracts.BBGameMain,
-    abi: gameMainAbi,
+    abi: [GameTableCreated],
     eventName: "GameTableCreated",
     onLogs: logs => {
       console.log("收到 GameTableCreated 事件:", logs);
@@ -89,7 +84,7 @@ export function useGameLobbyData({
   // ✅ 事件监听（移除）
   useWatchContractEvent({
     address: scaffoldConfig.contracts.BBGameMain,
-    abi: gameMainAbi,
+    abi: [GameTableRemoved],
     eventName: "GameTableRemoved",
     onLogs: logs => {
       console.log("收到 GameTableRemoved 事件:", logs);
@@ -104,6 +99,5 @@ export function useGameLobbyData({
     gameTables: gameTables as GameTable[] | undefined,
     isLoading: isLoadingTables,
     refreshData,
-    lastRefreshTime: lastRefreshTimeRef.current,
   };
 }

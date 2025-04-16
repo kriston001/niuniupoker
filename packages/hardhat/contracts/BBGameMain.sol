@@ -13,10 +13,27 @@ import "./BBTypes.sol";
 import "./BBGameTableImplementation.sol";
 import "./BBGameTableFactory.sol";
 import "./BBVersion.sol";
-import "./BBRoomCard.sol";
+import "./BBRoomCardNFT.sol";
 import "./BBRewardPool.sol";
-import "./BBRoomLevel.sol";
+import "./BBRoomLevelNFT.sol";
 import "./BBRandomnessManager.sol";
+
+struct GameConfig {
+    uint256 minBet;
+    uint8 maxPlayers;
+    uint256 maxBankerFeePercent;
+    uint256 playerTimeout;
+    uint256 tableInactiveTimeout;
+    uint256 liquidatorFeePercent;
+    bool roomCardEnabled;
+    bool roomLevelEnabled;
+    address gameHistoryAddress;
+    address rewardPoolAddress;
+    address randomnessManagerAddress;
+    address roomCardAddress;
+    address roomLevelAddress;
+    address gameTableFactoryAddress;
+}
 
 /**
  * @title BBGameMain
@@ -36,6 +53,8 @@ contract BBGameMain is
     uint8 public maxPlayers;
     uint256 public playerTimeout;  // 玩家超时时间
     uint256 public tableInactiveTimeout;  // 游戏桌不活跃超时时间
+    uint256 public maxBankerFeePercent; // 庄家抽成最大百分比
+    uint256 public liquidatorFeePercent; // 清算人费用百分比
 
 
     // 新增一个数组来存储已清算的游戏桌地址
@@ -52,9 +71,6 @@ contract BBGameMain is
     address public gameHistoryAddress;  // 游戏历史记录合约地址
     address public rewardPoolAddress;    // 奖励池合约地址
 
-    // 费用收集相关
-    uint256 public maxBankerFeePercent; // 庄家抽成最大百分比
-    uint256 public liquidatorFeePercent; // 清算人费用百分比
 
     // 房卡相关
     bool public roomCardEnabled;  // 是否启用房卡功能
@@ -143,18 +159,23 @@ contract BBGameMain is
         uint256 createdRooms = getUserCreatedRoomsCount(msg.sender);
         // 验证用户的房间等级和已创建的房间数量
         if (createdRooms > maxRoomCount) {
-            if (roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
+            if(roomLevelEnabled){
+                if (roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
 
-            // 验证用户是否拥有房间等级
-            BBRoomLevel roomLevel = BBRoomLevel(payable(roomLevelAddress));
-            if (!roomLevel.hasRoomLevel(msg.sender)) revert RoomLevelRequired();
+                // 验证用户是否拥有房间等级
+                BBRoomLevelNFT roomLevel = BBRoomLevelNFT(payable(roomLevelAddress));
+                if (!roomLevel.hasRoomLevel(msg.sender)) revert RoomLevelRequired();
 
-            // 获取用户等等级NFT可创建的房间总数
-            uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
+                // 获取用户等等级NFT可创建的房间总数
+                uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
 
-            // 验证用户是否超过房间创建上限
-            if (createdRooms > maxRooms + maxRoomCount) {
-                // 如果超过上限，先将计数减回去，再抛出错误
+                // 验证用户是否超过房间创建上限
+                if (createdRooms > maxRooms + maxRoomCount) {
+                    // 如果超过上限，先将计数减回去，再抛出错误
+                    userCreatedRoomsCount[msg.sender]--;
+                    revert RoomLevelLimitExceeded();
+                }
+            }else{
                 userCreatedRoomsCount[msg.sender]--;
                 revert RoomLevelLimitExceeded();
             }
@@ -165,7 +186,7 @@ contract BBGameMain is
             if (roomCardAddress == address(0)) revert InvalidRoomCardContract();
 
             // 验证用户是否拥有房卡
-            BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
+            BBRoomCardNFT roomCard = BBRoomCardNFT(payable(roomCardAddress));
             if (!roomCard.hasRoomCard(msg.sender)) revert NoRoomCardOwned();
 
             // 验证房卡参数是否符合游戏设置
@@ -235,6 +256,25 @@ contract BBGameMain is
         _unpause();
     }
 
+    function getGameConfig() external view returns (GameConfig memory) {
+        return GameConfig({
+            minBet: minBet,
+            maxPlayers: maxPlayers,
+            maxBankerFeePercent: maxBankerFeePercent,
+            playerTimeout: playerTimeout,
+            tableInactiveTimeout: tableInactiveTimeout,
+            liquidatorFeePercent: liquidatorFeePercent,
+            roomCardEnabled: roomCardEnabled,
+            roomLevelEnabled: roomLevelEnabled,
+            gameHistoryAddress: gameHistoryAddress,
+            rewardPoolAddress: rewardPoolAddress,
+            randomnessManagerAddress: randomnessManagerAddress,
+            roomCardAddress: roomCardAddress,
+            roomLevelAddress: roomLevelAddress,
+            gameTableFactoryAddress: gameTableFactoryAddress
+        });
+    }
+
     /**
      * @dev 更新游戏配置（仅限合约拥有者）
      */
@@ -243,19 +283,26 @@ contract BBGameMain is
         uint8 _maxPlayers,
         uint256 _maxBankerFeePercent,
         uint256 _playerTimeout,
-        uint256 _tableInactiveTimeout
+        uint256 _tableInactiveTimeout,
+        uint256 _liquidatorFeePercent,
+        bool _roomCardEnabled,
+        bool _roomLevelEnabled
     ) external onlyOwner {
         if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
         if (_maxBankerFeePercent == 0) revert BankerFeePercentMustBePositive();
         if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
         if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
+        if (_liquidatorFeePercent == 0) revert InvalidLiquidatorFeePercent();
 
         minBet = _minBet;
         maxPlayers = _maxPlayers;
         maxBankerFeePercent = _maxBankerFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
+        liquidatorFeePercent = _liquidatorFeePercent;
+        roomCardEnabled = _roomCardEnabled;
+        roomLevelEnabled = _roomLevelEnabled;
 
         emit GameConfigUpdated(_minBet, _maxPlayers);
     }
@@ -267,10 +314,6 @@ contract BBGameMain is
     function setRoomCardAddress(address _roomCardAddress) external onlyOwner {
         if (_roomCardAddress == address(0)) revert InvalidRoomCardContract();
         roomCardAddress = _roomCardAddress;
-
-        // 设置房卡合约的游戏主合约地址
-        BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
-        roomCard.setGameMainAddress(address(this));
 
         emit RoomCardAddressUpdated(_roomCardAddress);
     }
@@ -570,10 +613,6 @@ contract BBGameMain is
         if (_roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
         roomLevelAddress = _roomLevelAddress;
 
-        // 设置房间等级合约的游戏主合约地址
-        BBRoomLevel roomLevel = BBRoomLevel(payable(roomLevelAddress));
-        roomLevel.setGameMainAddress(address(this));
-
         emit RoomLevelAddressUpdated(_roomLevelAddress);
     }
 
@@ -586,33 +625,7 @@ contract BBGameMain is
         emit RoomLevelEnabledUpdated(_enabled);
     }
 
-    /**
-     * @dev 获取用户拥有的房间等级信息
-     * @param userAddress 用户地址
-     * @return hasLevel 是否拥有房间等级
-     * @return levelDetails 房间等级详细信息数组
-     * @return totalMaxRooms 用户可创建的房间总数
-     */
-    function getUserRoomLevel(address userAddress) external view returns (
-        bool hasLevel,
-        BBRoomLevel.LevelDetails[] memory levelDetails,
-        uint256 totalMaxRooms
-    ) {
-        if (roomLevelAddress == address(0)) return (false, new BBRoomLevel.LevelDetails[](0), 0);
 
-        BBRoomLevel roomLevel = BBRoomLevel(payable(roomLevelAddress));
-        hasLevel = roomLevel.hasRoomLevel(userAddress);
-
-        if (hasLevel) {
-            levelDetails = roomLevel.getUserLevelDetails(userAddress);
-            totalMaxRooms = roomLevel.getMaxRooms(userAddress);
-        } else {
-            levelDetails = new BBRoomLevel.LevelDetails[](0);
-            totalMaxRooms = 0;
-        }
-
-        return (hasLevel, levelDetails, totalMaxRooms);
-    }
 
     /**
      * @dev 获取用户创建的房间数量
@@ -623,26 +636,7 @@ contract BBGameMain is
         return userCreatedRoomsCount[userAddress];
     }
 
-    /**
-     * @dev 获取用户拥有的房卡信息
-     * @param userAddress 用户地址
-     * @return hasCard 是否拥有房卡
-     * @return cardDetails 房卡详细信息数组
-     */
-    function getUserRoomCards(address userAddress) external view returns (bool hasCard, BBRoomCard.CardDetails[] memory cardDetails) {
-        if (roomCardAddress == address(0)) return (false, new BBRoomCard.CardDetails[](0));
 
-        BBRoomCard roomCard = BBRoomCard(payable(roomCardAddress));
-        hasCard = roomCard.hasRoomCard(userAddress);
-
-        if (hasCard) {
-            cardDetails = roomCard.getRoomCardsByOwner(userAddress);
-        } else {
-            cardDetails = new BBRoomCard.CardDetails[](0);
-        }
-
-        return (hasCard, cardDetails);
-    }
 
     // 授权升级
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

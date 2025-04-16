@@ -2,7 +2,7 @@
 
 import { formatEther } from "viem";
 import { Address } from "~~/components/scaffold-eth";
-import { GameTable, getGameStateName } from "~~/utils/my-tools/types";
+import { GameTable, getGameStateName } from "~~/types/game-types";
 
 interface GameTableInfoProps {
   tableInfo: GameTable;
