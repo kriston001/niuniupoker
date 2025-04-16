@@ -34,7 +34,7 @@ const NFTPage = () => {
   const handleMintRoomCard = async (type: RoomCardNftType, amount: number) => {
     if (!connectedAddress) return;
 
-    const totalPrice = Number(type.price) * amount;
+    const totalPrice = Number(formatEther(type.price)) * amount;
 
     if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
       alert("余额不足，无法购买房卡");
@@ -69,7 +69,9 @@ const NFTPage = () => {
   const handleMintRoomLevel = async (type: RoomLevelNftType, amount: number) => {
     if (!connectedAddress) return;
 
-    const totalPrice = Number(type.price) * amount;
+    // 将type.price从wei转为ETH再参与计算
+    const totalPrice = Number(formatEther(type.price)) * amount;
+    
 
     if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
       alert("余额不足，无法购买房间等级");
@@ -111,20 +113,20 @@ const NFTPage = () => {
               <div className="card-body">
                 <h3 className="card-title">{type.name}</h3>
                 <div className="space-y-2">
-                  <p>Max Bet: {formatEther(type.maxBetAmount)} ETH</p>
+                  <p>Max Bet: {formatEther(type.maxBetAmount)} {balance?.symbol}</p>
                   <p>Max Players: {type.maxPlayers}</p>
-                  <p>Price: {formatEther(type.price)} ETH</p>
+                  <p>Price: {type.price !== undefined ? formatEther(type.price) : "--"} {balance?.symbol}</p>
                 </div>
                 <div className="card-actions justify-end mt-4">
                   <div className="join">
                     <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 1)}>
-                      Buy 1 NFT
+                      Mint x1
                     </button>
                     <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 5)}>
-                      Buy 5 NFT
+                      Mint x5
                     </button>
                     <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 10)}>
-                      Buy 10 NFT
+                      Mint x10
                     </button>
                   </div>
                 </div>
@@ -144,7 +146,7 @@ const NFTPage = () => {
                 <h3 className="card-title">{type.name}</h3>
                 <div className="space-y-2">
                   <p>Max Room: {type.maxRooms}</p>
-                  <p>Price: {formatEther(type.price)} ETH</p>
+                  <p>Price: {type.price !== undefined ? formatEther(type.price) : "--"} ETH</p>
                 </div>
                 <div className="card-actions justify-end mt-4">
                   <div className="join">

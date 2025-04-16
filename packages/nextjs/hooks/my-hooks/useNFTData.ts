@@ -21,29 +21,47 @@ import { RoomCardNftType, RoomLevelNftType, RoomCardNftDetail, RoomLevelNftDetai
 export function useNFTData({ playerAddress }: { playerAddress: Address | undefined }) {
   const gameConfig = useGlobalState(state => state.gameConfig);
 
-  const { data: roomCardTypes, refetch: refetchRoomCardTypes } = useReadContract({
+  const { data: roomCardTypesRaw, refetch: refetchRoomCardTypes } = useReadContract({
     address: gameConfig?.roomCardAddress,
     abi: [getActiveCardTypes],
     functionName: "getActiveCardTypes",
   });
+  // 解析合约返回的数组
+  const roomCardTypes = Array.isArray(roomCardTypesRaw) ? roomCardTypesRaw[1] as RoomCardNftType[] : undefined;
 
-  const { data: myRoomCardNfts, refetch: refetchMyRoomCardNfts } = useReadContract({
+
+  const { data: myRoomCardNftsRaw, refetch: refetchMyRoomCardNfts } = useReadContract({
     address: gameConfig?.roomCardAddress,
     abi: [getUserRoomCards],
     functionName: "getUserRoomCards",
+    args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+    query: {
+      enabled: Boolean(playerAddress),
+    },
   });
+  // 解析合约返回的数组
+  const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? myRoomCardNftsRaw[1] as RoomCardNftDetail[] : undefined;
 
-  const { data: roomLevelTypes, refetch: refetchRoomLevelTypes } = useReadContract({
+  const { data: roomLevelTypesRaw, refetch: refetchRoomLevelTypes } = useReadContract({
     address: gameConfig?.roomLevelAddress,
     abi: [getActiveLevelTypes],
     functionName: "getActiveLevelTypes",
   });
 
-  const { data: myRoomLevelNfts, refetch: refetchMyRoomLevelNfts } = useReadContract({
+  // 解析合约返回的数组
+  const roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? roomLevelTypesRaw[1] as RoomLevelNftType[] : undefined;
+
+  const { data: myRoomLevelNftsRaw, refetch: refetchMyRoomLevelNfts } = useReadContract({
     address: gameConfig?.roomLevelAddress,
     abi: [getUserLevelDetails],
     functionName: "getUserLevelDetails",
+    args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+    query: {
+      enabled: Boolean(playerAddress),
+    },
   });
+  // 解析合约返回的数组
+  const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? myRoomLevelNftsRaw[1] as RoomLevelNftDetail[] : undefined;
 
   // 刷新所有数据
   const refreshData = async () => {
@@ -67,10 +85,8 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
 
   // 初始加载时刷新一次
   useEffect(() => {
-    if (playerAddress) {
-      refreshDataRef.current();
-    }
-  }, [playerAddress]);
+    refreshDataRef.current();
+  }, []);
 
   // 监听房卡购买事件
   useWatchContractEvent({
