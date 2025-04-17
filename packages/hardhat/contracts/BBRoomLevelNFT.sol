@@ -23,26 +23,29 @@ contract BBRoomLevelNFT is
     using Strings for uint256;
 
     // Room level structure
-    struct LevelType {
+    struct NftType {
         uint256 id;              // Unique identifier for the level type
         string name;             // Name of the level (e.g., "BRONZE", "SILVER", "GOLD")
         uint256 maxRooms;        // Maximum number of rooms allowed with this level
         uint256 price;           // Price to purchase this level
         string uriSuffix;        // URI suffix for metadata
         bool active;             // Whether this level type is active
+        uint256 maxMint;         // Maximum mint amount for this level type
+        uint256 minted;          // Already minted amount for this level type
+        string rarity;           // Rarity of this level type
     }
 
     // Level details structure for returning comprehensive information
-    struct LevelDetail {
+    struct NftDetail {
         uint256 tokenId;         // Level token ID
-        LevelType levelType;     // Level type information
+        NftType nftType;     // Level type information
     }
 
     // Used to generate unique token IDs
     uint256 private _tokenIdCounter;
 
     // Used to generate unique level type IDs
-    uint256 private _levelTypeIdCounter;
+    uint256 private _nftTypeIdCounter;
 
     // Room level base URI
     string private _baseTokenURI;
@@ -51,13 +54,13 @@ contract BBRoomLevelNFT is
     address public gameMainAddress;
 
     // Level types by ID
-    mapping(uint256 => LevelType) public levelTypes;
+    mapping(uint256 => NftType) public nftTypes;
 
     // Level type ID corresponding to each token ID
-    mapping(uint256 => uint256) public tokenLevelTypes;
+    mapping(uint256 => uint256) public tokenNftTypes;
 
     // Array of all level type IDs
-    uint256[] private _allLevelTypeIds;
+    uint256[] private _allNftTypeIds;
 
     // Using centralized version management
     function getVersion() public pure returns (string memory) {
@@ -84,7 +87,7 @@ contract BBRoomLevelNFT is
 
         _baseTokenURI = baseTokenURI;
         _tokenIdCounter = 0;
-        _levelTypeIdCounter = 1; // Start from 1
+        _nftTypeIdCounter = 1; // Start from 1
     }
 
     /**
@@ -104,184 +107,152 @@ contract BBRoomLevelNFT is
      * @param uriSuffix URI suffix for metadata
      * @return The ID of the newly created level type
      */
-    function addLevelType(
+    function addType(
         string memory name,
         uint256 maxRooms,
         uint256 price,
-        string memory uriSuffix
+        string memory uriSuffix,
+        uint256 maxMint,
+        string memory rarity
     ) external onlyOwner returns (uint256) {
         require(bytes(name).length > 0, "Name cannot be empty");
         require(maxRooms > 0, "Max rooms must be greater than 0");
         require(price > 0, "Price must be greater than 0");
+        require(maxMint > 0, "Max mint must be greater than 0");
 
-        // Generate new level type ID
-        uint256 newLevelTypeId = _levelTypeIdCounter;
-        _levelTypeIdCounter++;
+        uint256 newNftTypeId = _nftTypeIdCounter;
+        _nftTypeIdCounter++;
 
-        // Create new level type
-        levelTypes[newLevelTypeId] = LevelType({
-            id: newLevelTypeId,
+        nftTypes[newNftTypeId] = NftType({
+            id: newNftTypeId,
             name: name,
             maxRooms: maxRooms,
             price: price,
             uriSuffix: uriSuffix,
-            active: true
+            active: true,
+            maxMint: maxMint,
+            minted: 0,
+            rarity: rarity
         });
 
-        // Add to list of all level types
-        _allLevelTypeIds.push(newLevelTypeId);
+        _allNftTypeIds.push(newNftTypeId);
 
-        emit LevelTypeAdded(newLevelTypeId, name, maxRooms, price, uriSuffix);
-        return newLevelTypeId;
+        emit LevelTypeAdded(newNftTypeId, name, maxRooms, price, uriSuffix);
+        return newNftTypeId;
     }
 
     /**
      * @dev Update an existing level type
-     * @param levelTypeId Level type ID to update
+     * @param nftTypeId Level type ID to update
      * @param maxRooms New maximum number of rooms
      * @param price New price
      * @param uriSuffix New URI suffix
      */
-    function updateLevelType(
-        uint256 levelTypeId,
+    function updateType(
+        uint256 nftTypeId,
         uint256 maxRooms,
         uint256 price,
-        string memory uriSuffix
+        string memory uriSuffix,
+        uint256 maxMint,
+        string memory rarity
     ) external onlyOwner {
-        // Verify level type exists
-        require(levelTypes[levelTypeId].id == levelTypeId, "Level type does not exist");
+        require(nftTypes[nftTypeId].id == nftTypeId, "Level type does not exist");
         require(maxRooms > 0, "Max rooms must be greater than 0");
         require(price > 0, "Price must be greater than 0");
+        require(maxMint > 0, "Max mint must be greater than 0");
 
-        LevelType storage levelType = levelTypes[levelTypeId];
-        levelType.maxRooms = maxRooms;
-        levelType.price = price;
-        levelType.uriSuffix = uriSuffix;
+        NftType storage nftType = nftTypes[nftTypeId];
+        nftType.maxRooms = maxRooms;
+        nftType.price = price;
+        nftType.uriSuffix = uriSuffix;
+        nftType.maxMint = maxMint;
+        nftType.rarity = rarity;
 
-        emit LevelTypeUpdated(levelTypeId, maxRooms, price, uriSuffix);
+        emit LevelTypeUpdated(nftTypeId, maxRooms, price, uriSuffix);
     }
 
     /**
      * @dev Set a level type's active status
-     * @param levelTypeId Level type ID
+     * @param nftTypeId Level type ID
      * @param active New active status
      */
-    function setLevelTypeActive(uint256 levelTypeId, bool active) external onlyOwner {
+    function setTypeActive(uint256 nftTypeId, bool active) external onlyOwner {
         // Verify level type exists
-        require(levelTypes[levelTypeId].id == levelTypeId, "Level type does not exist");
+        require(nftTypes[nftTypeId].id == nftTypeId, "Level type does not exist");
 
-        levelTypes[levelTypeId].active = active;
-        emit LevelTypeActiveStatusChanged(levelTypeId, active);
+        nftTypes[nftTypeId].active = active;
+        emit LevelTypeActiveStatusChanged(nftTypeId, active);
     }
 
     /**
      * @dev Purchase a room level
-     * @param levelTypeId Level type ID
+     * @param nftTypeId Level type ID
      * @return Returns the minted level token ID
      */
-    function buyRoomLevel(uint256 levelTypeId) external payable returns (uint256) {
-        LevelType memory levelType = levelTypes[levelTypeId];
-        // Verify level type exists and is active
-        require(levelType.id == levelTypeId, "Level type does not exist");
-        require(levelType.active, "Level type not active");
-        require(msg.value >= levelType.price, "Insufficient payment");
+    function buy(uint256 nftTypeId) external payable returns (uint256) {
+        NftType storage nftType = nftTypes[nftTypeId];
+        require(nftType.id == nftTypeId, "Level type does not exist");
+        require(nftType.active, "Level type not active");
+        require(msg.value >= nftType.price, "Insufficient payment");
+        require(nftType.minted < nftType.maxMint, "Max mint reached for this level type");
 
-        // Mint new level token
+        nftType.minted += 1;
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         _safeMint(msg.sender, tokenId);
-
-        // Record level type ID
-        tokenLevelTypes[tokenId] = levelTypeId;
-
-        // If payment amount exceeds level price, refund excess ETH
-        if (msg.value > levelType.price) {
-            uint256 refundAmount = msg.value - levelType.price;
+        tokenNftTypes[tokenId] = nftTypeId;
+        
+        if (msg.value > nftType.price) {
+            uint256 refundAmount = msg.value - nftType.price;
             (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
             require(success, "Refund failed");
         }
 
-        emit RoomLevelPurchased(msg.sender, tokenId, levelType.price, levelTypeId);
+        emit RoomLevelPurchased(msg.sender, tokenId, nftType.price, nftTypeId);
         return tokenId;
     }
 
     /**
      * @dev Batch purchase room levels
-     * @param levelTypeId Level type ID
+     * @param nftTypeId Level type ID
      * @param amount Purchase quantity
      * @return Returns an array of minted room level IDs
      */
-    function batchBuyRoomLevel(uint256 levelTypeId, uint256 amount) external payable returns (uint256[] memory) {
-        LevelType memory levelType = levelTypes[levelTypeId];
-        // Verify level type exists and is active
-        require(levelType.id == levelTypeId, "Level type does not exist");
-        require(levelType.active, "Level type not active");
+    function batchBuy(uint256 nftTypeId, uint256 amount) external payable returns (uint256[] memory) {
+        NftType storage nftType = nftTypes[nftTypeId];
+        require(nftType.id == nftTypeId, "Level type does not exist");
+        require(nftType.active, "Level type not active");
         require(amount > 0, "Amount must be greater than 0");
-        require(msg.value >= levelType.price * amount, "Insufficient payment");
+        require(msg.value >= nftType.price * amount, "Insufficient payment");
+        require(nftType.minted + amount <= nftType.maxMint, "Max mint reached for this level type");
 
         uint256[] memory tokenIds = new uint256[](amount);
-
-        // Batch mint room levels
         for (uint256 i = 0; i < amount; i++) {
+            nftType.minted += 1;
+            require(nftType.minted <= nftType.maxMint, "Max mint reached for this level type");
+
             uint256 tokenId = _tokenIdCounter;
             _tokenIdCounter++;
             _safeMint(msg.sender, tokenId);
             tokenIds[i] = tokenId;
-
-            // Record level type ID
-            tokenLevelTypes[tokenId] = levelTypeId;
+            tokenNftTypes[tokenId] = nftTypeId;
         }
 
-        // If payment amount exceeds total level price, refund excess ETH
-        uint256 totalPrice = levelType.price * amount;
+        uint256 totalPrice = nftType.price * amount;
         if (msg.value > totalPrice) {
             uint256 refundAmount = msg.value - totalPrice;
             (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
             require(success, "Refund failed");
         }
 
-        emit BatchRoomLevelPurchased(msg.sender, tokenIds, totalPrice, levelTypeId);
+        emit BatchRoomLevelPurchased(msg.sender, tokenIds, totalPrice, nftTypeId);
         return tokenIds;
     }
 
-    /**
-     * @dev Upgrade a room level
-     * @param tokenId Current level token ID
-     * @param newLevelTypeId New level type ID
-     */
-    function upgradeRoomLevel(uint256 tokenId, uint256 newLevelTypeId) external payable {
-        // Verify ownership
-        require(_ownerOf(tokenId) == msg.sender, "Not the owner of this token");
-
-        // Get current level type
-        uint256 currentLevelTypeId = tokenLevelTypes[tokenId];
-        LevelType memory currentLevelType = levelTypes[currentLevelTypeId];
-
-        // Get new level type
-        LevelType memory newLevelType = levelTypes[newLevelTypeId];
-        require(newLevelType.id == newLevelTypeId, "New level type does not exist");
-        require(newLevelType.active, "New level type not active");
-
-        // Verify new level has higher max rooms
-        require(newLevelType.maxRooms > currentLevelType.maxRooms, "New level must allow more rooms");
-
-        // Calculate price difference
-        uint256 priceDifference = newLevelType.price > currentLevelType.price ?
-                                 newLevelType.price - currentLevelType.price : 0;
-
-        require(msg.value >= priceDifference, "Insufficient payment for upgrade");
-
-        // Update level type
-        tokenLevelTypes[tokenId] = newLevelTypeId;
-
-        // Refund excess payment
-        if (msg.value > priceDifference) {
-            uint256 refundAmount = msg.value - priceDifference;
-            (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
-            require(success, "Refund failed");
-        }
-
-        emit RoomLevelUpgraded(msg.sender, tokenId, currentLevelTypeId, newLevelTypeId, priceDifference);
+    function increaseMaxMint(uint256 nftTypeId, uint256 addAmount) external onlyOwner {
+        require(nftTypes[nftTypeId].id == nftTypeId, "Level type does not exist");
+        require(addAmount > 0, "Add amount must be greater than 0");
+        nftTypes[nftTypeId].maxMint += addAmount;
     }
 
     /**
@@ -302,10 +273,10 @@ contract BBRoomLevelNFT is
 
         for (uint256 i = 0; i < balance; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(user, i);
-            uint256 levelTypeId = tokenLevelTypes[tokenId];
+            uint256 nftTypeId = tokenNftTypes[tokenId];
 
             // Add this token's max rooms to the total
-            totalMaxRooms += levelTypes[levelTypeId].maxRooms;
+            totalMaxRooms += nftTypes[nftTypeId].maxRooms;
         }
 
         return totalMaxRooms;
@@ -332,9 +303,9 @@ contract BBRoomLevelNFT is
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
 
-        uint256 levelTypeId = tokenLevelTypes[tokenId];
+        uint256 nftTypeId = tokenNftTypes[tokenId];
         string memory baseURI = _baseURI();
-        string memory suffix = levelTypes[levelTypeId].uriSuffix;
+        string memory suffix = nftTypes[nftTypeId].uriSuffix;
 
         return bytes(baseURI).length > 0 ?
             string(abi.encodePacked(baseURI, suffix, "/", tokenId.toString())) : "";
@@ -358,73 +329,46 @@ contract BBRoomLevelNFT is
      * @param user User address
      * @return Whether the user has a room level
      */
-    function hasRoomLevel(address user) external view returns (bool) {
+    function hasNft(address user) external view returns (bool) {
         return balanceOf(user) > 0;
-    }
-
-    /**
-     * @dev Get all level details for a user
-     * @param user User address
-     * @return Array of level details for all NFTs owned by the user
-     */
-    function getUserLevelDetails(address user) external view returns (LevelDetail[] memory) {
-        uint256 balance = balanceOf(user);
-
-        if (balance == 0) {
-            return new LevelDetail[](0);
-        }
-
-        LevelDetail[] memory details = new LevelDetail[](balance);
-
-        for (uint256 i = 0; i < balance; i++) {
-            uint256 tokenId = tokenOfOwnerByIndex(user, i);
-            uint256 levelTypeId = tokenLevelTypes[tokenId];
-            
-            details[i] = LevelDetail({
-                tokenId: tokenId,
-                levelType: levelTypes[levelTypeId]
-            });
-        }
-
-        return details;
     }
 
     /**
      * @dev Get user's room level information
      * @param userAddress User address to check
-     * @return hasLevel Whether the user has any room level
-     * @return levelDetails Array of level details
+     * @return has Whether the user has any room level
+     * @return details Array of level details
      * @return totalMaxRooms Total maximum rooms allowed
      */
-    function getUserRoomLevel(address userAddress) external view returns (
-        bool hasLevel,
-        LevelDetail[] memory levelDetails,
+    function getUserNfts(address userAddress) external view returns (
+        bool has,
+        NftDetail[] memory details,
         uint256 totalMaxRooms
     ) {
-        hasLevel = balanceOf(userAddress) > 0;
+        has = balanceOf(userAddress) > 0;
 
-        if (hasLevel) {
+        if (has) {
             uint256 balance = balanceOf(userAddress);
-            levelDetails = new LevelDetail[](balance);
+            details = new NftDetail[](balance);
 
             totalMaxRooms = 0;
             for (uint256 i = 0; i < balance; i++) {
                 uint256 tokenId = tokenOfOwnerByIndex(userAddress, i);
-                uint256 levelTypeId = tokenLevelTypes[tokenId];
+                uint256 nftTypeId = tokenNftTypes[tokenId];
                 
-                levelDetails[i] = LevelDetail({
+                details[i] = NftDetail({
                     tokenId: tokenId,
-                    levelType: levelTypes[levelTypeId]
+                    nftType: nftTypes[nftTypeId]
                 });
                 
-                totalMaxRooms += levelTypes[levelTypeId].maxRooms;
+                totalMaxRooms += nftTypes[nftTypeId].maxRooms;
             }
         } else {
-            levelDetails = new LevelDetail[](0);
+            details = new NftDetail[](0);
             totalMaxRooms = 0;
         }
 
-        return (hasLevel, levelDetails, totalMaxRooms);
+        return (has, details, totalMaxRooms);
     }
 
     /**
@@ -432,46 +376,46 @@ contract BBRoomLevelNFT is
      * @param tokenId Level token ID
      * @return Level type information
      */
-    function getLevelType(uint256 tokenId) external view returns (LevelType memory) {
+    function getType(uint256 tokenId) external view returns (NftType memory) {
         _requireOwned(tokenId);
-        uint256 levelTypeId = tokenLevelTypes[tokenId];
-        return levelTypes[levelTypeId];
+        uint256 nftTypeId = tokenNftTypes[tokenId];
+        return nftTypes[nftTypeId];
     }
 
     /**
      * @dev Get all level type IDs
      * @return Array of all level type IDs
      */
-    function getAllLevelTypeIds() external view returns (uint256[] memory) {
-        return _allLevelTypeIds;
+    function getAllTypeIds() external view returns (uint256[] memory) {
+        return _allNftTypeIds;
     }
 
     /**
      * @dev Get all active level types
      * @return Arrays of level type IDs and level types
      */
-    function getActiveLevelTypes() external view returns (uint256[] memory, LevelType[] memory) {
+    function getActiveTypes() external view returns (uint256[] memory, NftType[] memory) {
         uint256 activeCount = 0;
 
         // Count active level types
-        for (uint256 i = 0; i < _allLevelTypeIds.length; i++) {
-            uint256 typeId = _allLevelTypeIds[i];
-            if (levelTypes[typeId].active) {
+        for (uint256 i = 0; i < _allNftTypeIds.length; i++) {
+            uint256 typeId = _allNftTypeIds[i];
+            if (nftTypes[typeId].active) {
                 activeCount++;
             }
         }
 
         // Create arrays for active level types
         uint256[] memory activeIds = new uint256[](activeCount);
-        LevelType[] memory activeTypes = new LevelType[](activeCount);
+        NftType[] memory activeTypes = new NftType[](activeCount);
 
         // Fill arrays
         uint256 index = 0;
-        for (uint256 i = 0; i < _allLevelTypeIds.length; i++) {
-            uint256 typeId = _allLevelTypeIds[i];
-            if (levelTypes[typeId].active) {
+        for (uint256 i = 0; i < _allNftTypeIds.length; i++) {
+            uint256 typeId = _allNftTypeIds[i];
+            if (nftTypes[typeId].active) {
                 activeIds[index] = typeId;
-                activeTypes[index] = levelTypes[typeId];
+                activeTypes[index] = nftTypes[typeId];
                 index++;
             }
         }
@@ -517,12 +461,14 @@ contract BBRoomLevelNFT is
     receive() external payable {}
 
     // Event definitions
-    event LevelTypeAdded(uint256 indexed levelTypeId, string name, uint256 maxRooms, uint256 price, string uriSuffix);
-    event LevelTypeUpdated(uint256 indexed levelTypeId, uint256 maxRooms, uint256 price, string uriSuffix);
-    event LevelTypeActiveStatusChanged(uint256 indexed levelTypeId, bool active);
-    event RoomLevelPurchased(address indexed buyer, uint256 tokenId, uint256 price, uint256 levelTypeId);
-    event BatchRoomLevelPurchased(address indexed buyer, uint256[] tokenIds, uint256 totalPrice, uint256 levelTypeId);
+    event LevelTypeAdded(uint256 indexed nftTypeId, string name, uint256 maxRooms, uint256 price, string uriSuffix);
+    event LevelTypeUpdated(uint256 indexed nftTypeId, uint256 maxRooms, uint256 price, string uriSuffix);
+    event LevelTypeActiveStatusChanged(uint256 indexed nftTypeId, bool active);
+    event RoomLevelPurchased(address indexed buyer, uint256 tokenId, uint256 price, uint256 nftTypeId);
+    event BatchRoomLevelPurchased(address indexed buyer, uint256[] tokenIds, uint256 totalPrice, uint256 nftTypeId);
     event RoomLevelUpgraded(address indexed owner, uint256 tokenId, uint256 oldLevelTypeId, uint256 newLevelTypeId, uint256 pricePaid);
     event Withdrawn(address indexed to, uint256 amount);
 }
+
+
 

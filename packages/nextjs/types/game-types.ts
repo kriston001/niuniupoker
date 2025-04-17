@@ -100,12 +100,15 @@ export interface RoomCardNftType {
   price: bigint;
   uriSuffix: string;
   active: boolean;
+  maxMint: bigint;
+  rarity: string;
+  minted: bigint;
 }
 
 // 房卡详细信息
 export interface RoomCardNftDetail {
   tokenId: bigint;
-  cardType: RoomCardNftType;
+  nftType: RoomCardNftType;
 }
 
 export interface RoomLevelNftType {
@@ -115,12 +118,15 @@ export interface RoomLevelNftType {
   price: bigint;
   uriSuffix: string;
   active: boolean;
+  maxMint: bigint;
+  rarity: string;
+  minted: bigint;
 }
 
 // 房间等级信息
 export interface RoomLevelNftDetail {
   tokenId: bigint;
-  levelType: RoomLevelNftType;
+  nftType: RoomLevelNftType;
 }
 
 // 获取牌型名称

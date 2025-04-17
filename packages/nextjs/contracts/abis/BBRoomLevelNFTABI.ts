@@ -283,7 +283,7 @@ const abi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
     ],
@@ -309,7 +309,7 @@ const abi = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -328,7 +328,7 @@ const abi = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -365,7 +365,7 @@ const abi = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -433,7 +433,7 @@ const abi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
     ],
@@ -569,8 +569,18 @@ const abi = [
         name: "uriSuffix",
         type: "string",
       },
+      {
+        internalType: "uint256",
+        name: "maxMint",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "rarity",
+        type: "string",
+      },
     ],
-    name: "addLevelType",
+    name: "addType",
     outputs: [
       {
         internalType: "uint256",
@@ -622,7 +632,7 @@ const abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -631,7 +641,7 @@ const abi = [
         type: "uint256",
       },
     ],
-    name: "batchBuyRoomLevel",
+    name: "batchBuy",
     outputs: [
       {
         internalType: "uint256[]",
@@ -646,11 +656,11 @@ const abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
     ],
-    name: "buyRoomLevel",
+    name: "buy",
     outputs: [
       {
         internalType: "uint256",
@@ -676,7 +686,7 @@ const abi = [
   },
   {
     inputs: [],
-    name: "getActiveLevelTypes",
+    name: "getActiveTypes",
     outputs: [
       {
         internalType: "uint256[]",
@@ -715,8 +725,23 @@ const abi = [
             name: "active",
             type: "bool",
           },
+          {
+            internalType: "uint256",
+            name: "maxMint",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "minted",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "rarity",
+            type: "string",
+          },
         ],
-        internalType: "struct BBRoomLevelNFT.LevelType[]",
+        internalType: "struct BBRoomLevelNFT.NftType[]",
         name: "",
         type: "tuple[]",
       },
@@ -726,7 +751,7 @@ const abi = [
   },
   {
     inputs: [],
-    name: "getAllLevelTypeIds",
+    name: "getAllTypeIds",
     outputs: [
       {
         internalType: "uint256[]",
@@ -759,12 +784,31 @@ const abi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
+    ],
+    name: "getMaxRooms",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "tokenId",
         type: "uint256",
       },
     ],
-    name: "getLevelType",
+    name: "getType",
     outputs: [
       {
         components: [
@@ -798,92 +842,25 @@ const abi = [
             name: "active",
             type: "bool",
           },
-        ],
-        internalType: "struct BBRoomLevelNFT.LevelType",
-        name: "",
-        type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-    ],
-    name: "getMaxRooms",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-    ],
-    name: "getUserLevelDetails",
-    outputs: [
-      {
-        components: [
           {
             internalType: "uint256",
-            name: "tokenId",
+            name: "maxMint",
             type: "uint256",
           },
           {
-            components: [
-              {
-                internalType: "uint256",
-                name: "id",
-                type: "uint256",
-              },
-              {
-                internalType: "string",
-                name: "name",
-                type: "string",
-              },
-              {
-                internalType: "uint256",
-                name: "maxRooms",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "price",
-                type: "uint256",
-              },
-              {
-                internalType: "string",
-                name: "uriSuffix",
-                type: "string",
-              },
-              {
-                internalType: "bool",
-                name: "active",
-                type: "bool",
-              },
-            ],
-            internalType: "struct BBRoomLevelNFT.LevelType",
-            name: "levelType",
-            type: "tuple",
+            internalType: "uint256",
+            name: "minted",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "rarity",
+            type: "string",
           },
         ],
-        internalType: "struct BBRoomLevelNFT.LevelDetail[]",
+        internalType: "struct BBRoomLevelNFT.NftType",
         name: "",
-        type: "tuple[]",
+        type: "tuple",
       },
     ],
     stateMutability: "view",
@@ -897,11 +874,11 @@ const abi = [
         type: "address",
       },
     ],
-    name: "getUserRoomLevel",
+    name: "getUserNfts",
     outputs: [
       {
         internalType: "bool",
-        name: "hasLevel",
+        name: "has",
         type: "bool",
       },
       {
@@ -943,14 +920,29 @@ const abi = [
                 name: "active",
                 type: "bool",
               },
+              {
+                internalType: "uint256",
+                name: "maxMint",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "minted",
+                type: "uint256",
+              },
+              {
+                internalType: "string",
+                name: "rarity",
+                type: "string",
+              },
             ],
-            internalType: "struct BBRoomLevelNFT.LevelType",
-            name: "levelType",
+            internalType: "struct BBRoomLevelNFT.NftType",
+            name: "nftType",
             type: "tuple",
           },
         ],
-        internalType: "struct BBRoomLevelNFT.LevelDetail[]",
-        name: "levelDetails",
+        internalType: "struct BBRoomLevelNFT.NftDetail[]",
+        name: "details",
         type: "tuple[]",
       },
       {
@@ -983,7 +975,7 @@ const abi = [
         type: "address",
       },
     ],
-    name: "hasRoomLevel",
+    name: "hasNft",
     outputs: [
       {
         internalType: "bool",
@@ -992,6 +984,24 @@ const abi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "nftTypeId",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "addAmount",
+        type: "uint256",
+      },
+    ],
+    name: "increaseMaxMint",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -1042,6 +1052,19 @@ const abi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "name",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -1049,7 +1072,7 @@ const abi = [
         type: "uint256",
       },
     ],
-    name: "levelTypes",
+    name: "nftTypes",
     outputs: [
       {
         internalType: "uint256",
@@ -1081,17 +1104,19 @@ const abi = [
         name: "active",
         type: "bool",
       },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "name",
-    outputs: [
+      {
+        internalType: "uint256",
+        name: "maxMint",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "minted",
+        type: "uint256",
+      },
       {
         internalType: "string",
-        name: "",
+        name: "rarity",
         type: "string",
       },
     ],
@@ -1249,7 +1274,7 @@ const abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -1258,7 +1283,7 @@ const abi = [
         type: "bool",
       },
     ],
-    name: "setLevelTypeActive",
+    name: "setTypeActive",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1322,7 +1347,7 @@ const abi = [
         type: "uint256",
       },
     ],
-    name: "tokenLevelTypes",
+    name: "tokenNftTypes",
     outputs: [
       {
         internalType: "uint256",
@@ -1429,7 +1454,7 @@ const abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "levelTypeId",
+        name: "nftTypeId",
         type: "uint256",
       },
       {
@@ -1447,28 +1472,20 @@ const abi = [
         name: "uriSuffix",
         type: "string",
       },
+      {
+        internalType: "uint256",
+        name: "maxMint",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "rarity",
+        type: "string",
+      },
     ],
-    name: "updateLevelType",
+    name: "updateType",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "newLevelTypeId",
-        type: "uint256",
-      },
-    ],
-    name: "upgradeRoomLevel",
-    outputs: [],
-    stateMutability: "payable",
     type: "function",
   },
   {
@@ -1508,13 +1525,10 @@ export const BBRoomLevelNFTABI = {
 } as const;
 
 // 导出具体的函数 ABI，可以更细粒度地 tree-shake
-export const buyRoomLevel = abi.find(x => "name" in x && x.name === "buyRoomLevel");
-export const batchBuyRoomLevel = abi.find(x => "name" in x && x.name === "batchBuyRoomLevel");
-export const upgradeRoomLevel = abi.find(x => "name" in x && x.name === "upgradeRoomLevel");
+export const buyRoomLevel = abi.find(x => "name" in x && x.name === "buy");
+export const batchBuyRoomLevel = abi.find(x => "name" in x && x.name === "batchBuy");
 export const getMaxRooms = abi.find(x => "name" in x && x.name === "getMaxRooms");
-export const hasRoomLevel = abi.find(x => "name" in x && x.name === "hasRoomLevel");
-export const getUserLevelDetails = abi.find(x => "name" in x && x.name === "getUserLevelDetails");
-export const getUserRoomLevel = abi.find(x => "name" in x && x.name === "getUserRoomLevel");
-export const getLevelType = abi.find(x => "name" in x && x.name === "getLevelType");
-export const getActiveLevelTypes = abi.find(x => "name" in x && x.name === "getActiveLevelTypes");
+export const hasRoomLevel = abi.find(x => "name" in x && x.name === "hasNft");
+export const getUserLevelDetails = abi.find(x => "name" in x && x.name === "getUserNfts");
+export const getActiveLevelTypes = abi.find(x => "name" in x && x.name === "getActiveTypes");
 export const RoomLevelPurchased = abi.find(x => "name" in x && x.name === "RoomLevelPurchased");

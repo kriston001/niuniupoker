@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: process.env.NEXT_PUBLIC_IGNORE_BUILD_ERROR === "true",
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "www.baidu.com",
+      },
+    ],
+  },
   eslint: {
     ignoreDuringBuilds: process.env.NEXT_PUBLIC_IGNORE_BUILD_ERROR === "true",
   },

@@ -1,20 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import React from "react";
-import Link from "next/link";
-import { useNFTData } from "../../hooks/my-hooks/useNFTData";
+import { useState } from "react";
+import Image from "next/image";
+import { NftRoomCard, NftRoomLevel } from "@/components/niuniu/NftCard";
+import { CreditCard, Layers, Minus, Plus, Search, SlidersHorizontal, User } from "lucide-react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
+import { MyNftCard } from "~~/components/niuniu/MyNftCard";
+import { NftCardDetail } from "~~/components/niuniu/NftCardDetail";
+import { NftMintModal } from "~~/components/niuniu/NftMintModal";
+import { Badge } from "~~/components/ui/badge";
+import { Button } from "~~/components/ui/button";
+import { Card, CardContent, CardFooter } from "~~/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~~/components/ui/dialog";
+import { Input } from "~~/components/ui/input";
+import { Label } from "~~/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs";
 import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
+import { useNFTData } from "~~/hooks/my-hooks/useNFTData";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
+import { getNftDescription, getNftFullName, getNftSympol } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
-const NFTPage = () => {
+export default function NFTPage() {
   const gameConfig = useGlobalState(state => state.gameConfig);
-
   const { address: connectedAddress } = useAccount();
   const { data: balance } = useBalance({
     address: connectedAddress,
@@ -23,18 +41,34 @@ const NFTPage = () => {
     },
   });
 
-  const { roomCardTypes, roomLevelTypes, myRoomCardNfts, myRoomLevelNfts, refreshData } = useNFTData({
+  const { roomCardTypes, roomLevelTypes, myNfts, refreshData } = useNFTData({
     playerAddress: connectedAddress,
   });
 
-  // 使用自定义的 Hook
+  const [selectedNft, setSelectedNft] = useState<RoomCardNftType | RoomLevelNftType | undefined>(undefined);
+  const [mintModalOpen, setMintModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("room-cards");
+
+  const handleMintClick = (nft: RoomCardNftType | RoomLevelNftType): void => {
+    setSelectedNft(nft);
+    setMintModalOpen(true);
+  };
+
+  const handleDetailClick = (nft: RoomCardNftType | RoomLevelNftType) => {
+    setSelectedNft(nft);
+    setDetailModalOpen(true);
+  };
+
   const { writeContractWithCallback } = useWriteContractWithCallback();
+  const handleMintConfirm = async (quantity: number, selectedNft: RoomCardNftType | RoomLevelNftType) => {
+    if (!connectedAddress || !selectedNft || !gameConfig?.roomLevelAddress) {
+      console.log("请先连接钱包");
+      return;
+    }
 
-  // 处理购买房卡
-  const handleMintRoomCard = async (type: RoomCardNftType, amount: number) => {
-    if (!connectedAddress) return;
-
-    const totalPrice = Number(formatEther(type.price)) * amount;
+    const totalPrice = Number(formatEther(selectedNft.price)) * quantity;
 
     if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
       alert("余额不足，无法购买房卡");
@@ -44,186 +78,193 @@ const NFTPage = () => {
     try {
       const parsedPrice = parseEther(totalPrice.toString());
 
+      const nftSympol = getNftSympol(selectedNft);
+
+      const contractAddress =
+        nftSympol == "RC"
+          ? (gameConfig?.roomCardAddress as `0x${string}`)
+          : (gameConfig?.roomLevelAddress as `0x${string}`);
+      const abi = nftSympol == "RC" ? [batchBuyRoomCard] : [batchBuyRoomLevel];
+
       await writeContractWithCallback({
-        address: gameConfig?.roomCardAddress as `0x${string}`,
-        abi: [batchBuyRoomCard],
-        functionName: "batchBuyRoomCard",
-        args: [type.id, amount],
+        address: contractAddress,
+        abi: abi,
+        functionName: "batchBuy",
+        args: [selectedNft.id, quantity],
         value: parsedPrice,
         account: connectedAddress as `0x${string}`,
         onSuccess: async () => {
-          console.log("✅ 交易成功");
+          console.log("✅ Mint Nft 成功");
+          setMintModalOpen(false);
           await refreshData();
         },
         onError: async err => {
-          console.error("❌ 交易失败:", err.message);
+          console.error("❌ Mint Nft 失败:", err.message);
         },
       });
     } catch (error) {
-      console.error("创建游戏桌失败:", error);
+      console.error("Mint失败:", error);
     } finally {
     }
   };
 
-  // 处理购买房间等级
-  const handleMintRoomLevel = async (type: RoomLevelNftType, amount: number) => {
-    if (!connectedAddress) return;
-
-    // 将type.price从wei转为ETH再参与计算
-    const totalPrice = Number(formatEther(type.price)) * amount;
-    
-
-    if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
-      alert("余额不足，无法购买房间等级");
-      return;
-    }
-
-    try {
-      const parsedPrice = parseEther(totalPrice.toString());
-
-      await writeContractWithCallback({
-        address: gameConfig?.roomLevelAddress as `0x${string}`,
-        abi: [batchBuyRoomLevel],
-        functionName: "batchBuyRoomLevel",
-        args: [type.id, amount],
-        value: parsedPrice,
-        account: connectedAddress as `0x${string}`,
-        onSuccess: async () => {
-          console.log("✅ 交易成功");
-          await refreshData();
-        },
-        onError: async err => {
-          console.error("❌ 交易失败:", err.message);
-        },
-      });
-    } catch (error) {
-      console.error("创建游戏桌失败:", error);
-    } finally {
-    }
+  const filterNfts = (nfts: any[]) => {
+    if (!searchQuery) return nfts;
+    return nfts.filter(
+      nft =>
+        nft.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        nft.tokenId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (nft.rarity && nft.rarity.toLowerCase().includes(searchQuery.toLowerCase())),
+    );
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* 房卡类型列表 */}
-      <div className="bg-base-200 rounded-box p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">Room Card</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {roomCardTypes?.map(type => (
-            <div key={type.id.toString()} className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h3 className="card-title">{type.name}</h3>
-                <div className="space-y-2">
-                  <p>Max Bet: {formatEther(type.maxBetAmount)} {balance?.symbol}</p>
-                  <p>Max Players: {type.maxPlayers}</p>
-                  <p>Price: {type.price !== undefined ? formatEther(type.price) : "--"} {balance?.symbol}</p>
-                </div>
-                <div className="card-actions justify-end mt-4">
-                  <div className="join">
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 1)}>
-                      Mint x1
-                    </button>
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 5)}>
-                      Mint x5
-                    </button>
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomCard(type, 10)}>
-                      Mint x10
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 房间等级类型列表 */}
-      <div className="bg-base-200 rounded-box p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">Room Level</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {roomLevelTypes?.map(type => (
-            <div key={type.id.toString()} className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h3 className="card-title">{type.name}</h3>
-                <div className="space-y-2">
-                  <p>Max Room: {type.maxRooms}</p>
-                  <p>Price: {type.price !== undefined ? formatEther(type.price) : "--"} ETH</p>
-                </div>
-                <div className="card-actions justify-end mt-4">
-                  <div className="join">
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomLevel(type, 1)}>
-                      Buy 1 NFT
-                    </button>
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomLevel(type, 5)}>
-                      Buy 5 NFT
-                    </button>
-                    <button className="btn btn-primary join-item" onClick={() => handleMintRoomLevel(type, 10)}>
-                      Buy 10 NFT
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 我的NFT列表 */}
-      <div className="bg-base-200 rounded-box p-6">
-        <h2 className="text-2xl font-bold mb-4">My NFTs</h2>
-
-        {/* 我的房卡 */}
-        <div className="mb-8">
-          <h3 className="text-xl font-bold mb-4">My Room Cards</h3>
-          {myRoomCardNfts && myRoomCardNfts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myRoomCardNfts.map(card => (
-                <div key={card.tokenId.toString()} className="card bg-base-100 shadow-xl">
-                  <div className="card-body">
-                    <h3 className="card-title">
-                      #{card.tokenId.toString()} - {card.cardType.name}
-                    </h3>
-                    <div className="space-y-2">
-                      <p>Max Bet: {formatEther(card.cardType.maxBetAmount)} ETH</p>
-                      <p>Max Players: {card.cardType.maxPlayers}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-4 bg-base-100 rounded-box">
-              <p>empty</p>
-            </div>
-          )}
-        </div>
-
-        {/* 我的房间等级 */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h3 className="text-xl font-bold mb-4">My Room Levels</h3>
-          {myRoomLevelNfts && myRoomLevelNfts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myRoomLevelNfts.map(level => (
-                <div key={level.tokenId.toString()} className="card bg-base-100 shadow-xl">
-                  <div className="card-body">
-                    <h3 className="card-title">
-                      #{level.tokenId.toString()} - {level.levelType.name}
-                    </h3>
-                    <div className="space-y-2">
-                      <p>Max Room: {level.levelType.maxRooms.toString()}</p>
-                    </div>
-                  </div>
-                </div>
+          <h1 className="text-3xl font-bold text-white">NFT Marketplace</h1>
+          <p className="text-zinc-400 mt-1">Mint and manage your NiuNiu Poker NFTs to enhance your gaming experience</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input
+              placeholder="Search NFTs..."
+              className="pl-10 bg-zinc-800 border-zinc-700 text-white w-full md:w-[250px]"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500">
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        </div>
+      </div>
+
+      <Tabs defaultValue="room-cards" className="w-full" onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3 bg-zinc-800 rounded-lg p-1 mb-8">
+          <TabsTrigger value="room-cards" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
+            <CreditCard className="h-4 w-4 mr-2" />
+            Table Card NFTs
+          </TabsTrigger>
+          <TabsTrigger value="room-levels" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
+            <Layers className="h-4 w-4 mr-2" />
+            Table Permit NFTs
+          </TabsTrigger>
+          <TabsTrigger value="my-nfts" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
+            <User className="h-4 w-4 mr-2" />
+            My NFTs
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="room-cards" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filterNfts(roomCardTypes).map(nft => (
+              <NftRoomCard
+                key={nft.id}
+                nft={nft}
+                onMintClick={() => handleMintClick(nft)}
+                onDetailClick={() => handleDetailClick(nft)}
+              />
+            ))}
+          </div>
+          {filterNfts(roomCardTypes).length === 0 && (
+            <div className="text-center py-16 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className="mx-auto w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
+              <p className="text-zinc-500 max-w-md mx-auto">
+                No room card NFTs match your search criteria. Try adjusting your filters.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="room-levels" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filterNfts(roomLevelTypes).map(nft => (
+              <NftRoomLevel
+                key={nft.id}
+                nft={nft}
+                onMintClick={() => handleMintClick(nft)}
+                onDetailClick={() => handleDetailClick(nft)}
+                showMintButton={true}
+              />
+            ))}
+          </div>
+          {filterNfts(roomLevelTypes).length === 0 && (
+            <div className="text-center py-16 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className="mx-auto w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
+              <p className="text-zinc-500 max-w-md mx-auto">
+                No room level NFTs match your search criteria. Try adjusting your filters.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="my-nfts" className="mt-0">
+          {myNfts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filterNfts(myNfts).map(myNft => (
+                <MyNftCard key={`${myNft.type}-${myNft.nftType.id}-${myNft.quantity}`} nft={myNft.nftType} quantity={myNft.quantity} onDetailClick={() => handleDetailClick(myNft)} />
               ))}
             </div>
           ) : (
-            <div className="text-center p-4 bg-base-100 rounded-box">
-              <p>empty</p>
+            <div className="text-center py-16 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className="mx-auto w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                <User className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
+              <p className="text-zinc-500 max-w-md mx-auto mb-6">
+                You don't own any NFTs yet. Mint some from the Room Card or Room Level tabs.
+              </p>
+              <Button
+                variant="outline"
+                className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500"
+                onClick={() => document.querySelector('[data-state="inactive"][value="room-cards"]')?.click()}
+              >
+                Browse NFTs
+              </Button>
             </div>
           )}
-        </div>
-      </div>
+          {myNfts.length > 0 && filterNfts(myNfts).length === 0 && (
+            <div className="text-center py-16 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div className="mx-auto w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
+              <p className="text-zinc-500 max-w-md mx-auto">
+                None of your NFTs match your search criteria. Try adjusting your filters.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Mint NFT Modal */}
+      {selectedNft && (
+        <NftMintModal
+          selectedNft={selectedNft}
+          open={mintModalOpen}
+          onOpenChange={setMintModalOpen}
+          onMintConfirm={handleMintConfirm}
+        />
+      )}
+
+      {/* NFT Detail Modal */}
+      {selectedNft && (
+        <NftCardDetail
+          selectedNft={selectedNft}
+          open={detailModalOpen}
+          onMintClick={handleMintClick}
+          onOpenChange={setDetailModalOpen}
+        />
+      )}
     </div>
   );
-};
-
-export default NFTPage;
+}

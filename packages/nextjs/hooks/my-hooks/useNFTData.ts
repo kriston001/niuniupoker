@@ -4,7 +4,7 @@ import { useReadContract, useWatchContractEvent } from "wagmi";
 import { RoomCardPurchased, getActiveCardTypes, getUserRoomCards } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { RoomLevelPurchased, getActiveLevelTypes, getUserLevelDetails } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useGlobalState } from "~~/services/store/store";
-import { RoomCardNftType, RoomLevelNftType, RoomCardNftDetail, RoomLevelNftDetail } from "~~/types/game-types";
+import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
 
 /**
  * 获取NFT信息的钩子
@@ -24,44 +24,76 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
   const { data: roomCardTypesRaw, refetch: refetchRoomCardTypes } = useReadContract({
     address: gameConfig?.roomCardAddress,
     abi: [getActiveCardTypes],
-    functionName: "getActiveCardTypes",
+    functionName: "getActiveTypes",
   });
   // 解析合约返回的数组
-  const roomCardTypes = Array.isArray(roomCardTypesRaw) ? roomCardTypesRaw[1] as RoomCardNftType[] : undefined;
+  const roomCardTypes = Array.isArray(roomCardTypesRaw) ? (roomCardTypesRaw[1] as RoomCardNftType[]) : [];
 
+  const myNfts: any[] = [];
 
   const { data: myRoomCardNftsRaw, refetch: refetchMyRoomCardNfts } = useReadContract({
     address: gameConfig?.roomCardAddress,
     abi: [getUserRoomCards],
-    functionName: "getUserRoomCards",
+    functionName: "getUserNfts",
     args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
     query: {
       enabled: Boolean(playerAddress),
     },
   });
   // 解析合约返回的数组
-  const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? myRoomCardNftsRaw[1] as RoomCardNftDetail[] : undefined;
+  const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? (myRoomCardNftsRaw[1] as RoomCardNftDetail[]) : [];
+
+  if (myRoomCardNfts) {
+    for (const nft of myRoomCardNfts) {
+      const exist = myNfts.find(mynft => mynft.type == "room-card" && mynft.nftType.id === nft.nftType.id);
+      if (exist) {
+        exist.quantity += 1;
+      } else {
+        myNfts.push({
+          type: "room-card",
+          nftType: nft.nftType,
+          quantity: 1,
+        });
+      }
+    }
+  }
 
   const { data: roomLevelTypesRaw, refetch: refetchRoomLevelTypes } = useReadContract({
     address: gameConfig?.roomLevelAddress,
     abi: [getActiveLevelTypes],
-    functionName: "getActiveLevelTypes",
+    functionName: "getActiveTypes",
   });
 
   // 解析合约返回的数组
-  const roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? roomLevelTypesRaw[1] as RoomLevelNftType[] : undefined;
+  const roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? (roomLevelTypesRaw[1] as RoomLevelNftType[]) : [];
 
   const { data: myRoomLevelNftsRaw, refetch: refetchMyRoomLevelNfts } = useReadContract({
     address: gameConfig?.roomLevelAddress,
     abi: [getUserLevelDetails],
-    functionName: "getUserLevelDetails",
+    functionName: "getUserNfts",
     args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
     query: {
       enabled: Boolean(playerAddress),
     },
   });
   // 解析合约返回的数组
-  const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? myRoomLevelNftsRaw[1] as RoomLevelNftDetail[] : undefined;
+  const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? (myRoomLevelNftsRaw[1] as RoomLevelNftDetail[]) : [];
+
+  if (myRoomLevelNfts) {
+    for (const nft of myRoomLevelNfts) {
+      const exist = myNfts.find(mynft => mynft.type == "room-level" && mynft.nftType.id === nft.nftType.id);
+      if (exist) {
+        exist.quantity += 1;
+      } else {
+        myNfts.push({
+          type: "room-level",
+          nftType: nft.nftType,
+          quantity: 1,
+        });
+      }
+    }
+  }
+
 
   // 刷新所有数据
   const refreshData = async () => {
@@ -121,10 +153,9 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
   });
 
   return {
-    roomCardTypes: roomCardTypes as RoomCardNftType[] | undefined,
-    roomLevelTypes: roomLevelTypes as RoomLevelNftType[] | undefined,
-    myRoomCardNfts: myRoomCardNfts as RoomCardNftDetail[] | undefined,
-    myRoomLevelNfts: myRoomLevelNfts as RoomLevelNftDetail[] | undefined,
+    roomCardTypes: roomCardTypes as RoomCardNftType[] | [],
+    roomLevelTypes: roomLevelTypes as RoomLevelNftType[] | [],
+    myNfts: myNfts as [] | [],
     // 刷新函数
     refreshData,
   };

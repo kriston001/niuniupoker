@@ -1,7 +1,7 @@
 import { wagmiConnectors } from "./wagmiConnectors";
 import { Chain, createClient, fallback, http } from "viem";
 import { hardhat, mainnet } from "viem/chains";
-import { createConfig } from "wagmi";
+import { createConfig, createStorage, localStorage, noopStorage } from "wagmi";
 import scaffoldConfig, { DEFAULT_ALCHEMY_API_KEY, ScaffoldConfig } from "~~/scaffold.config";
 import { getAlchemyHttpUrl } from "~~/utils/scaffold-eth";
 
@@ -12,10 +12,17 @@ export const enabledChains = targetNetworks.find((network: Chain) => network.id 
   ? targetNetworks
   : ([...targetNetworks, mainnet] as const);
 
+// 创建一个自定义存储，在浏览器中使用 localStorage，在服务器端使用 noopStorage
+const storage = createStorage({
+  storage: typeof window !== "undefined" ? localStorage : noopStorage,
+  key: "niuniu-wallet-connection",
+});
+
 export const wagmiConfig = createConfig({
   chains: enabledChains,
   connectors: wagmiConnectors,
   ssr: true,
+  storage,
   client({ chain }) {
     let rpcFallbacks = [http()];
 

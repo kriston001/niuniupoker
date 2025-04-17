@@ -1,0 +1,55 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+
+    /* Custom colors for NFT cards */
+    --from-amber-700: #b45309;
+    --to-amber-800: #92400e;
+    --amber-700-40: rgba(180, 83, 9, 0.4);
+
+    --from-zinc-400: #a1a1aa;
+    --to-zinc-500: #71717a;
+    --zinc-400-40: rgba(161, 161, 170, 0.4);
+
+    --from-amber-400: #fbbf24;
+    --to-amber-500: #f59e0b;
+    --amber-400-40: rgba(251, 191, 36, 0.4);
+
+    --from-cyan-400: #22d3ee;
+    --to-blue-500: #3b82f6;
+    --cyan-400-40: rgba(34, 211, 238, 0.4);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}

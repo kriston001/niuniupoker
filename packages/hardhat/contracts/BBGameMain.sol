@@ -164,7 +164,7 @@ contract BBGameMain is
 
                 // 验证用户是否拥有房间等级
                 BBRoomLevelNFT roomLevel = BBRoomLevelNFT(payable(roomLevelAddress));
-                if (!roomLevel.hasRoomLevel(msg.sender)) revert RoomLevelRequired();
+                if (!roomLevel.hasNft(msg.sender)) revert RoomLevelRequired();
 
                 // 获取用户等等级NFT可创建的房间总数
                 uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
@@ -187,15 +187,15 @@ contract BBGameMain is
 
             // 验证用户是否拥有房卡
             BBRoomCardNFT roomCard = BBRoomCardNFT(payable(roomCardAddress));
-            if (!roomCard.hasRoomCard(msg.sender)) revert NoRoomCardOwned();
+            if (!roomCard.hasNft(msg.sender)) revert NoRoomCardOwned();
 
             // 验证房卡参数是否符合游戏设置
-            if (!roomCard.validateRoomCardParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
+            if (!roomCard.validateParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
                 revert InvalidRoomCardParams();
             }
 
             // 消耗房卡
-            try roomCard.consumeRoomCard(msg.sender, roomCardTokenId) {
+            try roomCard.consume(msg.sender, roomCardTokenId) {
                 // 房卡消耗成功
             } catch {
                 revert RoomCardConsumptionFailed();
