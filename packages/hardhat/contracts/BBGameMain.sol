@@ -17,23 +17,9 @@ import "./BBRoomCardNFT.sol";
 import "./BBRewardPool.sol";
 import "./BBRoomLevelNFT.sol";
 import "./BBRandomnessManager.sol";
+import "./BBStructs.sol";
 
-struct GameConfig {
-    uint256 minBet;
-    uint8 maxPlayers;
-    uint256 maxBankerFeePercent;
-    uint256 playerTimeout;
-    uint256 tableInactiveTimeout;
-    uint256 liquidatorFeePercent;
-    bool roomCardEnabled;
-    bool roomLevelEnabled;
-    address gameHistoryAddress;
-    address rewardPoolAddress;
-    address randomnessManagerAddress;
-    address roomCardAddress;
-    address roomLevelAddress;
-    address gameTableFactoryAddress;
-}
+
 
 /**
  * @title BBGameMain
@@ -57,13 +43,11 @@ contract BBGameMain is
     uint256 public liquidatorFeePercent; // 清算人费用百分比
 
 
-    // 新增一个数组来存储已清算的游戏桌地址
-    address[] private liquidatedTableAddresses;
-    address[] private disbandedTableAddresses;
-
     // 游戏桌地址列表
     address[] private tableAddresses;
     mapping(address => BBGameTableImplementation) public gameTables;
+    // 用户创建的游戏桌映射
+    mapping(address => address[]) private userTables;
 
     // 记录每个用户创建的房间数量
     mapping(address => uint256) private userCreatedRoomsCount;
@@ -73,12 +57,10 @@ contract BBGameMain is
 
 
     // 房卡相关
-    bool public roomCardEnabled;  // 是否启用房卡功能
     address public roomCardAddress;  // 房卡NFT合约地址
 
     // 房间等级相关
     address public roomLevelAddress; // 房间等级合约地址
-    bool public roomLevelEnabled;    // 是否启用房间等级功能
 
     // 游戏桌工厂相关
     address public gameTableFactoryAddress; // 游戏桌工厂合约地址
@@ -134,24 +116,19 @@ contract BBGameMain is
      * @param tableName 游戏桌名称
      * @param betAmount 固定押注金额
      * @param tableMaxPlayers 最大玩家数量
-     * @param roomCardTokenId 房卡NFT的tokenId，如果不启用房卡功能，可以传入0
+     * @param bankerFeePercent 庄家抽成百分比
      */
     function createGameTable(
         string memory tableName,
         uint256 betAmount,
         uint8 tableMaxPlayers,
-        uint256 bankerFeePercent,
-        uint256 roomCardTokenId,
-        bool bankerIsPlayer
+        uint256 bankerFeePercent
+
     ) external payable nonReentrant {
         if (paused()) revert ContractPaused();
         if (betAmount < minBet) revert BetAmountTooSmall();
         if (tableMaxPlayers <= 1 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
         if (bankerFeePercent > maxBankerFeePercent) revert InvalidBankerFeePercent();
-
-        if(bankerIsPlayer){
-            if (msg.value != betAmount) revert InsufficientFunds();
-        }
 
         // 将玩家的房间数量加1
         userCreatedRoomsCount[msg.sender]++;
@@ -159,48 +136,43 @@ contract BBGameMain is
         uint256 createdRooms = getUserCreatedRoomsCount(msg.sender);
         // 验证用户的房间等级和已创建的房间数量
         if (createdRooms > maxRoomCount) {
-            if(roomLevelEnabled){
-                if (roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
+            if (roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
 
-                // 验证用户是否拥有房间等级
-                BBRoomLevelNFT roomLevel = BBRoomLevelNFT(payable(roomLevelAddress));
-                if (!roomLevel.hasNft(msg.sender)) revert RoomLevelRequired();
+            // 验证用户是否拥有房间等级
+            BBRoomLevelNFT roomLevel = BBRoomLevelNFT(payable(roomLevelAddress));
+            if (!roomLevel.hasNft(msg.sender)) revert RoomLevelRequired();
 
-                // 获取用户等等级NFT可创建的房间总数
-                uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
+            // 获取用户等等级NFT可创建的房间总数
+            uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
 
-                // 验证用户是否超过房间创建上限
-                if (createdRooms > maxRooms + maxRoomCount) {
-                    // 如果超过上限，先将计数减回去，再抛出错误
-                    userCreatedRoomsCount[msg.sender]--;
-                    revert RoomLevelLimitExceeded();
-                }
-            }else{
+            // 验证用户是否超过房间创建上限
+            if (createdRooms > maxRooms + maxRoomCount) {
+                // 如果超过上限，先将计数减回去，再抛出错误
                 userCreatedRoomsCount[msg.sender]--;
                 revert RoomLevelLimitExceeded();
             }
         }
 
         // 如果启用了房卡功能，验证并消耗房卡
-        if (roomCardEnabled) {
-            if (roomCardAddress == address(0)) revert InvalidRoomCardContract();
+        // if (roomCardEnabled) {
+        //     if (roomCardAddress == address(0)) revert InvalidRoomCardContract();
 
-            // 验证用户是否拥有房卡
-            BBRoomCardNFT roomCard = BBRoomCardNFT(payable(roomCardAddress));
-            if (!roomCard.hasNft(msg.sender)) revert NoRoomCardOwned();
+        //     // 验证用户是否拥有房卡
+        //     BBRoomCardNFT roomCard = BBRoomCardNFT(payable(roomCardAddress));
+        //     if (!roomCard.hasNft(msg.sender)) revert NoRoomCardOwned();
 
-            // 验证房卡参数是否符合游戏设置
-            if (!roomCard.validateParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
-                revert InvalidRoomCardParams();
-            }
+        //     // 验证房卡参数是否符合游戏设置
+        //     if (!roomCard.validateParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
+        //         revert InvalidRoomCardParams();
+        //     }
 
-            // 消耗房卡
-            try roomCard.consume(msg.sender, roomCardTokenId) {
-                // 房卡消耗成功
-            } catch {
-                revert RoomCardConsumptionFailed();
-            }
-        }
+        //     // 消耗房卡
+        //     try roomCard.consume(msg.sender, roomCardTokenId) {
+        //         // 房卡消耗成功
+        //     } catch {
+        //         revert RoomCardConsumptionFailed();
+        //     }
+        // }
 
         // 检查游戏桌工厂地址是否设置
         if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
@@ -216,29 +188,18 @@ contract BBGameMain is
             betAmount,
             tableMaxPlayers,
             address(this),
-            playerTimeout,
-            tableInactiveTimeout,
-            gameHistoryAddress,
-            bankerFeePercent,
-            liquidatorFeePercent,
-            bankerIsPlayer,
-            rewardPoolAddress,
-            randomnessManagerAddress
+            bankerFeePercent
         ));
 
 
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
         gameTables[tableAddr] = BBGameTableImplementation(tableAddr);
-
-        if(bankerIsPlayer){
-            // 转账到游戏桌合约 - 使用更安全的 call 方法而不是 transfer
-            (bool success, ) = payable(tableAddr).call{value: betAmount}("");
-            if (!success) revert TransferFailed();
-        }
+        // 添加到用户的游戏桌列表
+        userTables[msg.sender].push(tableAddr);
 
         // 触发事件
-        emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, roomCardTokenId);
+        emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, bankerFeePercent);
     }
 
 
@@ -264,8 +225,6 @@ contract BBGameMain is
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
             liquidatorFeePercent: liquidatorFeePercent,
-            roomCardEnabled: roomCardEnabled,
-            roomLevelEnabled: roomLevelEnabled,
             gameHistoryAddress: gameHistoryAddress,
             rewardPoolAddress: rewardPoolAddress,
             randomnessManagerAddress: randomnessManagerAddress,
@@ -284,9 +243,7 @@ contract BBGameMain is
         uint256 _maxBankerFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
-        uint256 _liquidatorFeePercent,
-        bool _roomCardEnabled,
-        bool _roomLevelEnabled
+        uint256 _liquidatorFeePercent
     ) external onlyOwner {
         if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
@@ -301,8 +258,6 @@ contract BBGameMain is
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
         liquidatorFeePercent = _liquidatorFeePercent;
-        roomCardEnabled = _roomCardEnabled;
-        roomLevelEnabled = _roomLevelEnabled;
 
         emit GameConfigUpdated(_minBet, _maxPlayers);
     }
@@ -318,104 +273,23 @@ contract BBGameMain is
         emit RoomCardAddressUpdated(_roomCardAddress);
     }
 
-    /**
-     * @dev 启用或禁用房卡功能
-     * @param _enabled 是否启用
-     */
-    function setRoomCardEnabled(bool _enabled) external onlyOwner {
-        roomCardEnabled = _enabled;
-        emit RoomCardEnabledUpdated(_enabled);
-    }
 
     /**
-     * @dev 批量清理不活跃游戏桌
-     * @param batchSize 每次处理的最大数量
+     * @dev 获取最新的游戏桌
+     * @return 获取最新的游戏桌
      */
-    function batchCleanupInactiveTables(uint256 batchSize) external nonReentrant {
-        uint256 processed = 0;
-
-        for (uint256 i = 0; i < tableAddresses.length && processed < batchSize; i++) {
-            address tableAddr = tableAddresses[i];
-            BBGameTableImplementation gameTable = gameTables[tableAddr];
-
-            // 检查是否可以清算
-            if (block.timestamp > gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() &&
-                gameTable.state() != BBTypes.GameState.LIQUIDATED && gameTable.state() != BBTypes.GameState.ENDED) {
-
-                // 尝试清算
-                (bool success, ) = tableAddr.call(
-                    abi.encodeWithSignature("liquidateInactiveTable()")
-                );
-
-                // 如果清算成功，计数器加一
-                if (success) {
-                    processed++;
-                }
-            }
-        }
-    }
-
-    /**
-     * @dev 从列表中移除游戏桌
-     * @param tableAddr 要移除的游戏桌地址
-     */
-    function removeGameTable(address tableAddr, uint8 removeType) external nonReentrant {
-        // 安全检查：只允许游戏桌合约自己调用此函数
-        if (msg.sender != tableAddr) revert OnlyTableContractCanRemoveItself();
-
-        // 查找游戏桌在数组中的位置
-        uint256 index = type(uint256).max;
-        for (uint256 i = 0; i < tableAddresses.length; i++) {
-            if (tableAddresses[i] == tableAddr) {
-                index = i;
-                break;
-            }
-        }
-
-        // 确保找到了游戏桌
-        if (index == type(uint256).max) revert TableNotFound();
-
-        // 从数组中移除（通过将最后一个元素移到要删除的位置，然后删除最后一个元素）
-        if (index < tableAddresses.length - 1) {
-            tableAddresses[index] = tableAddresses[tableAddresses.length - 1];
-        }
-        tableAddresses.pop();
-
-        // 获取游戏桌的庄家地址
-        address bankerAddr = gameTables[tableAddr].bankerAddr();
-
-        // 从映射中删除
-        delete gameTables[tableAddr];
-
-        // 减少用户创建的房间数量
-        if (userCreatedRoomsCount[bankerAddr] > 0) {
-            userCreatedRoomsCount[bankerAddr]--;
-        }
-
-        if (removeType == 1){
-            // 将被清算的游戏桌地址添加到已清算的游戏桌列表中
-            liquidatedTableAddresses.push(tableAddr);
-        }else if(removeType == 2){
-            // 将被清算的游戏桌地址添加到已结算的游戏桌列表中
-            disbandedTableAddresses.push(tableAddr);
-        }
-
-
-        emit GameTableRemoved(tableAddr);
-    }
-
-
-
-    /**
-     * @dev 获取所有活跃游戏桌的信息
-     * @return 返回游戏桌信息数组
-     */
-    function getAllGameTables() external view returns(GameTableView[] memory) {
+    function getNewestGameTables(uint8 _count) external view returns(GameTableView[] memory) {
         uint256 tableCount = tableAddresses.length;
+        
+        //获取最新的游戏桌
+        if(tableCount > _count){
+            tableCount = _count;
+        }
         GameTableView[] memory tables = new GameTableView[](tableCount);
 
+        //获取tableAddresses中最新的16个游戏桌
         for (uint256 i = 0; i < tableCount; i++) {
-            address tableAddr = tableAddresses[i];
+            address tableAddr = tableAddresses[tableAddresses.length - i - 1];
             BBGameTableImplementation gameTable = gameTables[tableAddr];
             // 直接从合约实例获取信息
             tables[i] = gameTable.getTableInfo();
@@ -438,7 +312,7 @@ contract BBGameMain is
             BBGameTableImplementation gameTable = gameTables[tableAddr];
             //超过清算时间并且游戏在进行中的table可以被清算
             if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp &&
-            (gameTable.state() == BBTypes.GameState.FIRST_BETTING && gameTable.state() == BBTypes.GameState.SECOND_BETTING)){
+            (gameTable.state() == GameState.FIRST_BETTING && gameTable.state() == GameState.SECOND_BETTING)){
                 tempTables[i] = gameTable.getTableInfo();
                 validCount++;
             }
@@ -459,35 +333,20 @@ contract BBGameMain is
      * @return 返回游戏桌信息
      */
     function getGameTableInfo(address tableAddr) external view returns (GameTableView memory) {
-        if (tableAddr == address(0)) revert TableDoesNotExist();
-        BBGameTableImplementation gameTable = gameTables[tableAddr];
-        return gameTable.getTableInfo();
+        return _getTableInfo(tableAddr);
     }
 
     /**
      * @dev 获取我参与的赌桌
      * @return 返回游戏桌信息
      */
-    function getMyGameTablesActive() external view returns (GameTableView[] memory) {
-        // 第一次遍历计算数量
-        uint256 count = 0;
-        for (uint256 i = 0; i < tableAddresses.length; i++) {
-            if (gameTables[tableAddresses[i]].isPlayer(msg.sender)) {
-                count++;
-            }
-        }
+    function getMyGameTables() external view returns (GameTableView[] memory) {
+        uint256 tableCount = userTables[msg.sender].length;
+        GameTableView[] memory tables = new GameTableView[](tableCount);
 
-        // 创建正确大小的数组
-        GameTableView[] memory tables = new GameTableView[](count);
-
-        // 第二次遍历填充数据
-        uint256 index = 0;
-        for (uint256 i = 0; i < tableAddresses.length; i++) {
-            address tableAddr = tableAddresses[i];
-            if (gameTables[tableAddr].isPlayer(msg.sender)) {
-                tables[index] = gameTables[tableAddr].getTableInfo();
-                index++;
-            }
+        for (uint256 i = 0; i < tableCount; i++) {
+            address tableAddr = userTables[msg.sender][i];
+            tables[i] = _getTableInfo(tableAddr);
         }
 
         return tables;
@@ -515,10 +374,6 @@ contract BBGameMain is
     function setRewardPoolAddress(address _rewardPoolAddress) external onlyOwner nonReentrant{
         if (_rewardPoolAddress == address(0)) revert InvalidRewardPoolAddress();
         rewardPoolAddress = _rewardPoolAddress;
-
-        // 设置奖励池合约的游戏主合约地址
-        BBRewardPool rewardPool = BBRewardPool(payable(rewardPoolAddress));
-        rewardPool.setGameMainAddress(address(this));
 
         emit RewardPoolAddressUpdated(_rewardPoolAddress);
     }
@@ -556,6 +411,17 @@ contract BBGameMain is
         rewardPool.removeTableRewardPool(tableAddr);
     }
 
+    function rewardPoolIsInUse(address _bankerAddr, uint256 _poolId) external view returns (bool) {
+        BBGameTableImplementation[] tables = gameTables[_bankerAddr];
+        for (uint256 i = 0; i < tables.length; i++) {
+            address tableAddr = tableAddresses[i];
+            if (tables[tableAddr].bankerAddr() == _bankerAddr && tables[tableAddr].rewardPoolId() == _poolId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @dev 设置游戏桌工厂合约地址
      * @param _gameTableFactoryAddress 游戏桌工厂合约地址
@@ -567,21 +433,6 @@ contract BBGameMain is
     }
 
     /**
-     * @dev 升级游戏桌实现合约
-     * @param _implementation 新的实现合约地址
-     */
-    function upgradeGameTableImplementation(address _implementation) external onlyOwner nonReentrant {
-        if (_implementation == address(0)) revert InvalidAddress();
-        if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
-
-        // 调用工厂合约的升级函数
-        BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
-        factory.updateImplementation(_implementation);
-
-        emit GameTableImplementationUpgraded(_implementation, factory.version());
-    }
-
-    /**
      * @dev 设置随机数管理器地址
      * @param _randomnessManagerAddress 随机数管理器地址
      */
@@ -589,20 +440,8 @@ contract BBGameMain is
         if (_randomnessManagerAddress == address(0)) revert InvalidAddress();
         randomnessManagerAddress = _randomnessManagerAddress;
 
-        // 设置随机数管理器的游戏主合约地址
-        // BBRandomnessManager randomnessManager = BBRandomnessManager(_randomnessManagerAddress);
-        // randomnessManager.setGameMainAddress(address(this));
-
-        // 如果已经有游戏桌，为所有游戏桌设置随机数管理器地址
-        // for (uint256 i = 0; i < tableAddresses.length; i++) {
-        //     address tableAddr = tableAddresses[i];
-        //     BBGameTableImplementation gameTable = gameTables[tableAddr];
-        //     gameTable.setRandomnessManagerAddress(_randomnessManagerAddress);
-        // }
-
         emit RandomnessManagerAddressUpdated(_randomnessManagerAddress);
     }
-
 
 
     /**
@@ -614,15 +453,6 @@ contract BBGameMain is
         roomLevelAddress = _roomLevelAddress;
 
         emit RoomLevelAddressUpdated(_roomLevelAddress);
-    }
-
-    /**
-     * @dev 启用或禁用房间等级功能
-     * @param _enabled 是否启用
-     */
-    function setRoomLevelEnabled(bool _enabled) external onlyOwner {
-        roomLevelEnabled = _enabled;
-        emit RoomLevelEnabledUpdated(_enabled);
     }
 
 
@@ -641,46 +471,7 @@ contract BBGameMain is
     // 授权升级
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    /**
-     * @dev 重新计算所有用户创建的房间数量（仅在合约升级后需要时使用）
-     * @notice 这个函数可能会消耗大量的gas，只应在必要时调用
-     */
-    function recalculateAllUserRoomCounts() external onlyOwner nonReentrant {
-        // 首先收集所有庄家地址
-        address[] memory bankers = new address[](tableAddresses.length);
-        uint256 bankersCount = 0;
-
-        // 遍历所有游戏桌，收集庄家地址
-        for (uint256 i = 0; i < tableAddresses.length; i++) {
-            address bankerAddr = gameTables[tableAddresses[i]].bankerAddr();
-            bool found = false;
-
-            // 检查庄家是否已经在列表中
-            for (uint256 j = 0; j < bankersCount; j++) {
-                if (bankers[j] == bankerAddr) {
-                    found = true;
-                    break;
-                }
-            }
-
-            // 如果庄家不在列表中，添加到列表
-            if (!found) {
-                bankers[bankersCount] = bankerAddr;
-                bankersCount++;
-            }
-        }
-
-        // 重置所有庄家的房间计数
-        for (uint256 i = 0; i < bankersCount; i++) {
-            userCreatedRoomsCount[bankers[i]] = 0;
-        }
-
-        // 重新计算每个庄家的房间数量
-        for (uint256 i = 0; i < tableAddresses.length; i++) {
-            address bankerAddr = gameTables[tableAddresses[i]].bankerAddr();
-            userCreatedRoomsCount[bankerAddr]++;
-        }
-    }
+    
 
     /**
      * @dev 需要接收资金的合约必须要实现的函数
@@ -688,13 +479,11 @@ contract BBGameMain is
     receive() external payable {}
 
     // 事件定义
-    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers, uint256 roomCardTokenId);
+    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers, uint256 bankerFeePercent);
     event GameTableRemoved(address indexed tableAddr);
     event GameConfigUpdated(uint256 minBet, uint8 maxPlayers);
     event RoomCardAddressUpdated(address indexed roomCardAddress);
-    event RoomCardEnabledUpdated(bool enabled);
     event RoomLevelAddressUpdated(address indexed roomLevelAddress);
-    event RoomLevelEnabledUpdated(bool enabled);
     event RewardPoolAddressUpdated(address indexed rewardPoolAddress);
     event GameTableFactoryAddressUpdated(address indexed gameTableFactoryAddress);
     event GameTableImplementationUpgraded(address indexed implementation, uint256 version);

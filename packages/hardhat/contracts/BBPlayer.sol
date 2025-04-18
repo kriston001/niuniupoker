@@ -7,7 +7,7 @@ import "./BBVersion.sol";
 struct BBPlayer {
     address playerAddr;
     bool isBanker;
-    BBTypes.PlayerState state;
+    PlayerState state;
 
     // 下注信息
     uint256 initialBet;
@@ -15,7 +15,7 @@ struct BBPlayer {
     uint256 additionalBet2;
 
     uint8[5] cards;
-    BBTypes.CardType cardType;
+    CardType cardType;
 }
 
 library BBPlayerLib {
@@ -27,31 +27,31 @@ library BBPlayerLib {
      * @dev 玩家准备
      */
     function playerReady(BBPlayer storage self) internal {
-        self.state = BBTypes.PlayerState.READY;
+        self.state = PlayerState.READY;
     }
 
     /**
      * @dev 玩家取消准备
      */
     function playerUnready(BBPlayer storage self) internal {
-        self.state = BBTypes.PlayerState.JOINED;
+        self.state = PlayerState.JOINED;
     }
 
     /**
      * @dev 玩家加入
      */
     function playerJoin(BBPlayer storage self) internal {
-        self.state = BBTypes.PlayerState.JOINED;
+        self.state = PlayerState.JOINED;
     }
 
     /**
      * @dev 玩家弃牌
      */
     function playerFold(BBPlayer storage self) internal {
-        if(self.state == BBTypes.PlayerState.READY){
-            self.state = BBTypes.PlayerState.FIRST_FOLDED;
+        if(self.state == PlayerState.READY){
+            self.state = PlayerState.FIRST_FOLDED;
         }else{
-            self.state = BBTypes.PlayerState.SECOND_FOLDED;
+            self.state = PlayerState.SECOND_FOLDED;
         }
     }
 
@@ -59,12 +59,12 @@ library BBPlayerLib {
      * @dev 玩家继续游戏
      */
     function playerContinue(BBPlayer storage self, uint256 additionalBet) internal {
-        if(self.state == BBTypes.PlayerState.READY){
+        if(self.state == PlayerState.READY){
             self.additionalBet1 = additionalBet;
-            self.state = BBTypes.PlayerState.FIRST_CONTINUED;
+            self.state = PlayerState.FIRST_CONTINUED;
         }else{
             self.additionalBet2 = additionalBet;
-            self.state = BBTypes.PlayerState.SECOND_CONTINUED;
+            self.state = PlayerState.SECOND_CONTINUED;
         }
     }
 
@@ -72,12 +72,12 @@ library BBPlayerLib {
      * @dev 重置玩家数据
      */
     function playerReset(BBPlayer storage self) internal {
-        self.state = BBTypes.PlayerState.JOINED;
+        self.state = PlayerState.JOINED;
         self.initialBet = 0;
         self.additionalBet1 = 0;
         self.additionalBet2 = 0;
         self.cards = [0, 0, 0, 0, 0];
-        self.cardType = BBTypes.CardType.NONE;
+        self.cardType = CardType.NONE;
     }
 
     /**

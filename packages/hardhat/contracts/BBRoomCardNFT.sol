@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "./BBVersion.sol";
+import "./BBStructs.sol";
 
 /**
  * @title BBRoomCard
@@ -23,18 +24,7 @@ contract BBRoomCardNFT is
     using Strings for uint256;
 
     // Room card type structure - combines type and config in one structure
-    struct NftType {
-        uint256 id;              // Unique identifier for the card type
-        string name;             // Name of the card type (e.g., "SILVER", "GOLD", "DIAMOND")
-        uint256 maxBetAmount;    // Maximum bet amount allowed with this card
-        uint8 maxPlayers;        // Maximum number of players allowed
-        uint256 price;           // Price to purchase this card
-        string uriSuffix;        // URI suffix for metadata
-        bool active;             // Whether this card type is active
-        uint256 maxMint;         // Maximum mint amount for this card type
-        string rarity;           // Rarity of the card type
-        uint256 minted;          // 已mint数量
-    }
+    
 
     // Used to generate unique token IDs
     uint256 private _tokenIdCounter;
@@ -49,7 +39,7 @@ contract BBRoomCardNFT is
     address public gameMainAddress;
 
     // Card types by ID
-    mapping(uint256 => NftType) public nftTypes;
+    mapping(uint256 => RoomCardNftType) public nftTypes;
 
     // Card type ID corresponding to each token ID
     mapping(uint256 => uint256) public tokenNftTypes;
@@ -122,7 +112,7 @@ contract BBRoomCardNFT is
         uint256 newNftTypeId = _nftTypeIdCounter;
         _nftTypeIdCounter++;
 
-        nftTypes[newNftTypeId] = NftType({
+        nftTypes[newNftTypeId] = RoomCardNftType({
             id: newNftTypeId,
             name: name,
             maxBetAmount: maxBetAmount,
@@ -162,7 +152,7 @@ contract BBRoomCardNFT is
         require(price > 0, "Price must be greater than 0");
         require(maxMint > 0, "Max mint must be greater than 0");
         require(bytes(rarity).length > 0, "Rarity cannot be empty");
-        NftType storage nftType = nftTypes[nftTypeId];
+        RoomCardNftType storage nftType = nftTypes[nftTypeId];
         nftType.maxBetAmount = maxBetAmount;
         nftType.maxPlayers = maxPlayers;
         nftType.price = price;
@@ -191,7 +181,7 @@ contract BBRoomCardNFT is
      * @return Returns the minted room card ID
      */
     function buy(uint256 nftTypeId) external payable returns (uint256) {
-        NftType memory nftType = nftTypes[nftTypeId];
+        RoomCardNftType memory nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Card type does not exist");
         require(nftType.active, "Card type not active");
         require(msg.value >= nftType.price, "Insufficient payment");
@@ -218,7 +208,7 @@ contract BBRoomCardNFT is
      * @return Returns an array of minted room card IDs
      */
     function batchBuy(uint256 nftTypeId, uint256 amount) external payable returns (uint256[] memory) {
-        NftType memory nftType = nftTypes[nftTypeId];
+        RoomCardNftType memory nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Card type does not exist");
         require(nftType.active, "Card type not active");
         require(amount > 0, "Amount must be greater than 0");
@@ -319,7 +309,7 @@ contract BBRoomCardNFT is
     // 定义卡片详细信息结构体
     struct NftDetail {
         uint256 tokenId;       // 卡片的token ID
-        NftType nftType;     // 继承CardType的所有属性
+        RoomCardNftType nftType;     // 继承CardType的所有属性
     }
 
 
@@ -357,7 +347,7 @@ contract BBRoomCardNFT is
      * @param tokenId Room card ID
      * @return Card type information
      */
-    function getType(uint256 tokenId) external view returns (NftType memory) {
+    function getType(uint256 tokenId) external view returns (RoomCardNftType memory) {
         _requireOwned(tokenId);
         uint256 nftTypeId = tokenNftTypes[tokenId];
         return nftTypes[nftTypeId];
@@ -375,7 +365,7 @@ contract BBRoomCardNFT is
      * @dev Get all active card types
      * @return Arrays of card type IDs and card types
      */
-    function getActiveTypes() external view returns (uint256[] memory, NftType[] memory) {
+    function getActiveTypes() external view returns (uint256[] memory, RoomCardNftType[] memory) {
         uint256 activeCount = 0;
 
         // Count active card types
@@ -388,7 +378,7 @@ contract BBRoomCardNFT is
 
         // Create arrays for active card types
         uint256[] memory activeIds = new uint256[](activeCount);
-        NftType[] memory activeTypes = new NftType[](activeCount);
+        RoomCardNftType[] memory activeTypes = new RoomCardNftType[](activeCount);
 
         // Fill arrays
         uint256 index = 0;
@@ -414,7 +404,7 @@ contract BBRoomCardNFT is
     function validateParams(uint256 tokenId, uint256 betAmount, uint8 maxPlayers) external view returns (bool) {
         _requireOwned(tokenId);
         uint256 nftTypeId = tokenNftTypes[tokenId];
-        NftType memory nftType = nftTypes[nftTypeId];
+        RoomCardNftType memory nftType = nftTypes[nftTypeId];
 
         return (betAmount <= nftType.maxBetAmount &&
                 maxPlayers <= nftType.maxPlayers);

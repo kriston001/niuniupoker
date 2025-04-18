@@ -22,7 +22,6 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
 
     // 事件
     event ImplementationUpdated(address indexed oldImpl, address indexed newImpl, uint256 version);
-    event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 version);
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -82,7 +81,6 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
      * @param gameHistoryAddr 游戏历史记录合约地址
      * @param bankerFeePercent 庄家费用百分比
      * @param liquidatorFeePercent 清算人费用百分比
-     * @param bankerIsPlayer 庄家是否参与游戏
      * @param rewardPoolAddr 奖励池合约地址
      * @param randomnessManagerAddr 随机数管理器地址
      * @return 新创建的游戏桌地址
@@ -93,14 +91,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         uint256 betAmount,
         uint8 maxPlayers,
         address gameMainAddr,
-        uint256 playerTimeout,
-        uint256 tableInactiveTimeout,
-        address gameHistoryAddr,
-        uint256 bankerFeePercent,
-        uint256 liquidatorFeePercent,
-        bool bankerIsPlayer,
-        address rewardPoolAddr,
-        address randomnessManagerAddr
+        uint256 bankerFeePercent
     ) external returns (address) {
         // 克隆代理合约，这样所有克隆都会指向同一个可升级的代理
         address payable clone = payable(Clones.clone(proxyAddress));
@@ -112,18 +103,9 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
             betAmount,
             maxPlayers,
             gameMainAddr,
-            playerTimeout,
-            tableInactiveTimeout,
-            gameHistoryAddr,
             bankerFeePercent,
-            liquidatorFeePercent,
-            bankerIsPlayer,
-            rewardPoolAddr,
-            randomnessManagerAddr,
             version
         );
-
-        emit GameTableCreated(clone, bankerAddr, version);
 
         return clone;
     }

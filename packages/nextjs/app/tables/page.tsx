@@ -1,9 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { PlusCircle, Users, Wallet, Trophy, Clock, Search, Filter, ArrowUpDown } from "lucide-react"
-import { Button } from "~~/components/ui/button"
-import { Card, CardContent, CardFooter } from "~~/components/ui/card"
+import { useState } from "react";
+import { ArrowUpDown, Clock, Filter, PlusCircle, Search, Trophy, Users, Wallet } from "lucide-react";
+import { CreateRewardModal } from "~~/components/niuniu/create-reward-modal";
+import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
+import { Badge } from "~~/components/ui/badge";
+import { Button } from "~~/components/ui/button";
+import { Card, CardContent, CardFooter } from "~~/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "~~/components/ui/dialog"
-import { Input } from "~~/components/ui/input"
-import { Label } from "~~/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group"
-import { Badge } from "~~/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "~~/components/ui/dropdown-menu"
-import { truncateAddress } from "~~/lib/utils"
+} from "~~/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~~/components/ui/dropdown-menu";
+import { Input } from "~~/components/ui/input";
+import { Label } from "~~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group";
+import { Slider } from "~~/components/ui/slider";
+import { truncateAddress } from "~~/lib/utils";
 
 // Sample data for poker tables
 const tablesData = [
@@ -154,82 +162,83 @@ const tablesData = [
     reward: 8,
     createdAt: "2024-04-17T07:00:00.000Z",
   },
-]
+];
 
 export default function TablesPage() {
-  const [open, setOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [rewardValue, setRewardValue] = useState(3);
 
   const filterTables = () => {
-    let filtered = [...tablesData]
+    let filtered = [...tablesData];
 
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(
-        (table) =>
+        table =>
           table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           truncateAddress(table.dealerAddress).toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      );
     }
 
     // Apply status filter
     if (statusFilter) {
-      filtered = filtered.filter((table) => table.status === statusFilter)
+      filtered = filtered.filter(table => table.status === statusFilter);
     }
 
     // Apply sorting
     if (sortBy) {
       filtered.sort((a, b) => {
-        let comparison = 0
+        let comparison = 0;
         switch (sortBy) {
           case "betAmount":
-            comparison = a.betAmount - b.betAmount
-            break
+            comparison = a.betAmount - b.betAmount;
+            break;
           case "players":
-            comparison = a.currentPlayers - b.currentPlayers
-            break
+            comparison = a.currentPlayers - b.currentPlayers;
+            break;
           case "reward":
-            comparison = a.reward - b.reward
-            break
+            comparison = a.reward - b.reward;
+            break;
           case "createdAt":
-            comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            break
+            comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            break;
           default:
-            return 0
+            return 0;
         }
-        return sortDirection === "asc" ? comparison : -comparison
-      })
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
     }
 
-    return filtered
-  }
+    return filtered;
+  };
 
   const toggleSort = (field: string) => {
     if (sortBy === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortBy(field)
-      setSortDirection("desc")
+      setSortBy(field);
+      setSortDirection("desc");
     }
-  }
+  };
 
-  const filteredTables = filterTables()
+  const filteredTables = filterTables();
 
   const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
     if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`
+      return `${diffInMinutes}m ago`;
     } else {
-      const diffInHours = Math.floor(diffInMinutes / 60)
-      return `${diffInHours}h ago`
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      return `${diffInHours}h ago`;
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -245,7 +254,7 @@ export default function TablesPage() {
               placeholder="Search tables..."
               className="pl-10 bg-zinc-800 border-zinc-700 text-white w-full md:w-[250px]"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
           <DropdownMenu>
@@ -265,99 +274,20 @@ export default function TablesPage() {
               <DropdownMenuItem onClick={() => setStatusFilter("full")}>Full</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium">
+
+          <CreateTableModal
+            open={open}
+            onOpenChange={setOpen}
+            trigger={
+              <Button
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium shadow-lg hover:shadow-amber-600/20 transition-all duration-300"
+                onClick={() => setOpen(true)}
+              >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create Table
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-800">
-              <DialogHeader>
-                <DialogTitle className="text-xl text-white">Create New Table</DialogTitle>
-                <DialogDescription className="text-zinc-400">
-                  Set up your poker table parameters below.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-zinc-300">
-                    Table Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter a unique table name"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="bet" className="text-zinc-300">
-                    Bet Amount (ETH)
-                  </Label>
-                  <Input
-                    id="bet"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0.1"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="players" className="text-zinc-300">
-                    Max Players
-                  </Label>
-                  <Input
-                    id="players"
-                    type="number"
-                    min="2"
-                    max="8"
-                    placeholder="6"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-zinc-300">Dealer's Reward (%)</Label>
-                  <RadioGroup defaultValue="3">
-                    <div className="flex justify-between">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="2" id="r2" className="text-amber-500" />
-                        <Label htmlFor="r2" className="text-zinc-300">
-                          2%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="3" id="r3" className="text-amber-500" />
-                        <Label htmlFor="r3" className="text-zinc-300">
-                          3%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="5" id="r5" className="text-amber-500" />
-                        <Label htmlFor="r5" className="text-zinc-300">
-                          5%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="8" id="r8" className="text-amber-500" />
-                        <Label htmlFor="r8" className="text-zinc-300">
-                          8%
-                        </Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium w-full"
-                  onClick={() => setOpen(false)}
-                >
-                  Create Table
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            }
+          />
         </div>
       </div>
 
@@ -414,7 +344,7 @@ export default function TablesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTables.map((table) => (
+        {filteredTables.map(table => (
           <Card key={table.id} className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
             <CardContent className="p-6">
@@ -497,5 +427,5 @@ export default function TablesPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

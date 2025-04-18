@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { NftRoomCard, NftRoomLevel } from "@/components/niuniu/NftCard";
+import { MyNftCardDetail } from "@/components/niuniu/my-nft-card-detail";
+import { NftRoomCard, NftRoomLevel } from "@/components/niuniu/nft-card";
 import { CreditCard, Layers, Search, SlidersHorizontal, User } from "lucide-react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
-import { MyNftCard } from "~~/components/niuniu/MyNftCard";
-import { NftCardDetail } from "~~/components/niuniu/NftCardDetail";
-import { NftMintModal } from "~~/components/niuniu/NftMintModal";
+import { MyNftCard } from "~~/components/niuniu/my-nft-card";
+import { NftCardDetail } from "~~/components/niuniu/nft-card-detail";
+import { NftMintModal } from "~~/components/niuniu/nft-mint-modal";
 import { Button } from "~~/components/ui/button";
 import { Input } from "~~/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs";
@@ -18,7 +19,6 @@ import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallb
 import { getNftSympol } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
-import { MyNftCardDetail } from "@/components/niuniu/MyNftCardDetail"
 
 export default function NFTPage() {
   const gameConfig = useGlobalState(state => state.gameConfig);

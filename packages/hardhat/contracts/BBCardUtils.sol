@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./BBTypes.sol";
 import "./BBVersion.sol";
+import "./BBTypes.sol";
 
 /**
  * @title CardUtils
@@ -13,8 +13,6 @@ library BBCardUtils {
     function getVersion() public pure returns (string memory) {
         return BBVersion.VERSION;
     }
-    using BBTypes for BBTypes.CardType;
-
     /**
      * @dev 合并两轮牌
      */
@@ -35,11 +33,11 @@ library BBCardUtils {
     /**
      * @dev 计算牌型
      */
-    function calculateCardType(uint8[5] memory cards) internal pure returns (BBTypes.CardType) {
+    function calculateCardType(uint8[5] memory cards) internal pure returns (CardType) {
         // 检查是否有无效牌（0表示无效牌）
         for (uint8 i = 0; i < 5; i++) {
             if (cards[i] == 0) {
-                return BBTypes.CardType.NONE;
+                return CardType.NONE;
             }
         }
         
@@ -51,15 +49,15 @@ library BBCardUtils {
 
         // 检查特殊牌型
         if (isFiveFlower(values)) {
-            return BBTypes.CardType.FIVE_FLOWERS;
+            return CardType.FIVE_FLOWERS;
         }
         
         if (isFiveBomb(values)) {
-            return BBTypes.CardType.FIVE_BOMB;
+            return CardType.FIVE_BOMB;
         }
 
         if (isFiveSmall(values)) {
-            return BBTypes.CardType.FIVE_SMALL;
+            return CardType.FIVE_SMALL;
         }
 
         // 计算牛牛牌型
@@ -117,7 +115,7 @@ library BBCardUtils {
     /**
      * @dev 计算有牛牌型
      */
-    function calculateBullType(uint8[5] memory values) internal pure returns (BBTypes.CardType) {
+    function calculateBullType(uint8[5] memory values) internal pure returns (CardType) {
         // 转换点数（J、Q、K都按10计算）
         uint8[5] memory points;
         uint8 sum = 0;
@@ -139,10 +137,10 @@ library BBCardUtils {
                         uint8 remainder = remainingSum % 10;
 
                         if (remainder == 0) {
-                            return BBTypes.CardType.BULL_BULL;
+                            return CardType.BULL_BULL;
                         } else {
                             // 返回对应的牛几，需要加1来对应正确的枚举值
-                            return BBTypes.CardType(remainder + 1);
+                            return CardType(remainder + 1);
                         }
                     }
                 }
@@ -150,14 +148,14 @@ library BBCardUtils {
         }
 
         // 没有找到有效组合，返回无牛
-        return BBTypes.CardType.NO_BULL;
+        return CardType.NO_BULL;
     }
 
     /**
      * @dev 比较两个牌型的大小
      * @return 1 如果cardType1大于cardType2，0 如果相等，-1 如果cardType1小于cardType2
      */
-    function compareCardType(BBTypes.CardType cardType1, BBTypes.CardType cardType2) internal pure returns (int8) {
+    function compareCardType(CardType cardType1, CardType cardType2) internal pure returns (int8) {
         if (uint8(cardType1) > uint8(cardType2)) {
             return 1;
         } else if (uint8(cardType1) < uint8(cardType2)) {

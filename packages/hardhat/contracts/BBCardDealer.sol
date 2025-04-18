@@ -2,9 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "./BBErrors.sol";
-import "./BBTypes.sol";
 import "./BBCardUtils.sol";
 import "./BBVersion.sol";
+import "./BBTypes.sol";
 
 /**
  * @title BBCardDealer
@@ -29,7 +29,7 @@ library BBCardDealer {
 
     // 事件声明
     event CardsDealt(address indexed player, uint8 count, uint8[] cards);
-    event CardTypeCalculated(address indexed player, BBTypes.CardType cardType);
+    event CardTypeCalculated(address indexed player, CardType cardType);
     event DealerReset();
 
     /**
@@ -39,7 +39,7 @@ library BBCardDealer {
         address[] playerAddresses;
         mapping(address => uint8[5]) playerCards;         // 每个玩家的牌
         mapping(address => uint8) cardCount;              // 每个玩家已发的牌数量
-        mapping(address => BBTypes.CardType) cardTypes;   // 每个玩家的牌型
+        mapping(address => CardType) cardTypes;   // 每个玩家的牌型
         mapping(address => mapping(uint8 => bool)) usedCards; // 每个玩家已使用的牌
         uint256 lastSeed;                                 // 上次使用的随机种子
         uint8 maxCardsPerPlayer;                          // 每个玩家最大牌数
@@ -80,7 +80,7 @@ library BBCardDealer {
             // 清空牌数量
             self.cardCount[playerAddr] = 0;
             // 清空牌型
-            self.cardTypes[playerAddr] = BBTypes.CardType.NONE;
+            self.cardTypes[playerAddr] = CardType.NONE;
 
             // 清空已使用的牌记录
             for (uint8 card = 1; card <= TOTAL_CARDS; card++) {
@@ -220,15 +220,15 @@ library BBCardDealer {
     function calculateCardType(
         DealerState storage self, 
         address player
-    ) internal returns (BBTypes.CardType) {
-        if (self.cardCount[player] != 5) return BBTypes.CardType.NONE;
+    ) internal returns (CardType) {
+        if (self.cardCount[player] != 5) return CardType.NONE;
 
         uint8[5] memory cards;
         for (uint8 i = 0; i < 5; i++) {
             cards[i] = self.playerCards[player][i];
         }
 
-        BBTypes.CardType cardType = BBCardUtils.calculateCardType(cards);
+        CardType cardType = BBCardUtils.calculateCardType(cards);
         self.cardTypes[player] = cardType;
 
         emit CardTypeCalculated(player, cardType);
@@ -244,7 +244,7 @@ library BBCardDealer {
     function getCardType(
         DealerState storage self, 
         address player
-    ) internal view returns (BBTypes.CardType) {
+    ) internal view returns (CardType) {
         return self.cardTypes[player];
     }
 
@@ -287,7 +287,7 @@ library BBCardDealer {
         }
         
         self.cardCount[player] = 0;
-        self.cardTypes[player] = BBTypes.CardType.NO_BULL;
+        self.cardTypes[player] = CardType.NO_BULL;
     }
 
     /**

@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "./BBVersion.sol";
+import "./BBStructs.sol";
 
 /**
  * @title BBRoomLevel
@@ -22,23 +23,12 @@ contract BBRoomLevelNFT is
 {
     using Strings for uint256;
 
-    // Room level structure
-    struct NftType {
-        uint256 id;              // Unique identifier for the level type
-        string name;             // Name of the level (e.g., "BRONZE", "SILVER", "GOLD")
-        uint256 maxRooms;        // Maximum number of rooms allowed with this level
-        uint256 price;           // Price to purchase this level
-        string uriSuffix;        // URI suffix for metadata
-        bool active;             // Whether this level type is active
-        uint256 maxMint;         // Maximum mint amount for this level type
-        uint256 minted;          // Already minted amount for this level type
-        string rarity;           // Rarity of this level type
-    }
+    
 
     // Level details structure for returning comprehensive information
     struct NftDetail {
         uint256 tokenId;         // Level token ID
-        NftType nftType;     // Level type information
+        RoomLevelNftType nftType;     // Level type information
     }
 
     // Used to generate unique token IDs
@@ -54,7 +44,7 @@ contract BBRoomLevelNFT is
     address public gameMainAddress;
 
     // Level types by ID
-    mapping(uint256 => NftType) public nftTypes;
+    mapping(uint256 => RoomLevelNftType) public nftTypes;
 
     // Level type ID corresponding to each token ID
     mapping(uint256 => uint256) public tokenNftTypes;
@@ -123,7 +113,7 @@ contract BBRoomLevelNFT is
         uint256 newNftTypeId = _nftTypeIdCounter;
         _nftTypeIdCounter++;
 
-        nftTypes[newNftTypeId] = NftType({
+        nftTypes[newNftTypeId] = RoomLevelNftType({
             id: newNftTypeId,
             name: name,
             maxRooms: maxRooms,
@@ -161,7 +151,7 @@ contract BBRoomLevelNFT is
         require(price > 0, "Price must be greater than 0");
         require(maxMint > 0, "Max mint must be greater than 0");
 
-        NftType storage nftType = nftTypes[nftTypeId];
+        RoomLevelNftType storage nftType = nftTypes[nftTypeId];
         nftType.maxRooms = maxRooms;
         nftType.price = price;
         nftType.uriSuffix = uriSuffix;
@@ -190,7 +180,7 @@ contract BBRoomLevelNFT is
      * @return Returns the minted level token ID
      */
     function buy(uint256 nftTypeId) external payable returns (uint256) {
-        NftType storage nftType = nftTypes[nftTypeId];
+        RoomLevelNftType storage nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Level type does not exist");
         require(nftType.active, "Level type not active");
         require(msg.value >= nftType.price, "Insufficient payment");
@@ -219,7 +209,7 @@ contract BBRoomLevelNFT is
      * @return Returns an array of minted room level IDs
      */
     function batchBuy(uint256 nftTypeId, uint256 amount) external payable returns (uint256[] memory) {
-        NftType storage nftType = nftTypes[nftTypeId];
+        RoomLevelNftType storage nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Level type does not exist");
         require(nftType.active, "Level type not active");
         require(amount > 0, "Amount must be greater than 0");
@@ -376,7 +366,7 @@ contract BBRoomLevelNFT is
      * @param tokenId Level token ID
      * @return Level type information
      */
-    function getType(uint256 tokenId) external view returns (NftType memory) {
+    function getType(uint256 tokenId) external view returns (RoomLevelNftType memory) {
         _requireOwned(tokenId);
         uint256 nftTypeId = tokenNftTypes[tokenId];
         return nftTypes[nftTypeId];
@@ -394,7 +384,7 @@ contract BBRoomLevelNFT is
      * @dev Get all active level types
      * @return Arrays of level type IDs and level types
      */
-    function getActiveTypes() external view returns (uint256[] memory, NftType[] memory) {
+    function getActiveTypes() external view returns (uint256[] memory, RoomLevelNftType[] memory) {
         uint256 activeCount = 0;
 
         // Count active level types
@@ -407,7 +397,7 @@ contract BBRoomLevelNFT is
 
         // Create arrays for active level types
         uint256[] memory activeIds = new uint256[](activeCount);
-        NftType[] memory activeTypes = new NftType[](activeCount);
+        RoomLevelNftType[] memory activeTypes = new RoomLevelNftType[](activeCount);
 
         // Fill arrays
         uint256 index = 0;

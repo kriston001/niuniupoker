@@ -7,9 +7,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
-import "./BBGameTableImplementation.sol";
 import "./BBVersion.sol";
-import "./BBGameMain.sol";
+import "./BBInterfaces.sol";
 
 contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // 游戏记录基础信息
@@ -71,7 +70,7 @@ contract BBGameHistory is Initializable, OwnableUpgradeable, ReentrancyGuardUpgr
         BBTypes.CardType maxCardType
     ) external {
         address tableAddr = msg.sender;
-        BBGameMain gameMain = BBGameMain(payable(gameMainAddr));
+        IGameMain gameMain = IGameMain(gameMainAddr);
         if (gameMainAddr == address(0) || !gameMain.isValidGameTable(tableAddr)) revert InvalidGameTable();
 
         uint256 recordIndex = recordCounter;

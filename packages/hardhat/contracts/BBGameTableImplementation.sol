@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "./BBErrors.sol";
-import "./BBTypes.sol";
+import "./sol";
 import "./BBCardUtils.sol";
 import "./BBPlayer.sol";
 import "./BBCardDealer.sol";
@@ -10,10 +10,12 @@ import "./BBVersion.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "./BBGameHistory.sol";
 import "./BBRewardPool.sol";
-import "./BBRandomnessManager.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./BBInterfaces.sol";
+
+
 
 //用于把playerData数据转换成结构体用以在函数参数中传递
 struct BBPlayerEntry {
@@ -24,7 +26,7 @@ struct BBPlayerEntry {
 struct BBPlayerCardEntry {
     address playerAddr;
     uint8[5] cards;
-    BBTypes.CardType cardType;
+    CardType cardType;
 }
 
 // 添加一个新的结构体用于返回游戏桌信息
@@ -37,7 +39,7 @@ struct GameTableView {
     uint8 playerCount;
     uint8 maxPlayers;
     uint256 creationTimestamp;
-    BBTypes.GameState state;
+    GameState state;
     uint8 playerContinuedCount;
     uint8 playerFoldCount;
     uint8 playerReadyCount;
@@ -55,9 +57,9 @@ struct GameTableView {
  */
 contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using BBPlayerLib for BBPlayer;
-    using BBTypes for BBTypes.GameState;
-    using BBTypes for BBTypes.PlayerState;
-    using BBTypes for BBTypes.CardType;
+    using BBTypes for GameState;
+    using BBTypes for PlayerState;
+    using BBTypes for CardType;
     using BBCardUtils for uint8[5];
     using BBCardDealer for BBCardDealer.DealerState;
 
@@ -68,18 +70,19 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     uint8 public playerCount;
     uint8 public maxPlayers;
     uint256 public creationTimestamp;
-    bool public bankerIsPlayer; // 庄家是否加入游戏
-    BBTypes.GameState public state;
+    GameState public state;
     uint256 public randomRequestId;
 
-    uint256 gameStartTimestamp;
-    uint256 gameEndTimestamp;
+    uint256 public gameCount; //开展的游戏场数
+    uint256 public gameLiquidatedCount; //被清算的游戏场数
+
+    uint256 public gameStartTimestamp;
+    uint256 public gameEndTimestamp;
     uint8 public playerContinuedCount;
     uint8 public playerFoldCount;
     uint8 public playerReadyCount;
     uint256 public totalPrizePool;  //奖池金额
     uint256 public bankerFeePercent; // 庄家费用百分比
-    uint256 public liquidatorFeePercent; // 庄家费用百分比
     uint256 public implementationVersion; // 实现版本号
 
     // 使用集中版本管理
@@ -97,6 +100,10 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
     //主合约地址
     address public gameMainAddr;
+    address public gameHistoryAddr;  //游戏记录合约地址
+    address public rewardPoolAddr; // 奖励池合约地址
+    address public randomnessManagerAddr; // 随机数管理合约地址
+    address public roomCardAddr; // 房间卡合约地址
 
     // 添加超时相关状态变量
     uint256 public playerTimeout; // 玩家操作超时时间，单位为秒
@@ -105,9 +112,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     uint256 public tableInactiveTimeout; // 游戏桌不活跃超时时间，单位为秒
     uint256 public lastActivityTimestamp; // 最后活动时间戳
 
-    address public gameHistoryAddr;
-    address public rewardPoolAddr; // 奖励池合约地址
-    address public randomnessManagerAddr; // 随机数管理合约地址
+    
     uint256 public currentRandomSessionId; // 当前随机数会话 ID
 
     // 事件
@@ -128,14 +133,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         uint256 _betAmount,
         uint8 _maxPlayers,
         address _gameMainAddr,
-        uint256 _playerTimeout,
-        uint256 _tableInactiveTimeout,
-        address _gameHistoryAddr,
         uint256 _bankerFeePercent,
-        uint256 _liquidatorFeePercent,
-        bool _bankerIsPlayer,
-        address _rewardPoolAddr,
-        address _randomnessManagerAddr,
         uint256 _implementationVersion
     ) public initializer {
         // 初始化可升级合约
@@ -150,46 +148,43 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         bankerAddr = _bankerAddr;
         betAmount = _betAmount;
         maxPlayers = _maxPlayers;
-        state = BBTypes.GameState.WAITING;
+        state = GameState.WAITING;
         gameMainAddr = _gameMainAddr;
-        playerTimeout = _playerTimeout;
-        tableInactiveTimeout = _tableInactiveTimeout;
         creationTimestamp = block.timestamp;
         lastActivityTimestamp = block.timestamp; // 初始化最后活动时间
-        gameHistoryAddr = _gameHistoryAddr;
         bankerFeePercent = _bankerFeePercent;
-        liquidatorFeePercent = _liquidatorFeePercent;
-        bankerIsPlayer = _bankerIsPlayer;
-        rewardPoolAddr = _rewardPoolAddr;
-        randomnessManagerAddr = _randomnessManagerAddr;
         implementationVersion = _implementationVersion;
 
         // 创建庄家对象
         BBPlayer memory _banker = BBPlayer({
             playerAddr: _bankerAddr,
             isBanker: true,
-            state: BBTypes.PlayerState.READY,
+            state: PlayerState.READY,
             initialBet: betAmount,
             additionalBet1: 0,
             additionalBet2: 0,
             cards: [0, 0, 0, 0, 0],
-            cardType: BBTypes.CardType.NONE
+            cardType: CardType.NONE
         });
         banker = _banker;
-
-        if(bankerIsPlayer){
-            players[_bankerAddr] = banker;
-            playerAddresses.push(bankerAddr);
-            playerReadyCount = 1;
-            playerCount = 1;
-            totalPrizePool += betAmount;
-        }
 
         // 初始化发牌状态 - 暂时使用临时种子，后续会通过VRF更新
         uint256 tempSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
         dealerState.initialize(tempSeed);
 
         emit GameTableInitialized(address(this), _bankerAddr, _implementationVersion);
+    }
+
+    //刷新游戏配置
+    function refreshConfig() internal {
+        IGameMain gameMain = IGameMain(gameMainAddr);
+        GameConfig config = gameMain.getGameConfig();
+        playerTimeout = config.playerTimeout;
+        tableInactiveTimeout = config.tableInactiveTimeout;
+        randomnessManagerAddr = config.randomnessManagerAddress;
+        roomCardAddr = config.roomCardAddress;
+        rewardPoolAddr = config.rewardPoolAddress;
+        gameHistoryAddr = config.gameHistoryAddress;
     }
 
     // 添加一个公共函数来获取玩家地址列表，数组需要显示定义get函数，int、string等不需要
@@ -244,13 +239,41 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         _;
     }
 
+    function _getLiquidatorFeePercent() internal view returns (uint256) {
+        return IGameMain(gameMainAddr).liquidatorFeePercent();
+    }
+
+    function _getPlayerTimeout() internal view returns (uint256) {
+        return IGameMain(gameMainAddr).playerTimeout();
+    }
+
+    function _getTableInactiveTimeout() internal view returns (uint256) {
+        return IGameMain(gameMainAddr).tableInactiveTimeout();
+    }
+
+    function _getHistoryAddr() internal view returns (address) {
+        return IGameMain(gameMainAddr).gameHistoryAddress();
+    }
+
+    function _getRandomnessManagerAddr() internal view returns (address) {
+        return IGameMain(gameMainAddr).randomnessManagerAddress();
+    }
+
+    function _getRoomCardAddr() internal view returns (address) {
+        return IGameMain(gameMainAddr).roomCardAddress();
+    }
+
+    function _getRewardPoolAddr() internal view returns (address) {
+        return IGameMain(gameMainAddr).rewardPoolAddress();
+    }
+
     /**
      * @dev 玩家加入游戏
      */
     function playerJoin() external nonReentrant {
         address playerAddr = msg.sender;
         if (players[playerAddr].playerAddr != address(0)) revert PlayerAlreadyJoined();
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         if (playerCount >= maxPlayers) revert MaxPlayersReached();
 
 
@@ -258,12 +281,12 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         BBPlayer memory player = BBPlayer({
             playerAddr: playerAddr,
             isBanker: false,
-            state: BBTypes.PlayerState.JOINED,
+            state: PlayerState.JOINED,
             initialBet: betAmount,
             additionalBet1: 0,
             additionalBet2: 0,
             cards: [0, 0, 0, 0, 0],
-            cardType: BBTypes.CardType.NONE
+            cardType: CardType.NONE
         });
         players[playerAddr] = player;
         players[playerAddr].playerJoin();
@@ -282,10 +305,10 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 玩家准备
      */
     function playerReady() external payable onlyPlayers nonReentrant {
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
-        if (player.state != BBTypes.PlayerState.JOINED) revert InvalidPlayerState();
+        if (player.state != PlayerState.JOINED) revert InvalidPlayerState();
         if (msg.value != betAmount) revert InsufficientFunds();
 
         player.initialBet = betAmount;
@@ -303,10 +326,10 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 玩家取消准备
      */
     function playerUnready() external payable onlyPlayers nonReentrant {
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
-        if (player.state != BBTypes.PlayerState.READY) revert PlayerNotInReadyState();
+        if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
 
         totalPrizePool -= betAmount;
         playerReadyCount--;
@@ -327,10 +350,10 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 玩家退出游戏
      */
     function playerQuit() external payable onlyNotBanker nonReentrant {
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         address playerAddr = msg.sender;
         BBPlayer storage player = players[playerAddr];
-        if (player.state != BBTypes.PlayerState.JOINED) revert InvalidPlayerState();
+        if (player.state != PlayerState.JOINED) revert InvalidPlayerState();
 
         // 先保存需要返还的金额
         uint256 amountToReturn = player.initialBet;
@@ -353,55 +376,10 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     }
 
     /**
-     * @dev 庄家解散游戏桌
-     */
-    function bankerDisband() external onlyBanker nonReentrant {
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
-
-        // 创建一个临时数组来存储需要返还资金的玩家和金额
-        address[] memory refundAddresses = new address[](playerAddresses.length);
-        uint256[] memory refundAmounts = new uint256[](playerAddresses.length);
-        uint256 refundCount = 0;
-
-        // 先收集所有需要返还的金额
-        for (uint i = 0; i < playerAddresses.length; i++) {
-            address playerAddr = playerAddresses[i];
-            BBPlayer storage player = players[playerAddr];
-            if(player.initialBet > 0){
-                refundAddresses[refundCount] = playerAddr;
-                refundAmounts[refundCount] = player.initialBet;
-                refundCount++;
-            }
-            delete players[playerAddr];
-        }
-
-        // 更新所有状态
-        playerAddresses = new address[](0);
-        playerCount = 0;
-        playerReadyCount = 0;
-        totalPrizePool = 0;
-        setState(BBTypes.GameState.DISBANDED);
-
-        // 最后进行所有转账
-        for (uint i = 0; i < refundCount; i++) {
-            (bool success, ) = payable(refundAddresses[i]).call{value: refundAmounts[i]}("");
-            if (!success) revert TransferFailed();
-        }
-
-        // 通知 GameMain 合约移除这个游戏桌
-        (bool successRemoved, ) = gameMainAddr.call(
-            abi.encodeWithSignature("removeGameTable(address, uint)", address(this), 2)
-        );
-        if (!successRemoved) revert OnlyMainContractCanCall();
-
-        emit GameTableChanged(address(this));
-    }
-
-    /**
      * @dev 庄家移除玩家
      */
     function bankerRemovePlayer(address playerAddr) external onlyBanker nonReentrant {
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         if (playerAddr == bankerAddr) revert NotBanker();
         if (players[playerAddr].playerAddr == address(0)) revert PlayerNotFound();
 
@@ -420,7 +398,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
                 }
 
                 // 更新状态
-                if(player.state == BBTypes.PlayerState.READY){
+                if(player.state == PlayerState.READY){
                     playerReadyCount--;
                     totalPrizePool -= betAmount;
                 }
@@ -467,45 +445,29 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
     function _startGame() internal {
         if (playerReadyCount != playerCount) revert NotAllPlayersReady();
-        if (state != BBTypes.GameState.WAITING) revert GameNotInWaitingState();
+        if (state != GameState.WAITING) revert GameNotInWaitingState();
         if (playerCount < 2) revert NotEnoughPlayers();
+
+        // 刷新游戏数据
+        refreshConfig();
+
         if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
 
+        randomnessMgr = IRandomnessManager(randomnessManagerAddr);
+
         // 创建随机数会话
-        try BBRandomnessManager(randomnessManagerAddr).createSession(
+        currentRandomSessionId = randomnessMgr.createSession(
             playerAddresses,
-            playerTimeout,  // 提交超时时间
-            playerTimeout   // 揭示超时时间
-        ) returns (uint256 sessionId) {
-            currentRandomSessionId = sessionId;
+            playerTimeout
+        );
 
-            // 设置当前回合截止时间
-            (bool success, bytes memory data) = randomnessManagerAddr.staticcall(
-                abi.encodeWithSignature("getSessionStatus(address,uint256)", address(this), sessionId)
-            );
-
-            if (success && data.length > 0) {
-                // 解析返回数据
-                (,uint256 commitDeadline,,,,, ) = abi.decode(data, (bool, uint256, uint256, uint256, uint256, uint256, uint256));
-                currentRoundDeadline = commitDeadline;
-            } else {
-                // 如果调用失败，使用默认超时时间
-                currentRoundDeadline = block.timestamp + playerTimeout;
-            }
-
-            // 进入提交随机数阶段
-            setState(BBTypes.GameState.COMMITTING);
-
-            gameStartTimestamp = block.timestamp;
-
-            emit GameTableChanged(address(this));
-        } catch {
-            revert("Failed to create random session");
-        }
+        gameCount++;
+        //进入提交随机数阶段
+        setState(GameState.REVEALING);
     }
 
     function _resetGame() internal {
-        if (state != BBTypes.GameState.ENDED) revert GameNotEnded();
+        if (state != GameState.ENDED) revert GameNotEnded();
         if (block.timestamp < gameEndTimestamp + 20) revert GameNotTimeToReset();   //20秒后才能重新开局
 
         playerContinuedCount = 0;
@@ -520,7 +482,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             BBPlayer storage player = players[playerAddr];
             player.playerReset();
         }
-        setState(BBTypes.GameState.WAITING);
+        setState(GameState.WAITING);
 
         emit GameTableChanged(address(this));
     }
@@ -529,24 +491,22 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 下一步
      */
     function nextStep() external onlyBanker nonReentrant {
-        if (!_checkCanNext()) revert GameNotNextStep();
-
-        if(state == BBTypes.GameState.WAITING) {
+        if(state == GameState.WAITING) {
             _startGame();
         }
-        else if(state == BBTypes.GameState.COMMITTING) {
-            _checkCommitPhase();
+        else if(state == GameState.COMMITTING) {
+            _goReveal();
         }
-        else if(state == BBTypes.GameState.REVEALING) {
-            _checkRevealPhase();
+        else if(state == GameState.REVEALING) {
+            _goFirstBetting();
         }
-        else if(state == BBTypes.GameState.FIRST_BETTING) {
+        else if(state == GameState.FIRST_BETTING) {
             _handleFirstBetting();
         }
-        else if(state == BBTypes.GameState.SECOND_BETTING) {
+        else if(state == GameState.SECOND_BETTING) {
             _handleSecondBetting();
         }
-        else if(state == BBTypes.GameState.ENDED) {
+        else if(state == GameState.ENDED) {
             _resetGame();
         }
 
@@ -556,65 +516,40 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     /**
      * @dev 检查提交阶段状态，如果所有玩家都已提交或超时，进入揭示阶段
      */
-    function _checkCommitPhase() internal {
-        if (state != BBTypes.GameState.COMMITTING) revert GameNotInPlayingState();
+    function _goReveal() internal {
+        if (state != GameState.COMMITTING) revert GameNotInPlayingState();
         if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
 
-        // 获取会话状态
-        (bool success, bytes memory data) = randomnessManagerAddr.staticcall(
-            abi.encodeWithSignature("getSessionStatus(address,uint256)", address(this), currentRandomSessionId)
-        );
+        bool deadline = IRandomnessManager(randomnessManagerAddr).goReveal(currentRandomSessionId);
 
-        if (success && data.length > 0) {
-            // 解析返回数据
-            (bool isCompleted, uint256 commitDeadline, uint256 revealDeadline, , uint256 commitCount, , uint256 totalParticipants) =
-                abi.decode(data, (bool, uint256, uint256, uint256, uint256, uint256, uint256));
+        require(deadline != 0, "GoRevealFailed");
 
-            // 如果所有玩家都已提交或超时，进入揭示阶段
-            if (commitCount == totalParticipants || block.timestamp > commitDeadline) {
-                setState(BBTypes.GameState.REVEALING);
-                currentRoundDeadline = revealDeadline;
-                emit GameTableChanged(address(this));
-            }
-        }
+        // 进入第一轮下注
+        setState(GameState.REVEALING);
+        currentRoundDeadline = deadline;
     }
 
     /**
      * @dev 检查揭示阶段状态，如果所有玩家都已揭示或超时，完成会话并进入下注阶段
      */
-    function _checkRevealPhase() internal {
-        if (state != BBTypes.GameState.REVEALING) revert GameNotInPlayingState();
+    function _goFirstBetting() internal {
+        if (state != GameState.REVEALING) revert GameNotInPlayingState();
         if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
 
         // 完成随机数会话并获取最终随机种子
-        try BBRandomnessManager(randomnessManagerAddr).completeSession(currentRandomSessionId) returns (uint256 finalSeed) {
-            // 初始化发牌状态
-            dealerState.initialize(finalSeed);
-            dealerState.playerAddresses = playerAddresses;
+        uint256 finalSeed = IRandomnessManager(randomnessManagerAddr).completeSession(currentRandomSessionId);
+        // 初始化发牌状态
+        dealerState.initialize(finalSeed);
+        dealerState.playerAddresses = playerAddresses;
 
-            // 第一轮发牌
-            dealerState.dealCardsByRoundForPlayers(playerAddresses, 1);
+        // 第一轮发牌
+        dealerState.dealCardsByRoundForPlayers(playerAddresses, 1);
 
-            // 进入第一轮下注
-            setState(BBTypes.GameState.FIRST_BETTING);
-            currentRoundDeadline = block.timestamp + playerTimeout;
+        // 进入第一轮下注
+        setState(GameState.FIRST_BETTING);
+        currentRoundDeadline = block.timestamp + _getPlayerTimeout();
 
-            emit GameTableChanged(address(this));
-        } catch {
-            // 如果完成会话失败，使用默认随机种子
-            uint256 defaultSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
-            dealerState.initialize(defaultSeed);
-            dealerState.playerAddresses = playerAddresses;
-
-            // 第一轮发牌
-            dealerState.dealCardsByRoundForPlayers(playerAddresses, 1);
-
-            // 进入第一轮下注
-            setState(BBTypes.GameState.FIRST_BETTING);
-            currentRoundDeadline = block.timestamp + playerTimeout;
-
-            emit GameTableChanged(address(this));
-        }
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -622,12 +557,12 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @param commitment 提交的哈希值
      */
     function commitRandom(bytes32 commitment) external onlyPlayers nonReentrant {
-        if (state != BBTypes.GameState.COMMITTING) revert GameNotInPlayingState();
+        if (state != GameState.COMMITTING) revert GameNotInPlayingState();
         if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
         if (block.timestamp > currentRoundDeadline) revert ActionTimeOut();
 
         // 调用随机数管理合约提交随机数
-        BBRandomnessManager(randomnessManagerAddr).commitRandom(address(this), currentRandomSessionId, commitment);
+        IRandomnessManager(randomnessManagerAddr).commitRandom(msg.sender, currentRandomSessionId, commitment);
 
         _updateLastActivity();
         emit GameTableChanged(address(this));
@@ -639,12 +574,12 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @param salt 盐值
      */
     function revealRandom(uint256 randomValue, bytes32 salt) external onlyPlayers nonReentrant {
-        if (state != BBTypes.GameState.REVEALING) revert GameNotInPlayingState();
+        if (state != GameState.REVEALING) revert GameNotInPlayingState();
         if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
         if (block.timestamp > currentRoundDeadline) revert ActionTimeOut();
 
         // 调用随机数管理合约揭示随机数
-        BBRandomnessManager(randomnessManagerAddr).revealRandom(address(this), currentRandomSessionId, randomValue, salt);
+        IRandomnessManager(randomnessManagerAddr).revealRandom(msg.sender, currentRandomSessionId, randomValue, salt);
 
         _updateLastActivity();
         emit GameTableChanged(address(this));
@@ -655,18 +590,18 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         for(uint i = 0; i < playerAddresses.length; i++){
             address playerAddr = playerAddresses[i];
             BBPlayer storage player = players[playerAddr];
-            if(player.state == BBTypes.PlayerState.READY){
+            if(player.state == PlayerState.READY){
                 player.playerFold();
                 playerFoldCount++;
             }
         }
         if(playerContinuedCount >= 2) {
             dealerState.dealCardsByRoundForPlayers(playerAddresses, 2);
-            setState(BBTypes.GameState.SECOND_BETTING);
+            setState(GameState.SECOND_BETTING);
             playerContinuedCount = 0;
             playerFoldCount = 0;
         } else {
-            setState(BBTypes.GameState.ENDED);
+            setState(GameState.ENDED);
             _settleGame();
         }
     }
@@ -676,7 +611,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         for(uint i = 0; i < playerAddresses.length; i++){
             address playerAddr = playerAddresses[i];
             BBPlayer storage player = players[playerAddr];
-            if(player.state == BBTypes.PlayerState.FIRST_CONTINUED){
+            if(player.state == PlayerState.FIRST_CONTINUED){
                 player.playerFold();
                 playerFoldCount++;
             }
@@ -685,29 +620,29 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             dealerState.dealCardsByRoundForPlayers(playerAddresses, 3);
             playerContinuedCount = 0;
             playerFoldCount = 0;
-            setState(BBTypes.GameState.ENDED);
+            setState(GameState.ENDED);
             _settleGame();
         } else {
-            setState(BBTypes.GameState.ENDED);
+            setState(GameState.ENDED);
             _settleGame();
         }
     }
 
     function _checkCanNext() internal view returns (bool) {
-        if(state == BBTypes.GameState.WAITING){
+        if(state == GameState.WAITING){
             //等待状态，人数大于一人并且都已准备，则可以开始游戏
             return playerCount >= 2 && playerReadyCount == playerCount;
-        }else if(state == BBTypes.GameState.COMMITTING || state == BBTypes.GameState.REVEALING){
+        }else if(state == GameState.COMMITTING || state == GameState.REVEALING){
             //提交或揭示阶段，庄家可以随时检查状态
             return true;
-        }else if(state == BBTypes.GameState.FIRST_BETTING || state == BBTypes.GameState.SECOND_BETTING){
+        }else if(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING){
             if(playerFoldCount >= playerCount - 1){
                 //所有玩家都弃牌，则进入结算
                 return true;
             }
             //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
             return playerContinuedCount + playerFoldCount == playerCount || _isTimeOut();
-        }else if(state == BBTypes.GameState.ENDED){
+        }else if(state == GameState.ENDED){
             return true;
         }
 
@@ -722,7 +657,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 玩家弃牌
      */
     function playerFold() external onlyPlayers nonReentrant{
-        if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) revert GameNotInPlayingState();
+        if (state != GameState.FIRST_BETTING && state != GameState.SECOND_BETTING) revert GameNotInPlayingState();
         address playerAddr = msg.sender;
 
         // 检查是否超时
@@ -730,12 +665,12 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
         BBPlayer storage player = players[playerAddr];
 
-        if(state == BBTypes.GameState.FIRST_BETTING){
+        if(state == GameState.FIRST_BETTING){
             // 第一轮弃牌
-            if (player.state != BBTypes.PlayerState.READY) revert PlayerNotInReadyState();
+            if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
         }else{
             // 第二轮弃牌
-            if (player.state != BBTypes.PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
+            if (player.state != PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
         }
 
         _updateLastActivity();
@@ -750,7 +685,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 玩家继续游戏
      */
     function playerContinue() external payable onlyPlayers nonReentrant{
-        if (state != BBTypes.GameState.FIRST_BETTING && state != BBTypes.GameState.SECOND_BETTING) revert GameNotInPlayingState();
+        if (state != GameState.FIRST_BETTING && state != GameState.SECOND_BETTING) revert GameNotInPlayingState();
         address playerAddr = msg.sender;
         if (msg.value != betAmount) revert InsufficientFunds();
 
@@ -761,13 +696,13 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         if (address(player.playerAddr) == address(0)) revert PlayerNotFound();
 
         uint8 round = 1;
-        if(state == BBTypes.GameState.FIRST_BETTING){
+        if(state == GameState.FIRST_BETTING){
             // 第一轮继续
-            if (player.state != BBTypes.PlayerState.READY) revert PlayerNotInReadyState();
+            if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
         }else{
             // 第二轮继续
             round = 2;
-            if (player.state != BBTypes.PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
+            if (player.state != PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
         }
 
         player.playerContinue(betAmount);
@@ -787,7 +722,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     }
 
     function _settleGame() internal {
-        if (state != BBTypes.GameState.ENDED) revert GameNotInEndedState();
+        if (state != GameState.ENDED) revert GameNotInEndedState();
 
         // 计算费用
         uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100;
@@ -858,8 +793,8 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             });
 
             // 找出继续的玩家
-            if (player.state == BBTypes.PlayerState.FIRST_CONTINUED ||
-                player.state == BBTypes.PlayerState.SECOND_CONTINUED) {
+            if (player.state == PlayerState.FIRST_CONTINUED ||
+                player.state == PlayerState.SECOND_CONTINUED) {
                 continuedPlayer = playerAddr;
                 _winnerAddrs[winnerCount] = playerAddr;
                 winnerCount++;
@@ -875,7 +810,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             _playerAddrs,
             _winnerAddrs,
             playerEntries,
-            BBTypes.CardType.NONE // 没有比牌，所以没有最大牌型
+            CardType.NONE // 没有比牌，所以没有最大牌型
         );
 
 
@@ -931,7 +866,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             _playerAddrs,
             new address[](0), // 没有赢家
             playerEntries,
-            BBTypes.CardType.NONE // 没有比牌，所以没有最大牌型
+            CardType.NONE // 没有比牌，所以没有最大牌型
         );
 
         // 返还每个玩家的押注
@@ -946,7 +881,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
      * @dev 处理正常比牌的情况
      */
     function _settleNormalGame(uint256 remainingPrizePool) internal {
-        BBTypes.CardType _maxCardType = BBTypes.CardType.NONE;
+        CardType _maxCardType = CardType.NONE;
 
         // 准备游戏结果数据
         uint256 _endTimestamp = block.timestamp;
@@ -966,7 +901,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
             uint8[5] memory allCards = dealerState.getPlayerAllCards(playerAddr);
 
             // 计算牌型
-            BBTypes.CardType cardType = dealerState.calculateCardType(playerAddr);
+            CardType cardType = dealerState.calculateCardType(playerAddr);
 
             // 赋值给玩家
             player.cards = allCards;
@@ -985,7 +920,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         }
 
         // 如果所有玩家都没有牛牌型，则比较最大牌
-        if (_maxCardType == BBTypes.CardType.NONE) {
+        if (_maxCardType == CardType.NONE) {
             (_winnerAddrs, winnerCount) = _settleNormalGameWithNoBull(_winnerAddrs);
         } else {
             // 找出获胜者（有牛牌型的情况）
@@ -1102,7 +1037,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     function liquidateInactiveTable() external nonReentrant returns (bool) {
         // 检查游戏桌是否超时
         if (block.timestamp <= lastActivityTimestamp + tableInactiveTimeout) revert TableNotInactive();
-        if (state != BBTypes.GameState.FIRST_BETTING || state != BBTypes.GameState.SECOND_BETTING) revert TableNotInBetting();
+        if (state != GameState.FIRST_BETTING || state != GameState.SECOND_BETTING) revert TableNotInBetting();
 
         // 计算庄家的押金
         uint256 bankerBet = players[bankerAddr].totalBet();
@@ -1176,7 +1111,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         playerFoldCount = 0;
         totalPrizePool = 0;
 
-        setState(BBTypes.GameState.LIQUIDATED);
+        setState(GameState.LIQUIDATED);
 
         // 通知 GameMain 合约移除这个游戏桌
         (bool success, ) = gameMainAddr.call(
@@ -1204,11 +1139,11 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     /**
      * @dev 设置游戏状态
      */
-    function setState(BBTypes.GameState _state) internal {
+    function setState(GameState _state) internal {
         state = _state;
 
         // 如果进入下注阶段，为所有玩家设置操作截止时间
-        if (_state == BBTypes.GameState.FIRST_BETTING || _state == BBTypes.GameState.SECOND_BETTING) {
+        if (_state == GameState.FIRST_BETTING || _state == GameState.SECOND_BETTING) {
             currentRoundDeadline = block.timestamp + playerTimeout;
         }
 
@@ -1240,7 +1175,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         for (uint i = 0; i < playerAddresses.length; i++) {
             address playerAddr = playerAddresses[i];
             uint8[5] memory cards = dealerState.getPlayerAllCards(playerAddr);
-            BBTypes.CardType cardType = BBCardUtils.calculateCardType(cards);
+            CardType cardType = BBCardUtils.calculateCardType(cards);
             playerCardsData[i] = BBPlayerCardEntry({
                 playerAddr: playerAddr,
                 cards: cards,

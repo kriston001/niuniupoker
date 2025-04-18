@@ -8,8 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBVersion.sol";
-import "./BBGameTableImplementation.sol";
-import "./BBGameMain.sol";
+import "./BBStructs.sol";
 
 /**
  * @title BBRewardPool
@@ -21,30 +20,11 @@ contract BBRewardPool is
     ReentrancyGuardUpgradeable,
     UUPSUpgradeable
 {
-    // 奖励池结构
-    struct RewardPoolInfo {
-        uint256 poolId;           // 奖励池ID
-        address banker;           // 创建者（庄家）地址
-        uint256 totalAmount;      // 总奖池金额
-        uint256 rewardPerGame;    // 每局游戏奖励金额
-        uint256 winProbability;   // 中奖概率（以百分之一为单位）
-        uint256 remainingAmount;  // 剩余奖池金额
-        bool active;              // 是否激活
-    }
-
-    // 奖励池使用记录
-    struct RewardPoolUsage {
-        uint256 poolId;           // 奖励池ID
-        address tableAddr;        // 游戏桌地址
-        bool active;              // 是否激活
-    }
+    
 
     // 状态变量
     uint256 private nextPoolId;                           // 下一个奖励池ID
-    mapping(uint256 => RewardPoolInfo) public rewardPools;  // 奖励池信息
-    mapping(address => uint256[]) private bankerPools;      // 庄家拥有的奖励池
-    mapping(address => RewardPoolUsage) public tableRewardPools; // 游戏桌使用的奖励池
-    mapping(uint256 => address[]) private poolTables;      // 奖励池被哪些游戏桌使用
+    mapping(address => RewardPoolInfo[]) private bankerPools;      // 庄家拥有的奖励池
 
     // 游戏主合约地址
     address public gameMainAddr;
@@ -78,129 +58,63 @@ contract BBRewardPool is
 
     /**
      * @dev 创建新的奖励池
+     * @param _totalReward 总奖励金额
      * @param _rewardPerGame 每局游戏奖励金额
      * @param _winProbability 中奖概率（以百分之一为单位，例如10表示10%的概率）
      */
-    function createRewardPool(uint256 _rewardPerGame, uint256 _winProbability) external payable nonReentrant {
+    function createRewardPool(uint256 _totalReward, uint256 _rewardPerGame, uint256 _winProbability) external payable nonReentrant {
         // 验证参数
-        if (_rewardPerGame == 0) revert InvalidRewardAmount();
+        if (_rewardPerGame == 0 || _totalReward == 0) revert InvalidRewardAmount();
         if (_winProbability == 0 || _winProbability > MAX_PROBABILITY) revert InvalidWinProbability();
-        if (msg.value == 0) revert InsufficientFunds();
-        if (msg.value < _rewardPerGame) revert InsufficientFunds();
+        if (msg.value != _totalReward) revert InsufficientFunds();
 
         // 创建奖励池
-        uint256 poolId = nextPoolId++;
-        RewardPoolInfo storage pool = rewardPools[poolId];
-        pool.poolId = poolId;
+        RewardPoolInfo memory pool;
+        pool.poolId = nextPoolId++;
         pool.banker = msg.sender;
-        pool.totalAmount = msg.value;
+        pool.totalAmount = _totalReward;
         pool.rewardPerGame = _rewardPerGame;
         pool.winProbability = _winProbability;
-        pool.remainingAmount = msg.value;
-        pool.active = true;
+        pool.remainingAmount = _totalReward;
 
         // 添加到庄家的奖励池列表
-        bankerPools[msg.sender].push(poolId);
+        bankerPools[msg.sender].push(pool);
 
-        emit RewardPoolCreated(poolId, msg.sender, msg.value, _rewardPerGame, _winProbability);
+        emit RewardPoolCreated(pool.poolId, msg.sender, msg.value, _rewardPerGame, _winProbability);
     }
 
     /**
      * @dev 庄家删除奖励池并取回剩余资金
      * @param _poolId 要删除的奖励池ID
      */
-    function removeRewardPool(uint256 _poolId) external nonReentrant {
-        RewardPoolInfo storage pool = rewardPools[_poolId];
-
-        // 验证奖励池存在且调用者是庄家
-        if (!pool.active) revert RewardPoolNotActive();
-        if (pool.banker != msg.sender) revert NotPoolOwner();
-
-        // 检查是否有游戏桌在使用该奖励池
-        if (poolTables[_poolId].length > 0) revert RewardPoolInUse();
-
-        // 获取剩余金额
+    function removeRewardPool(uint256 _poolId) external onlyOwner nonReentrant {
+        RewardPoolInfo[] storage pools = bankerPools[msg.sender];
+        
+        // 查找并验证奖励池
+        uint256 poolIndex = type(uint256).max;
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].poolId == _poolId) {
+                poolIndex = i;
+                break;
+            }
+        }
+        
+        if (poolIndex == type(uint256).max) revert RewardPoolNotActive();
+        
+        RewardPoolInfo storage pool = pools[poolIndex];
         uint256 remainingAmount = pool.remainingAmount;
 
-        // 标记奖励池为非活跃
-        pool.active = false;
-        pool.remainingAmount = 0;
+        // 从数组中移除奖励池（通过将最后一个元素移到要删除的位置）
+        if (poolIndex != pools.length - 1) {
+            pools[poolIndex] = pools[pools.length - 1];
+        }
+        pools.pop();
 
         // 转账剩余资金给庄家
         (bool success, ) = payable(msg.sender).call{value: remainingAmount}("");
         if (!success) revert TransferFailed();
 
         emit RewardPoolRemoved(_poolId, msg.sender, remainingAmount);
-    }
-
-    /**
-     * @dev 庄家为游戏桌设置奖励池
-     * @param _tableAddr 游戏桌地址
-     * @param _poolId 奖励池ID
-     */
-    function setTableRewardPool(address _tableAddr, uint256 _poolId) external nonReentrant {
-        // 验证游戏桌地址
-        if (!BBGameMain(payable(gameMainAddr)).isValidGameTable(_tableAddr)) revert InvalidGameTable();
-
-        // 获取游戏桌信息
-        BBGameTableImplementation gameTable = BBGameTableImplementation(payable(_tableAddr));
-
-        // 验证调用者是游戏桌的庄家
-        if (gameTable.bankerAddr() != msg.sender) revert NotTableBanker();
-
-        // 验证奖励池存在且活跃
-        RewardPoolInfo storage pool = rewardPools[_poolId];
-        if (!pool.active) revert RewardPoolNotActive();
-
-        // 验证调用者是奖励池的所有者
-        if (pool.banker != msg.sender) revert NotPoolOwner();
-
-        // 设置游戏桌的奖励池
-        RewardPoolUsage storage usage = tableRewardPools[_tableAddr];
-
-        // 如果游戏桌已经有奖励池，先从旧奖励池的使用列表中移除
-        if (usage.active) {
-            _removeTableFromPool(usage.poolId, _tableAddr);
-        }
-
-        // 设置新的奖励池
-        usage.poolId = _poolId;
-        usage.tableAddr = _tableAddr;
-        usage.active = true;
-
-        // 将游戏桌添加到奖励池的使用列表
-        poolTables[_poolId].push(_tableAddr);
-
-        emit TableRewardPoolSet(_tableAddr, _poolId, msg.sender);
-    }
-
-    /**
-     * @dev 庄家移除游戏桌的奖励池
-     * @param _tableAddr 游戏桌地址
-     */
-    function removeTableRewardPool(address _tableAddr) external nonReentrant {
-        // 验证游戏桌地址
-        if (!BBGameMain(payable(gameMainAddr)).isValidGameTable(_tableAddr)) revert InvalidGameTable();
-
-        // 获取游戏桌信息
-        BBGameTableImplementation gameTable = BBGameTableImplementation(payable(_tableAddr));
-
-        // 验证调用者是游戏桌的庄家
-        if (gameTable.bankerAddr() != msg.sender) revert NotTableBanker();
-
-        // 验证游戏桌有奖励池
-        RewardPoolUsage storage usage = tableRewardPools[_tableAddr];
-        if (!usage.active) revert NoRewardPoolForTable();
-
-        uint256 poolId = usage.poolId;
-
-        // 从奖励池的使用列表中移除游戏桌
-        _removeTableFromPool(poolId, _tableAddr);
-
-        // 清除游戏桌的奖励池信息
-        usage.active = false;
-
-        emit TableRewardPoolRemoved(_tableAddr, poolId, msg.sender);
     }
 
     /**
@@ -250,21 +164,46 @@ contract BBRewardPool is
     }
 
     /**
-     * @dev 获取庄家创建的所有奖励池
+     * @dev 获取指定地址的所有奖励池
      * @param _banker 庄家地址
-     * @return 奖励池ID数组
+     * @return 奖励池信息数组
      */
-    function getBankerPools(address _banker) external view returns (uint256[] memory) {
+    function getBankerPools(address _banker) external view returns (RewardPoolInfo[] memory) {
         return bankerPools[_banker];
     }
 
     /**
-     * @dev 获取奖励池详细信息
+     * @dev 获取指定庄家的指定奖励池信息
+     * @param _banker 庄家地址
      * @param _poolId 奖励池ID
      * @return 奖励池信息
      */
-    function getRewardPoolInfo(uint256 _poolId) external view returns (RewardPoolInfo memory) {
-        return rewardPools[_poolId];
+    function getRewardPoolInfo(address _banker, uint256 _poolId) external view returns (RewardPoolInfo memory) {
+        RewardPoolInfo[] memory pools = bankerPools[_banker];
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].poolId == _poolId) {
+                return pools[i];
+            }
+        }
+        revert RewardPoolNotActive();
+    }
+
+    /**
+     * @dev 更新奖励池的剩余金额（内部函数）
+     * @param _banker 庄家地址
+     * @param _poolId 奖励池ID
+     * @param _amount 要减少的金额
+     */
+    function _updateRewardPoolAmount(address _banker, uint256 _poolId, uint256 _amount) internal {
+        RewardPoolInfo[] storage pools = bankerPools[_banker];
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].poolId == _poolId) {
+                if (pools[i].remainingAmount < _amount) revert InsufficientFunds();
+                pools[i].remainingAmount -= _amount;
+                return;
+            }
+        }
+        revert RewardPoolNotActive();
     }
 
     /**
@@ -334,4 +273,6 @@ contract BBRewardPool is
     event TableRewardPoolRemoved(address indexed tableAddr, uint256 indexed poolId, address indexed banker);
     event RewardDistributed(uint256 indexed poolId, address indexed tableAddr, address indexed winner, uint256 amount);
     event GameMainAddressUpdated(address indexed gameMainAddr);
+
+    
 }

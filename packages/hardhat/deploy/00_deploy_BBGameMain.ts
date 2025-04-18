@@ -126,7 +126,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
             bbGameHistory.address, // gameHistoryAddr
             bankerFeePercent, // bankerFeePercent
             liquidatorFeePercent, // liquidatorFeePercent
-            true, // bankerIsPlayer
             ethers.ZeroAddress, // rewardPoolAddr
             ethers.ZeroAddress, // randomnessManagerAddr - 先设置为零地址，后面会更新
             1, // implementationVersion
@@ -226,6 +225,26 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   });
   colorLog("BBRoomLevelNFT合约已部署到地址:", bbRoomLevelNFT.address);
 
+  // 部署 BBRewardPool 合约
+  console.log("----------开始部署BBRewardPool合约----------");
+  const bbRewardPool = await deploy("BBRewardPool", {
+    from: deployer,
+    args: [], // 构造函数参数为空，因为使用initialize初始化
+    log: true,
+    proxy: {
+      owner: deployer,
+      proxyContract: "UUPS",
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [bbGameMain.address], // 传入 BBGameMain 合约地址
+        },
+      },
+    },
+    waitConfirmations: 1,
+  });
+  colorLog("BBRewardPool合约已部署到地址:", bbRewardPool.address);
+
   // 设置BBGameHistory合约的BBGameMain合约地址
   console.log("----------设置BBGameHistory合约的BBGameMain合约地址----------");
   const bbGameHistoryContract = await ethers.getContractAt("BBGameHistory", bbGameHistory.address);
@@ -269,6 +288,17 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const bbRoomLevelNFTContract = await ethers.getContractAt("BBRoomLevelNFT", bbRoomLevelNFT.address);
   await bbRoomLevelNFTContract.setGameMainAddress(bbGameMain.address);
   console.log("BBRoomLevelNFT合约的BBGameMain合约地址已设置为:", bbGameMain.address);
+
+  // 设置BBGameMain合约的BBRewardPool合约地址
+  console.log("----------设置BBGameMain合约的BBRewardPool合约地址----------");
+  await bbGameMainContract.setRewardPoolAddress(bbRewardPool.address);
+  console.log("BBGameMain合约的BBRewardPool合约地址已设置为:", bbRewardPool.address);
+
+  // 设置BBRewardPool合约的BBGameMain合约地址
+  console.log("----------设置BBRewardPool合约的BBGameMain合约地址----------");
+  const bbRewardPoolContract = await ethers.getContractAt("BBRewardPool", bbRewardPool.address);
+  await bbRewardPoolContract.setGameMainAddress(bbGameMain.address);
+  console.log("BBRewardPool合约的BBGameMain合约地址已设置为:", bbGameMain.address);
 
   // 如果不是本地网络，进行合约验证
   if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
@@ -322,6 +352,13 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
         constructorArguments: [],
       });
       console.log("BBRoomLevelNFT 验证成功!");
+
+      // 验证 BBRewardPool 合约
+      await hre.run("verify:verify", {
+        address: bbRewardPool.address,
+        constructorArguments: [],
+      });
+      console.log("BBRewardPool 验证成功!");
     } catch (error) {
       console.log("验证失败:", error);
     }
@@ -409,6 +446,16 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const roomLevelAddress = await bbGameMainContract.roomLevelAddress();
   const isRoomLevelAddressValid = roomLevelAddress === bbRoomLevelNFT.address;
   console.log(`BBGameMain.roomLevelAddress: ${roomLevelAddress} ${isRoomLevelAddressValid ? "✅" : "❌"}`);
+
+  // 验证 BBRewardPool 关联
+  const rewardPoolGameMainAddr = await bbRewardPoolContract.gameMainAddr();
+  const isRewardPoolGameMainAddrValid = rewardPoolGameMainAddr === bbGameMain.address;
+  console.log(`BBRewardPool.gameMainAddress: ${rewardPoolGameMainAddr} ${isRewardPoolGameMainAddrValid ? "✅" : "❌"}`);
+
+  // 验证 BBGameMain 的 rewardPoolAddress
+  const rewardPoolAddress = await bbGameMainContract.rewardPoolAddress();
+  const isRewardPoolAddressValid = rewardPoolAddress === bbRewardPool.address;
+  console.log(`BBGameMain.rewardPoolAddress: ${rewardPoolAddress} ${isRewardPoolAddressValid ? "✅" : "❌"}`);
 
   console.log("----------部署完成----------");
 };

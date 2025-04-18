@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group"
 import { Badge } from "~~/components/ui/badge"
 import { truncateAddress } from "~~/lib/utils"
 import NftSection from "~~/components/nft-section"
+import { CreateTableModal } from "~~/components/create-table-modal"
 
 export default function Home() {
   const [open, setOpen] = useState(false)
@@ -92,99 +93,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-white">Game Lobby</h2>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Table
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-800">
-              <DialogHeader>
-                <DialogTitle className="text-xl text-white">Create New Table</DialogTitle>
-                <DialogDescription className="text-zinc-400">
-                  Set up your poker table parameters below.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-zinc-300">
-                    Table Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter a unique table name"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="bet" className="text-zinc-300">
-                    Bet Amount (ETH)
-                  </Label>
-                  <Input
-                    id="bet"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0.1"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="players" className="text-zinc-300">
-                    Max Players
-                  </Label>
-                  <Input
-                    id="players"
-                    type="number"
-                    min="2"
-                    max="8"
-                    placeholder="6"
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-zinc-300">Dealer's Reward (%)</Label>
-                  <RadioGroup defaultValue="3">
-                    <div className="flex justify-between">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="2" id="r2" className="text-amber-500" />
-                        <Label htmlFor="r2" className="text-zinc-300">
-                          2%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="3" id="r3" className="text-amber-500" />
-                        <Label htmlFor="r3" className="text-zinc-300">
-                          3%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="5" id="r5" className="text-amber-500" />
-                        <Label htmlFor="r5" className="text-zinc-300">
-                          5%
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="8" id="r8" className="text-amber-500" />
-                        <Label htmlFor="r8" className="text-zinc-300">
-                          8%
-                        </Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium w-full"
-                  onClick={() => setOpen(false)}
-                >
-                  Create Table
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          CreateTableModal
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
