@@ -96,3 +96,11 @@ export function getNftTokenID(nft: RoomCardNftType | RoomLevelNftType): string {
     return "RL-" + nft.id.toString().padStart(3, "0");
   }
 }
+
+export function getNftImageUrl(nft: RoomCardNftType | RoomLevelNftType): string {
+  if ("maxBetAmount" in nft) {
+    return nft.uriSuffix + "/card/" + nft.id.toString();
+  } else {
+    return nft.uriSuffix + "/level/" + nft.id.toString();
+  }
+}

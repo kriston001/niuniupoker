@@ -1,35 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { NftRoomCard, NftRoomLevel } from "@/components/niuniu/NftCard";
-import { CreditCard, Layers, Minus, Plus, Search, SlidersHorizontal, User } from "lucide-react";
+import { CreditCard, Layers, Search, SlidersHorizontal, User } from "lucide-react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { MyNftCard } from "~~/components/niuniu/MyNftCard";
 import { NftCardDetail } from "~~/components/niuniu/NftCardDetail";
 import { NftMintModal } from "~~/components/niuniu/NftMintModal";
-import { Badge } from "~~/components/ui/badge";
 import { Button } from "~~/components/ui/button";
-import { Card, CardContent, CardFooter } from "~~/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~~/components/ui/dialog";
 import { Input } from "~~/components/ui/input";
-import { Label } from "~~/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs";
 import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useNFTData } from "~~/hooks/my-hooks/useNFTData";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
-import { getNftDescription, getNftFullName, getNftSympol } from "~~/lib/utils";
+import { getNftSympol } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
+import { MyNftCardDetail } from "@/components/niuniu/MyNftCardDetail"
 
 export default function NFTPage() {
   const gameConfig = useGlobalState(state => state.gameConfig);
@@ -48,8 +37,11 @@ export default function NFTPage() {
   const [selectedNft, setSelectedNft] = useState<RoomCardNftType | RoomLevelNftType | undefined>(undefined);
   const [mintModalOpen, setMintModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [myDetailModalOpen, setMyDetailModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("room-cards");
+
+  const [selectedMyNft, setSelectedMyNft] = useState<any | undefined>(undefined);
 
   const handleMintClick = (nft: RoomCardNftType | RoomLevelNftType): void => {
     setSelectedNft(nft);
@@ -59,6 +51,15 @@ export default function NFTPage() {
   const handleDetailClick = (nft: RoomCardNftType | RoomLevelNftType) => {
     setSelectedNft(nft);
     setDetailModalOpen(true);
+  };
+
+  const handleUseClick = (nft: any) => {
+    console.log("Use NFT:", nft);
+  };
+
+  const handleMyNftDetailClick = (myNft: any) => {
+    setSelectedMyNft(myNft);
+    setMyDetailModalOpen(true);
   };
 
   const { writeContractWithCallback } = useWriteContractWithCallback();
@@ -211,7 +212,13 @@ export default function NFTPage() {
           {myNfts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filterNfts(myNfts).map(myNft => (
-                <MyNftCard key={`${myNft.type}-${myNft.nftType.id}-${myNft.quantity}`} nft={myNft.nftType} quantity={myNft.quantity} onDetailClick={() => handleDetailClick(myNft)} />
+                <MyNftCard
+                  key={`${myNft.type}-${myNft.nftType.id}-${myNft.quantity}`}
+                  nft={myNft.nftType}
+                  quantity={myNft.quantity}
+                  onDetailClick={() => handleMyNftDetailClick(myNft)}
+                  onUseClick={() => console.log("Use NFT")}
+                />
               ))}
             </div>
           ) : (
@@ -263,6 +270,16 @@ export default function NFTPage() {
           open={detailModalOpen}
           onMintClick={handleMintClick}
           onOpenChange={setDetailModalOpen}
+        />
+      )}
+
+      {/* My NFT Detail Modal */}
+      {selectedMyNft && (
+        <MyNftCardDetail
+          nft={selectedMyNft}
+          open={myDetailModalOpen}
+          onUseClick={handleUseClick}
+          onOpenChange={setMyDetailModalOpen}
         />
       )}
     </div>
