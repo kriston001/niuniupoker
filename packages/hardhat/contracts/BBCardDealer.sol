@@ -46,7 +46,7 @@ library BBCardDealer {
      * @param seed 初始随机种子
      */
     function initialize(DealerState storage self, uint256 seed) internal {
-        initialize(self, seed);
+        self.lastSeed = seed;
     }
 
     /**
@@ -117,30 +117,6 @@ library BBCardDealer {
         emit CardsDealt(player, count, newCards);
         return newCards;
     }
-
-    // /**
-    //  * @dev 计算玩家的牌型（不满5张牌时返回none）
-    //  * @param self 发牌状态
-    //  * @param player 玩家地址
-    //  * @return 计算出的牌型
-    //  */
-    // function calculateCardType(
-    //     DealerState storage self, 
-    //     address player
-    // ) internal returns (CardType) {
-    //     if (self.cardCount[player] != 5) return CardType.NONE;
-
-    //     uint8[5] memory cards;
-    //     for (uint8 i = 0; i < 5; i++) {
-    //         cards[i] = self.playerCards[player][i];
-    //     }
-
-    //     CardType cardType = BBCardUtils.calculateCardType(cards);
-    //     self.cardTypes[player] = cardType;
-
-    //     emit CardTypeCalculated(player, cardType);
-    //     return cardType;
-    // }
 
     /**
      * @dev 根据轮次为多个玩家发牌

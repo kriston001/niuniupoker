@@ -528,7 +528,7 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
         require(deadline != 0, "GoRevealFailed");
 
-        // 进入第一轮下注
+        // 进入揭示阶段
         setState(GameState.REVEALING);
         currentRoundDeadline = deadline;
     }
@@ -567,8 +567,11 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
         // 完成随机数会话并获取最终随机种子
         uint256 finalSeed = IRandomnessManager(randomnessManagerAddr).completeSession();
+
         // 初始化发牌状态
         dealerState.initialize(finalSeed);
+        dealerState.reset();
+
 
         // 第一轮发牌
         _dealCardsByRound(1);
