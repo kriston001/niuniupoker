@@ -87,7 +87,6 @@ contract BBRoomCardNFT is
     /**
      * @dev Add a new card type
      * @param name Name of the card type
-     * @param maxBetAmount Maximum bet amount allowed
      * @param maxPlayers Maximum number of players allowed
      * @param price Price to purchase this card
      * @param uriSuffix URI suffix for metadata
@@ -95,7 +94,6 @@ contract BBRoomCardNFT is
      */
     function addType(
         string memory name,
-        uint256 maxBetAmount,
         uint8 maxPlayers,
         uint256 price,
         string memory uriSuffix,
@@ -103,7 +101,6 @@ contract BBRoomCardNFT is
         string memory rarity
     ) external onlyOwner returns (uint256) {
         require(bytes(name).length > 0, "Name cannot be empty");
-        require(maxBetAmount > 0, "Max bet amount must be greater than 0");
         require(maxPlayers > 1, "Max players must be greater than 1");
         require(price > 0, "Price must be greater than 0");
         require(maxMint > 0, "Max mint must be greater than 0");
@@ -115,7 +112,6 @@ contract BBRoomCardNFT is
         nftTypes[newNftTypeId] = RoomCardNftType({
             id: newNftTypeId,
             name: name,
-            maxBetAmount: maxBetAmount,
             maxPlayers: maxPlayers,
             price: price,
             uriSuffix: uriSuffix,
@@ -125,21 +121,19 @@ contract BBRoomCardNFT is
             minted: 0
         });
         _allNftTypeIds.push(newNftTypeId);
-        emit CardTypeAdded(newNftTypeId, name, maxBetAmount, maxPlayers, price, uriSuffix, maxMint, rarity);
+        emit CardTypeAdded(newNftTypeId, name, maxPlayers, price, uriSuffix, maxMint, rarity);
         return newNftTypeId;
     }
 
     /**
      * @dev Update an existing card type
      * @param nftTypeId Card type ID to update
-     * @param maxBetAmount New maximum bet amount
      * @param maxPlayers New maximum number of players
      * @param price New price
      * @param uriSuffix New URI suffix
      */
     function updateType(
         uint256 nftTypeId,
-        uint256 maxBetAmount,
         uint8 maxPlayers,
         uint256 price,
         string memory uriSuffix,
@@ -147,19 +141,17 @@ contract BBRoomCardNFT is
         string memory rarity
     ) external onlyOwner {
         require(nftTypes[nftTypeId].id == nftTypeId, "Card type does not exist");
-        require(maxBetAmount > 0, "Max bet amount must be greater than 0");
         require(maxPlayers > 1, "Max players must be greater than 1");
         require(price > 0, "Price must be greater than 0");
         require(maxMint > 0, "Max mint must be greater than 0");
         require(bytes(rarity).length > 0, "Rarity cannot be empty");
         RoomCardNftType storage nftType = nftTypes[nftTypeId];
-        nftType.maxBetAmount = maxBetAmount;
         nftType.maxPlayers = maxPlayers;
         nftType.price = price;
         nftType.uriSuffix = uriSuffix;
         nftType.maxMint = maxMint;
         nftType.rarity = rarity;
-        emit CardTypeUpdated(nftTypeId, maxBetAmount, maxPlayers, price, uriSuffix, maxMint, rarity);
+        emit CardTypeUpdated(nftTypeId, maxPlayers, price, uriSuffix, maxMint, rarity);
     }
 
     /**
@@ -397,17 +389,15 @@ contract BBRoomCardNFT is
     /**
      * @dev Validate if room card meets game parameter requirements
      * @param tokenId Room card ID
-     * @param betAmount Bet amount
      * @param maxPlayers Maximum number of players
      * @return Whether requirements are met
      */
-    function validateParams(uint256 tokenId, uint256 betAmount, uint8 maxPlayers) external view returns (bool) {
+    function validateParams(uint256 tokenId, uint8 maxPlayers) external view returns (bool) {
         _requireOwned(tokenId);
         uint256 nftTypeId = tokenNftTypes[tokenId];
         RoomCardNftType memory nftType = nftTypes[nftTypeId];
 
-        return (betAmount <= nftType.maxBetAmount &&
-                maxPlayers <= nftType.maxPlayers);
+        return (maxPlayers <= nftType.maxPlayers);
     }
 
     function _increaseBalance(address account, uint128 value) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
@@ -437,8 +427,8 @@ contract BBRoomCardNFT is
     receive() external payable {}
 
     // Event definitions
-    event CardTypeAdded(uint256 indexed nftTypeId, string name, uint256 maxBetAmount, uint8 maxPlayers, uint256 price, string uriSuffix, uint256 maxMint, string rarity);
-    event CardTypeUpdated(uint256 indexed nftTypeId, uint256 maxBetAmount, uint8 maxPlayers, uint256 price, string uriSuffix, uint256 maxMint, string rarity);
+    event CardTypeAdded(uint256 indexed nftTypeId, string name, uint8 maxPlayers, uint256 price, string uriSuffix, uint256 maxMint, string rarity);
+    event CardTypeUpdated(uint256 indexed nftTypeId, uint8 maxPlayers, uint256 price, string uriSuffix, uint256 maxMint, string rarity);
     event CardTypeMaxMintIncreased(uint256 indexed nftTypeId, uint256 newMaxMint);
     event CardTypeActiveStatusChanged(uint256 indexed nftTypeId, bool active);
     event RoomCardPurchased(address indexed buyer, uint256 tokenId, uint256 price, uint256 nftTypeId);

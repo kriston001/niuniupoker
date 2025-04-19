@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
+import "./BBTypes.sol";
+import "./BBPlayer.sol";
+
 /**
  * @title BBStructs
  * @dev 牛牛游戏结构体定义
  */
 
 struct GameConfig {
-    uint256 minBet;
     uint8 maxPlayers;
-    uint256 maxBankerFeePercent;
+    uint8 maxBankerFeePercent;
     uint256 playerTimeout;
     uint256 tableInactiveTimeout;
-    uint256 liquidatorFeePercent;
+    uint8 liquidatorFeePercent;
     address gameHistoryAddress;
     address rewardPoolAddress;
     address randomnessManagerAddress;
@@ -34,7 +36,6 @@ struct RewardPoolInfo {
 struct RoomCardNftType {
     uint256 id;              // Unique identifier for the card type
     string name;             // Name of the card type (e.g., "SILVER", "GOLD", "DIAMOND")
-    uint256 maxBetAmount;    // Maximum bet amount allowed with this card
     uint8 maxPlayers;        // Maximum number of players allowed
     uint256 price;           // Price to purchase this card
     string uriSuffix;        // URI suffix for metadata
@@ -55,4 +56,56 @@ struct RoomLevelNftType {
     uint256 maxMint;         // Maximum mint amount for this level type
     uint256 minted;          // Already minted amount for this level type
     string rarity;           // Rarity of this level type
+}
+
+// 添加一个新的结构体用于返回游戏桌信息
+struct GameTableView {
+    address tableAddr; // 游戏桌合约地址
+    string tableName;
+    address bankerAddr;
+    uint256 betAmount;
+    uint256 totalPrizePool;
+    uint8 playerCount;
+    uint8 maxPlayers;
+    uint256 creationTimestamp;
+    GameState state;
+    uint8 playerContinuedCount;
+    uint8 playerFoldCount;
+    uint8 playerReadyCount;
+    address[] playerAddresses;
+    uint256 currentRoundDeadline;
+    uint256 playerTimeout;
+    uint256 tableInactiveTimeout;
+    uint256 lastActivityTimestamp;
+    uint256 implementationVersion; // 添加实现版本号
+}
+
+//用于把playerData数据转换成结构体用以在函数参数中传递
+struct BBPlayerEntry {
+    address playerAddr;
+    BBPlayer playerData;
+}
+
+struct BBPlayerCardEntry {
+    address playerAddr;
+    uint8[5] cards;
+    CardType cardType;
+}
+
+// 随机数会话结构
+struct RandomSession {
+    address tableAddress;      // 游戏桌地址
+    uint256 timeout;           // 超时时间（秒）
+    uint256 deadline;          // 截止时间
+    SessionState state;        // 会话状态
+    address[] participants;    // 参与者列表
+    mapping(address => RandomCommitment) commitments; // 参与者的提交
+}
+
+// 随机数提交结构
+struct RandomCommitment {
+    bytes32 commitment;        // 提交的哈希值
+    bool hasCommitted;         // 是否已提交
+    bool hasRevealed;          // 是否已揭示
+    uint256 revealedValue;     // 揭示的随机值
 }

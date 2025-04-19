@@ -5,8 +5,7 @@ import "./BBTypes.sol";
 import "./BBVersion.sol";
 
 struct BBPlayer {
-    address playerAddr;
-    bool isBanker;
+    address addr;
     PlayerState state;
 
     // 下注信息
@@ -69,9 +68,17 @@ library BBPlayerLib {
     }
 
     /**
+     * @dev 是否有效
+     */
+    function isValid(BBPlayer storage self) internal view returns (bool) {
+        return self.addr != address(0);
+    }
+
+    /**
      * @dev 重置玩家数据
      */
     function playerReset(BBPlayer storage self) internal {
+        self.addr = address(0);
         self.state = PlayerState.JOINED;
         self.initialBet = 0;
         self.additionalBet1 = 0;

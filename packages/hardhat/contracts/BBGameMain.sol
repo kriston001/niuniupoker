@@ -34,13 +34,12 @@ contract BBGameMain is
 {
 
     // 游戏配置
-    uint256 public minBet;  // 保留最小下注金额
     uint8 public maxRoomCount;  //最大创建房间数
     uint8 public maxPlayers;
     uint256 public playerTimeout;  // 玩家超时时间
     uint256 public tableInactiveTimeout;  // 游戏桌不活跃超时时间
-    uint256 public maxBankerFeePercent; // 庄家抽成最大百分比
-    uint256 public liquidatorFeePercent; // 清算人费用百分比
+    uint8 public maxBankerFeePercent; // 庄家抽成最大百分比
+    uint8 public liquidatorFeePercent; // 清算人费用百分比
 
 
     // 游戏桌地址列表
@@ -68,6 +67,9 @@ contract BBGameMain is
     // 随机数管理器相关
     address public randomnessManagerAddress; // 随机数管理器合约地址
 
+    // 预留 50 个 slot 给将来新增变量用，防止存储冲突
+    uint256[50] private __gap;
+
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
         return BBVersion.VERSION;
@@ -82,11 +84,10 @@ contract BBGameMain is
      * @dev 初始化函数，替代构造函数
      */
     function initialize(
-        uint256 _minBet,
         uint8 _maxPlayers,
         uint8 _maxRoomCount,
-        uint256 _maxBankerFeePercent,
-        uint256 _liquidatorFeePercent,
+        uint8 _maxBankerFeePercent,
+        uint8 _liquidatorFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
         address _gameTableFactoryAddress
@@ -96,7 +97,6 @@ contract BBGameMain is
         __Pausable_init();
         __UUPSUpgradeable_init();
 
-        minBet = _minBet;
         maxPlayers = _maxPlayers;
         maxRoomCount = _maxRoomCount;
         maxBankerFeePercent = _maxBankerFeePercent;
@@ -122,11 +122,11 @@ contract BBGameMain is
         string memory tableName,
         uint256 betAmount,
         uint8 tableMaxPlayers,
-        uint256 bankerFeePercent
+        uint8 bankerFeePercent
 
     ) external payable nonReentrant {
         if (paused()) revert ContractPaused();
-        if (betAmount < minBet) revert BetAmountTooSmall();
+        if (betAmount == 0) revert BetAmountTooSmall();
         if (tableMaxPlayers <= 1 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
         if (bankerFeePercent > maxBankerFeePercent) revert InvalidBankerFeePercent();
 
@@ -153,26 +153,7 @@ contract BBGameMain is
             }
         }
 
-        // 如果启用了房卡功能，验证并消耗房卡
-        // if (roomCardEnabled) {
-        //     if (roomCardAddress == address(0)) revert InvalidRoomCardContract();
-
-        //     // 验证用户是否拥有房卡
-        //     BBRoomCardNFT roomCard = BBRoomCardNFT(payable(roomCardAddress));
-        //     if (!roomCard.hasNft(msg.sender)) revert NoRoomCardOwned();
-
-        //     // 验证房卡参数是否符合游戏设置
-        //     if (!roomCard.validateParams(roomCardTokenId, betAmount, tableMaxPlayers)) {
-        //         revert InvalidRoomCardParams();
-        //     }
-
-        //     // 消耗房卡
-        //     try roomCard.consume(msg.sender, roomCardTokenId) {
-        //         // 房卡消耗成功
-        //     } catch {
-        //         revert RoomCardConsumptionFailed();
-        //     }
-        // }
+        
 
         // 检查游戏桌工厂地址是否设置
         if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
@@ -219,7 +200,6 @@ contract BBGameMain is
 
     function getGameConfig() external view returns (GameConfig memory) {
         return GameConfig({
-            minBet: minBet,
             maxPlayers: maxPlayers,
             maxBankerFeePercent: maxBankerFeePercent,
             playerTimeout: playerTimeout,
@@ -238,28 +218,23 @@ contract BBGameMain is
      * @dev 更新游戏配置（仅限合约拥有者）
      */
     function updateGameConfig(
-        uint256 _minBet,
         uint8 _maxPlayers,
-        uint256 _maxBankerFeePercent,
+        uint8 _maxBankerFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
-        uint256 _liquidatorFeePercent
+        uint8 _liquidatorFeePercent
     ) external onlyOwner {
-        if (_minBet == 0) revert MinBetMustBePositive();
         if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
         if (_maxBankerFeePercent == 0) revert BankerFeePercentMustBePositive();
         if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
         if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
         if (_liquidatorFeePercent == 0) revert InvalidLiquidatorFeePercent();
 
-        minBet = _minBet;
         maxPlayers = _maxPlayers;
         maxBankerFeePercent = _maxBankerFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
         liquidatorFeePercent = _liquidatorFeePercent;
-
-        emit GameConfigUpdated(_minBet, _maxPlayers);
     }
 
     /**
@@ -378,44 +353,12 @@ contract BBGameMain is
         emit RewardPoolAddressUpdated(_rewardPoolAddress);
     }
 
-    /**
-     * @dev 庄家为游戏桌设置奖励池
-     * @param tableAddr 游戏桌地址
-     * @param poolId 奖励池ID
-     */
-    function setTableRewardPool(address tableAddr, uint256 poolId) external nonReentrant {
-        // 验证游戏桌地址
-        if (address(gameTables[tableAddr]) != tableAddr) revert TableDoesNotExist();
-
-        // 验证奖励池合约地址
-        if (rewardPoolAddress == address(0)) revert InvalidRewardPoolAddress();
-
-        // 调用奖励池合约的设置函数
-        BBRewardPool rewardPool = BBRewardPool(payable(rewardPoolAddress));
-        rewardPool.setTableRewardPool(tableAddr, poolId);
-    }
-
-    /**
-     * @dev 庄家移除游戏桌的奖励池
-     * @param tableAddr 游戏桌地址
-     */
-    function removeTableRewardPool(address tableAddr) external nonReentrant {
-        // 验证游戏桌地址
-        if (address(gameTables[tableAddr]) != tableAddr) revert TableDoesNotExist();
-
-        // 验证奖励池合约地址
-        if (rewardPoolAddress == address(0)) revert InvalidRewardPoolAddress();
-
-        // 调用奖励池合约的移除函数
-        BBRewardPool rewardPool = BBRewardPool(payable(rewardPoolAddress));
-        rewardPool.removeTableRewardPool(tableAddr);
-    }
-
     function rewardPoolIsInUse(address _bankerAddr, uint256 _poolId) external view returns (bool) {
-        BBGameTableImplementation[] tables = gameTables[_bankerAddr];
-        for (uint256 i = 0; i < tables.length; i++) {
-            address tableAddr = tableAddresses[i];
-            if (tables[tableAddr].bankerAddr() == _bankerAddr && tables[tableAddr].rewardPoolId() == _poolId) {
+        address[] storage tableAddrs = userTables[_bankerAddr];
+
+        for (uint256 i = 0; i < tableAddrs.length; i++) {
+            address tableAddr = tableAddrs[i];
+            if (gameTables[tableAddr].rewardPoolId() == _poolId) {
                 return true;
             }
         }

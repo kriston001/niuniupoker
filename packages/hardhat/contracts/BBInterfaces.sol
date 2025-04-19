@@ -5,13 +5,15 @@ import "./BBTypes.sol";
 import "./BBStructs.sol";
 
 interface IRandomnessManager {
-    function getSessionStatus(address, uint256) external view returns (SessionState, uint256, uint256, uint256, uint256, uint256);
-    function commitRandom(address, uint256, bytes32) external;
-    function goReveal(uint256) external returns (bool);
-    function revealRandom(address, uint256, uint256, bytes32) external;
-    function completeSession(uint256) external returns (uint256);
-    function hasCommitted(address, uint256, address) external view returns (bool);
-    function hasRevealed(address, uint256, address) external view returns (bool);
+    function createSession() external returns (bool);
+    function startCommit(address[] calldata, uint256) external returns (uint256);
+    function commitRandom(address, bytes32) external;
+    function startReveal() external returns (uint256);
+    function revealRandom(address _playerAddress, uint256 _randomValue, bytes32 _salt) external;
+    function completeSession() external returns (uint256);
+    function hasCommitted(address, address) external view returns (bool);
+    function hasRevealed(address, address) external view returns (bool);
+    function getSessionDeadline(address) external view returns (uint256);
 }
 
 interface IGameMain {
@@ -25,4 +27,16 @@ interface IGameMain {
     function roomLevelAddress() external view returns (address);
     function randomnessManagerAddress() external view returns (address);
     function getGameConfig() external view returns (GameConfig memory);
+    function rewardPoolIsInUse(address, uint256) external view returns (bool);
+}
+
+interface IRewardPool{
+    function tryDistributeReward(address, address[] calldata) external returns (bool);
+    function isBankerPool(address, uint256) external view returns (bool);
+}
+
+interface IRoomCardNFT{
+    function validateParams(uint256, uint8) external view returns (bool);
+    function hasNft(address) external view returns (bool);
+    function consume(address, uint256) external;
 }

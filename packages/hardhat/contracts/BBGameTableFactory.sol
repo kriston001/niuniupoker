@@ -76,13 +76,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
      * @param betAmount 下注金额
      * @param maxPlayers 最大玩家数
      * @param gameMainAddr 游戏主合约地址
-     * @param playerTimeout 玩家超时时间
-     * @param tableInactiveTimeout 游戏桌不活跃超时时间
-     * @param gameHistoryAddr 游戏历史记录合约地址
      * @param bankerFeePercent 庄家费用百分比
-     * @param liquidatorFeePercent 清算人费用百分比
-     * @param rewardPoolAddr 奖励池合约地址
-     * @param randomnessManagerAddr 随机数管理器地址
      * @return 新创建的游戏桌地址
      */
     function createGameTable(
@@ -91,7 +85,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         uint256 betAmount,
         uint8 maxPlayers,
         address gameMainAddr,
-        uint256 bankerFeePercent
+        uint8 bankerFeePercent
     ) external returns (address) {
         // 克隆代理合约，这样所有克隆都会指向同一个可升级的代理
         address payable clone = payable(Clones.clone(proxyAddress));

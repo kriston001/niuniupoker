@@ -53,6 +53,5 @@ enum CardType {
 enum SessionState {
     READY,
     COMMITING,
-    REVEALING,
-    COMPLETED
+    REVEALING
 }

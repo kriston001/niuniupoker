@@ -88,6 +88,7 @@ error MaxPlayersTooSmall();
 error ContractPaused();
 error InvalidBankerFeePercent();
 error InvalidLiquidatorFeePercent();
+error BankerCannotLiquidate();
 
 // Game progress related errors
 error NotAllPlayersReady();
@@ -119,7 +120,7 @@ error SessionNotFound();
 error CommitDeadlineExpired();
 error RevealPhaseNotStarted();
 error RevealDeadlineExpired();
-error SessionAlreadyCompleted();
+error SessionNotRevealing();
 error NotAParticipant();
 error AlreadyCommitted();
 error NotCommitted();

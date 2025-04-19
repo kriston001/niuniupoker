@@ -95,7 +95,6 @@ export interface PlayerCard {
 export interface RoomCardNftType {
   id: bigint;
   name: string;
-  maxBetAmount: bigint;
   maxPlayers: number;
   price: bigint;
   uriSuffix: string;

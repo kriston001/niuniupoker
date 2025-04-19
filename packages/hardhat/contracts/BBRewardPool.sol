@@ -9,6 +9,7 @@ import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBVersion.sol";
 import "./BBStructs.sol";
+import "./BBInterfaces.sol";
 
 /**
  * @title BBRewardPool
@@ -30,7 +31,10 @@ contract BBRewardPool is
     address public gameMainAddr;
 
     // 最大概率值（100 = 100%）
-    uint256 private constant MAX_PROBABILITY = 100;
+    uint8 private constant MAX_PROBABILITY = 100;
+
+    // 预留 50 个 slot 给将来新增变量用，防止存储冲突
+    uint256[50] private __gap;
 
     // 使用集中版本管理
     function getVersion() public pure returns (string memory) {
@@ -40,6 +44,22 @@ contract BBRewardPool is
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
+    }
+
+    /**
+     * @dev 修饰器：只允许游戏桌合约调用
+     */
+    modifier onlyGameTable() {
+        bool isValidTable = false;
+        if (gameMainAddr != address(0)) {
+            if(IGameMain(gameMainAddr).isValidGameTable(msg.sender)){
+                isValidTable = true;
+            }else{
+                isValidTable = false;
+            }
+        }
+        if (!isValidTable) revert OnlyGameTableCanCall();
+        _;
     }
 
     /**
@@ -83,6 +103,17 @@ contract BBRewardPool is
         emit RewardPoolCreated(pool.poolId, msg.sender, msg.value, _rewardPerGame, _winProbability);
     }
 
+    //验证是否是这个庄家的奖励池
+    function isBankerPool(address _banker, uint256 _poolId) external view returns (bool) {
+        RewardPoolInfo[] memory pools = bankerPools[_banker];
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].poolId == _poolId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @dev 庄家删除奖励池并取回剩余资金
      * @param _poolId 要删除的奖励池ID
@@ -100,6 +131,10 @@ contract BBRewardPool is
         }
         
         if (poolIndex == type(uint256).max) revert RewardPoolNotActive();
+
+        if(IGameMain(gameMainAddr).rewardPoolIsInUse(msg.sender, _poolId)){
+            revert RewardPoolInUse();
+        }
         
         RewardPoolInfo storage pool = pools[poolIndex];
         uint256 remainingAmount = pool.remainingAmount;
@@ -119,34 +154,29 @@ contract BBRewardPool is
 
     /**
      * @dev 游戏结束时尝试分配奖励
-     * @param _tableAddr 游戏桌地址
+     * @param _bankerAddr 庄家地址
+     * @param _poolId 游戏桌地址
      * @param _players 参与游戏的玩家地址数组
+     * @param finalSeed 最终种子
      * @return 是否分配了奖励
      */
-    function tryDistributeReward(address _tableAddr, address[] calldata _players) external nonReentrant returns (bool) {
-        // 验证调用者是游戏桌合约
-        if (msg.sender != _tableAddr) revert OnlyGameTableCanCall();
+    function tryDistributeReward(address _bankerAddr, uint256 _poolId, address[] calldata _players, uint256 finalSeed) external onlyGameTable nonReentrant returns (bool) {
+        address tableAddr = msg.sender;
+        RewardPoolInfo storage pool = bankerPools[_bankerAddr][_poolId];
 
-        // 验证游戏桌有奖励池
-        RewardPoolUsage storage usage = tableRewardPools[_tableAddr];
-        if (!usage.active) return false;
-
-        uint256 poolId = usage.poolId;
-        RewardPoolInfo storage pool = rewardPools[poolId];
-
-        // 验证奖励池活跃且有足够的资金
-        if (!pool.active || pool.remainingAmount < pool.rewardPerGame) return false;
+        // 验证有足够的资金
+        if (pool.remainingAmount < pool.rewardPerGame) return false;
 
         // 验证有玩家参与
         if (_players.length == 0) return false;
 
         // 生成随机数决定是否发放奖励
-        uint256 randomValue = _generateRandomNumber(_tableAddr, block.timestamp) % MAX_PROBABILITY;
+        uint256 randomValue = _generateRandomNumber(finalSeed, _poolId, tableAddr) % MAX_PROBABILITY;
 
         // 如果随机数小于中奖概率，则发放奖励
         if (randomValue < pool.winProbability) {
             // 随机选择一名玩家
-            uint256 winnerIndex = _generateRandomNumber(_tableAddr, randomValue) % _players.length;
+            uint256 winnerIndex = _generateRandomNumber(finalSeed, _poolId + 1, tableAddr) % _players.length;
             address winner = _players[winnerIndex];
 
             // 更新奖励池余额
@@ -156,7 +186,7 @@ contract BBRewardPool is
             (bool success, ) = payable(winner).call{value: pool.rewardPerGame}("");
             if (!success) revert TransferFailed();
 
-            emit RewardDistributed(poolId, _tableAddr, winner, pool.rewardPerGame);
+            emit RewardDistributed(_poolId, tableAddr, winner, pool.rewardPerGame);
             return true;
         }
 
@@ -207,43 +237,17 @@ contract BBRewardPool is
     }
 
     /**
-     * @dev 获取使用特定奖励池的所有游戏桌
-     * @param _poolId 奖励池ID
-     * @return 游戏桌地址数组
-     */
-    function getPoolTables(uint256 _poolId) external view returns (address[] memory) {
-        return poolTables[_poolId];
-    }
-
-    /**
-     * @dev 从奖励池的使用列表中移除游戏桌（内部函数）
-     * @param _poolId 奖励池ID
-     * @param _tableAddr 游戏桌地址
-     */
-    function _removeTableFromPool(uint256 _poolId, address _tableAddr) internal {
-        address[] storage tables = poolTables[_poolId];
-        for (uint256 i = 0; i < tables.length; i++) {
-            if (tables[i] == _tableAddr) {
-                // 将最后一个元素移到要删除的位置，然后删除最后一个元素
-                if (i < tables.length - 1) {
-                    tables[i] = tables[tables.length - 1];
-                }
-                tables.pop();
-                break;
-            }
-        }
-    }
-
-    /**
-     * @dev 生成伪随机数（内部函数）
-     * @param _seed1 种子1
-     * @param _seed2 种子2
+     * @dev 生成随机数（内部函数）
+     * @param _seed1 种子
+     * @param _seed2 种子
+     * @param _seed3 种子
      * @return 伪随机数
      */
-    function _generateRandomNumber(address _seed1, uint256 _seed2) internal view returns (uint256) {
+    function _generateRandomNumber(uint256 _seed1, uint256 _seed2, address _seed3) internal view returns (uint256) {
         return uint256(keccak256(abi.encodePacked(
             _seed1,
             _seed2,
+            _seed3,
             block.timestamp,
             block.difficulty,
             blockhash(block.number - 1)
