@@ -21,7 +21,6 @@ interface IGameMain {
     function liquidatorFeePercent() external view returns (uint256);
     function playerTimeout() external view returns (uint256);
     function tableInactiveTimeout() external view returns (uint256);
-    function gameHistoryAddress() external view returns (address);
     function rewardPoolAddress() external view returns (address);
     function roomCardAddress() external view returns (address);
     function roomLevelAddress() external view returns (address);

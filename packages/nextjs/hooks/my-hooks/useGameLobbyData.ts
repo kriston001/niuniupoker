@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useReadContract, useWatchContractEvent } from "wagmi";
-import { GameTableCreated, GameTableRemoved, getAllGameTables } from "~~/contracts/abis/BBGameMainABI";
+import { GameTableCreated, GameTableRemoved, getNewestGameTables } from "~~/contracts/abis/BBGameMainABI";
 import scaffoldConfig from "~~/scaffold.config";
 import { GameTable } from "~~/types/game-types";
 
@@ -15,8 +15,8 @@ export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?
     refetch: refetchGameTables,
   } = useReadContract({
     address: scaffoldConfig.contracts.BBGameMain,
-    abi: [getAllGameTables],
-    functionName: "getAllGameTables",
+    abi: [getNewestGameTables],
+    functionName: "getNewestGameTables",
   });
 
   // refetchGameTables 保存在 ref 中，防止依赖变化引发副作用

@@ -23,7 +23,7 @@ type GlobalState = {
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => void;
 
   // 新增的游戏配置状态
-  gameConfig: GameConfig | null;
+  gameConfig: GameConfig;
   setGameConfig: (config: GameConfig) => void;
 };
 
@@ -40,6 +40,18 @@ export const useGlobalState = create<GlobalState>(set => ({
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => set(() => ({ targetNetwork: newTargetNetwork })),
 
   // 新增的游戏配置状态
-  gameConfig: null,
+  gameConfig: {
+    maxRoomCount: 1,
+    maxPlayers: 6,
+    maxBankerFeePercent: 20,
+    playerTimeout: 120n,
+    tableInactiveTimeout: 1200n,
+    liquidatorFeePercent: 20,
+    rewardPoolAddress: "0x0000000000000000000000000000000000000000",
+    randomnessManagerAddress: "0x0000000000000000000000000000000000000000",
+    roomCardAddress: "0x0000000000000000000000000000000000000000",
+    roomLevelAddress: "0x0000000000000000000000000000000000000000",
+    gameTableFactoryAddress: "0x0000000000000000000000000000000000000000",
+  },
   setGameConfig: (config: GameConfig) => set({ gameConfig: config }),
 }));

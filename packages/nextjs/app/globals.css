@@ -29,15 +29,15 @@
     --from-amber-700: #b45309;
     --to-amber-800: #92400e;
     --amber-700-40: rgba(180, 83, 9, 0.4);
-
+    
     --from-zinc-400: #a1a1aa;
     --to-zinc-500: #71717a;
     --zinc-400-40: rgba(161, 161, 170, 0.4);
-
+    
     --from-amber-400: #fbbf24;
     --to-amber-500: #f59e0b;
     --amber-400-40: rgba(251, 191, 36, 0.4);
-
+    
     --from-cyan-400: #22d3ee;
     --to-blue-500: #3b82f6;
     --cyan-400-40: rgba(34, 211, 238, 0.4);
@@ -49,7 +49,16 @@
     border-color: var(--border);
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: var(--background);
+    color: var(--foreground);
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
 }

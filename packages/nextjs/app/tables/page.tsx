@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, Clock, Filter, PlusCircle, Search, Trophy, Users, Wallet } from "lucide-react";
-import { CreateRewardModal } from "~~/components/niuniu/create-reward-modal";
-import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
-import { Badge } from "~~/components/ui/badge";
-import { Button } from "~~/components/ui/button";
-import { Card, CardContent, CardFooter } from "~~/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,20 +12,36 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "~~/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "~~/components/ui/dropdown-menu";
-import { Input } from "~~/components/ui/input";
-import { Label } from "~~/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group";
-import { Slider } from "~~/components/ui/slider";
-import { truncateAddress } from "~~/lib/utils";
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { truncateAddress } from "@/lib/utils";
+import {
+  ArrowUpDown,
+  Clock,
+  Coins,
+  Filter,
+  Gift,
+  PlusCircle,
+  Search,
+  TrendingUp,
+  Trophy,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
 
-// Sample data for poker tables
+// First, update the sample data to include the enhanced reward details
+// Update the tablesData array to include totalPool, perWinPayout, and winRate properties
+
+// Update the tablesData array to include new fields
 const tablesData = [
   {
     id: 1,
@@ -40,6 +53,12 @@ const tablesData = [
     status: "active",
     reward: 5,
     createdAt: "2024-04-17T06:30:00.000Z",
+    rewardInfo: "High Roller",
+    gamesPlayed: 152,
+    settlements: 48,
+    totalPool: 500,
+    perWinPayout: 10,
+    winRate: 20,
   },
   {
     id: 2,
@@ -51,6 +70,12 @@ const tablesData = [
     status: "active",
     reward: 3,
     createdAt: "2024-04-17T07:15:00.000Z",
+    rewardInfo: null,
+    gamesPlayed: 87,
+    settlements: 21,
+    totalPool: 0,
+    perWinPayout: 0,
+    winRate: 0,
   },
   {
     id: 3,
@@ -62,6 +87,12 @@ const tablesData = [
     status: "waiting",
     reward: 8,
     createdAt: "2024-04-17T08:00:00.000Z",
+    rewardInfo: "Jackpot",
+    gamesPlayed: 0,
+    settlements: 0,
+    totalPool: 1000,
+    perWinPayout: 50,
+    winRate: 5,
   },
   {
     id: 4,
@@ -73,6 +104,12 @@ const tablesData = [
     status: "full",
     reward: 2,
     createdAt: "2024-04-17T05:45:00.000Z",
+    rewardInfo: "Lucky Streak",
+    gamesPlayed: 243,
+    settlements: 76,
+    totalPool: 250,
+    perWinPayout: 5,
+    winRate: 10,
   },
   {
     id: 5,
@@ -84,6 +121,12 @@ const tablesData = [
     status: "waiting",
     reward: 7,
     createdAt: "2024-04-17T07:30:00.000Z",
+    rewardInfo: null,
+    gamesPlayed: 12,
+    settlements: 3,
+    totalPool: 750,
+    perWinPayout: 15,
+    winRate: 2,
   },
   {
     id: 6,
@@ -95,6 +138,12 @@ const tablesData = [
     status: "active",
     reward: 4,
     createdAt: "2024-04-17T06:15:00.000Z",
+    rewardInfo: "High Roller",
+    gamesPlayed: 98,
+    settlements: 32,
+    totalPool: 300,
+    perWinPayout: 8,
+    winRate: 15,
   },
   {
     id: 7,
@@ -106,6 +155,12 @@ const tablesData = [
     status: "waiting",
     reward: 5,
     createdAt: "2024-04-17T08:30:00.000Z",
+    rewardInfo: null,
+    gamesPlayed: 45,
+    settlements: 15,
+    totalPool: 150,
+    perWinPayout: 3,
+    winRate: 8,
   },
   {
     id: 8,
@@ -117,6 +172,12 @@ const tablesData = [
     status: "active",
     reward: 3,
     createdAt: "2024-04-17T07:45:00.000Z",
+    rewardInfo: "Lucky Streak",
+    gamesPlayed: 132,
+    settlements: 41,
+    totalPool: 80,
+    perWinPayout: 2,
+    winRate: 5,
   },
   {
     id: 9,
@@ -128,6 +189,12 @@ const tablesData = [
     status: "active",
     reward: 6,
     createdAt: "2024-04-17T06:00:00.000Z",
+    rewardInfo: "Jackpot",
+    gamesPlayed: 67,
+    settlements: 22,
+    totalPool: 400,
+    perWinPayout: 12,
+    winRate: 25,
   },
   {
     id: 10,
@@ -139,6 +206,12 @@ const tablesData = [
     status: "waiting",
     reward: 10,
     createdAt: "2024-04-17T08:15:00.000Z",
+    rewardInfo: "High Roller",
+    gamesPlayed: 28,
+    settlements: 9,
+    totalPool: 2000,
+    perWinPayout: 100,
+    winRate: 10,
   },
   {
     id: 11,
@@ -150,6 +223,12 @@ const tablesData = [
     status: "full",
     reward: 2,
     createdAt: "2024-04-17T05:30:00.000Z",
+    rewardInfo: null,
+    gamesPlayed: 315,
+    settlements: 94,
+    totalPool: 50,
+    perWinPayout: 1,
+    winRate: 3,
   },
   {
     id: 12,
@@ -161,6 +240,12 @@ const tablesData = [
     status: "active",
     reward: 8,
     createdAt: "2024-04-17T07:00:00.000Z",
+    rewardInfo: "Jackpot",
+    gamesPlayed: 56,
+    settlements: 18,
+    totalPool: 1500,
+    perWinPayout: 75,
+    winRate: 18,
   },
 ];
 
@@ -170,7 +255,6 @@ export default function TablesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [rewardValue, setRewardValue] = useState(3);
 
   const filterTables = () => {
     let filtered = [...tablesData];
@@ -274,13 +358,12 @@ export default function TablesPage() {
               <DropdownMenuItem onClick={() => setStatusFilter("full")}>Full</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
           <CreateTableModal
             open={open}
             onOpenChange={setOpen}
             trigger={
               <Button
-                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium shadow-lg hover:shadow-amber-600/20 transition-all duration-300"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium"
                 onClick={() => setOpen(true)}
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -343,11 +426,15 @@ export default function TablesPage() {
         </Button>
       </div>
 
+      {/* Now update the card rendering to include the new fields */}
+      {/* Find the section where the table cards are rendered and modify it */}
+
+      {/* Update the card rendering in the grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTables.map(table => (
-          <Card key={table.id} className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
+          <Card key={table.id} className="bg-zinc-900/80 border-zinc-800 overflow-hidden group flex flex-col h-full">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-            <CardContent className="p-6">
+            <CardContent className="p-6 flex-grow flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-bold text-white">{table.name}</h3>
                 <Badge
@@ -387,7 +474,54 @@ export default function TablesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              {/* Add new section for additional table info */}
+              <div className="border-t border-zinc-800 pt-3 mt-3">
+                <div className="flex justify-center gap-8 px-3 py-2 bg-zinc-800/30 rounded-md border border-zinc-700/30">
+                  {/* Games Played */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-zinc-500">Rounds</span>
+                    <span className="text-sm font-bold text-amber-400 mt-1">{table.gamesPlayed}</span>
+                  </div>
+
+                  {/* Settlements */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-zinc-500">Settlements</span>
+                    <span className="text-sm font-bold text-amber-400 mt-1">{table.settlements}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Reward Information Block */}
+              {table.rewardInfo ? (
+                <div className="mt-3 bg-zinc-800/50 rounded-md p-3 border border-zinc-700/50">
+                  <div className="flex items-center mb-2">
+                    <Trophy className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
+                    <span className="text-xs font-medium text-amber-400">{table.rewardInfo} Reward</span>
+                  </div>
+                  <div className="flex justify-between items-center px-1">
+                    <div className="flex items-center">
+                      <Coins className="h-3.5 w-3.5 text-amber-500 mr-1" />
+                      <span className="text-xs text-zinc-300">{table.totalPool} USDT</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Gift className="h-3.5 w-3.5 text-amber-500 mr-1" />
+                      <span className="text-xs text-zinc-300">{table.perWinPayout} USDT</span>
+                    </div>
+                    <div className="flex items-center">
+                      <TrendingUp className="h-3.5 w-3.5 text-amber-500 mr-1" />
+                      <span className="text-xs text-zinc-300">{table.winRate}%</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 bg-zinc-800/30 rounded-md p-3 border border-zinc-700/30">
+                  <div className="flex items-center justify-center">
+                    <span className="text-xs text-zinc-500">No reward assigned</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1 text-amber-500" />
                   <span className="text-xs text-zinc-500">{getTimeAgo(table.createdAt)}</span>
@@ -395,7 +529,7 @@ export default function TablesPage() {
                 <div className="text-lg font-bold text-amber-500">{table.betAmount} ETH</div>
               </div>
             </CardContent>
-            <CardFooter className="p-0">
+            <CardFooter className="p-0 mt-auto">
               <Button
                 className="w-full rounded-none py-4 bg-zinc-800 hover:bg-zinc-700 text-white border-t border-zinc-700 group-hover:bg-gradient-to-r group-hover:from-amber-500 group-hover:to-amber-600 group-hover:text-black transition-all duration-300"
                 disabled={table.status === "full"}

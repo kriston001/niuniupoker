@@ -64,11 +64,6 @@ const abi = [
   },
   {
     inputs: [],
-    name: "InsufficientFunds",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "InvalidAddress",
     type: "error",
   },
@@ -114,11 +109,6 @@ const abi = [
   },
   {
     inputs: [],
-    name: "InvalidRoomCardParams",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "InvalidRoomLevelAddress",
     type: "error",
   },
@@ -129,22 +119,7 @@ const abi = [
   },
   {
     inputs: [],
-    name: "MinBetMustBePositive",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "NoRoomCardOwned",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "NotInitializing",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "OnlyTableContractCanRemoveItself",
     type: "error",
   },
   {
@@ -181,11 +156,6 @@ const abi = [
   },
   {
     inputs: [],
-    name: "RoomCardConsumptionFailed",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "RoomLevelLimitExceeded",
     type: "error",
   },
@@ -202,16 +172,6 @@ const abi = [
   {
     inputs: [],
     name: "TableInactiveTimeoutMustBePositive",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "TableNotFound",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "TransferFailed",
     type: "error",
   },
   {
@@ -279,43 +239,11 @@ const abi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "roomCardTokenId",
+        name: "bankerFeePercent",
         type: "uint256",
       },
     ],
     name: "GameTableCreated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "gameTableFactoryAddress",
-        type: "address",
-      },
-    ],
-    name: "GameTableFactoryAddressUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "version",
-        type: "uint256",
-      },
-    ],
-    name: "GameTableImplementationUpgraded",
     type: "event",
   },
   {
@@ -380,84 +308,6 @@ const abi = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
-        internalType: "address",
-        name: "randomnessManagerAddress",
-        type: "address",
-      },
-    ],
-    name: "RandomnessManagerAddressUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "rewardPoolAddress",
-        type: "address",
-      },
-    ],
-    name: "RewardPoolAddressUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "roomCardAddress",
-        type: "address",
-      },
-    ],
-    name: "RoomCardAddressUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "RoomCardEnabledUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "roomLevelAddress",
-        type: "address",
-      },
-    ],
-    name: "RoomLevelAddressUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "RoomLevelEnabledUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
         indexed: false,
         internalType: "address",
         name: "account",
@@ -496,19 +346,6 @@ const abi = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "batchSize",
-        type: "uint256",
-      },
-    ],
-    name: "batchCleanupInactiveTables",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "string",
         name: "tableName",
         type: "string",
@@ -524,19 +361,9 @@ const abi = [
         type: "uint8",
       },
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "bankerFeePercent",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "roomCardTokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "bankerIsPlayer",
-        type: "bool",
+        type: "uint8",
       },
     ],
     name: "createGameTable",
@@ -591,111 +418,6 @@ const abi = [
   },
   {
     inputs: [],
-    name: "getAllGameTables",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
-          },
-          {
-            internalType: "string",
-            name: "tableName",
-            type: "string",
-          },
-          {
-            internalType: "address",
-            name: "bankerAddr",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "totalPrizePool",
-            type: "uint256",
-          },
-          {
-            internalType: "uint8",
-            name: "playerCount",
-            type: "uint8",
-          },
-          {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
-          },
-          {
-            internalType: "uint256",
-            name: "creationTimestamp",
-            type: "uint256",
-          },
-          {
-            internalType: "enum BBTypes.GameState",
-            name: "state",
-            type: "uint8",
-          },
-          {
-            internalType: "uint8",
-            name: "playerContinuedCount",
-            type: "uint8",
-          },
-          {
-            internalType: "uint8",
-            name: "playerFoldCount",
-            type: "uint8",
-          },
-          {
-            internalType: "uint8",
-            name: "playerReadyCount",
-            type: "uint8",
-          },
-          {
-            internalType: "address[]",
-            name: "playerAddresses",
-            type: "address[]",
-          },
-          {
-            internalType: "uint256",
-            name: "currentRoundDeadline",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "lastActivityTimestamp",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "implementationVersion",
-            type: "uint256",
-          },
-        ],
-        internalType: "struct GameTableView[]",
-        name: "",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "getAllGameTablesInactive",
     outputs: [
       {
@@ -741,7 +463,7 @@ const abi = [
             type: "uint256",
           },
           {
-            internalType: "enum BBTypes.GameState",
+            internalType: "enum GameState",
             name: "state",
             type: "uint8",
           },
@@ -806,9 +528,9 @@ const abi = [
       {
         components: [
           {
-            internalType: "uint256",
-            name: "minBet",
-            type: "uint256",
+            internalType: "uint8",
+            name: "maxRoomCount",
+            type: "uint8",
           },
           {
             internalType: "uint8",
@@ -816,9 +538,9 @@ const abi = [
             type: "uint8",
           },
           {
-            internalType: "uint256",
+            internalType: "uint8",
             name: "maxBankerFeePercent",
-            type: "uint256",
+            type: "uint8",
           },
           {
             internalType: "uint256",
@@ -831,24 +553,9 @@ const abi = [
             type: "uint256",
           },
           {
-            internalType: "uint256",
+            internalType: "uint8",
             name: "liquidatorFeePercent",
-            type: "uint256",
-          },
-          {
-            internalType: "bool",
-            name: "roomCardEnabled",
-            type: "bool",
-          },
-          {
-            internalType: "bool",
-            name: "roomLevelEnabled",
-            type: "bool",
-          },
-          {
-            internalType: "address",
-            name: "gameHistoryAddress",
-            type: "address",
+            type: "uint8",
           },
           {
             internalType: "address",
@@ -937,7 +644,7 @@ const abi = [
             type: "uint256",
           },
           {
-            internalType: "enum BBTypes.GameState",
+            internalType: "enum GameState",
             name: "state",
             type: "uint8",
           },
@@ -997,7 +704,7 @@ const abi = [
   },
   {
     inputs: [],
-    name: "getMyGameTablesActive",
+    name: "getMyGameTables",
     outputs: [
       {
         components: [
@@ -1042,7 +749,118 @@ const abi = [
             type: "uint256",
           },
           {
-            internalType: "enum BBTypes.GameState",
+            internalType: "enum GameState",
+            name: "state",
+            type: "uint8",
+          },
+          {
+            internalType: "uint8",
+            name: "playerContinuedCount",
+            type: "uint8",
+          },
+          {
+            internalType: "uint8",
+            name: "playerFoldCount",
+            type: "uint8",
+          },
+          {
+            internalType: "uint8",
+            name: "playerReadyCount",
+            type: "uint8",
+          },
+          {
+            internalType: "address[]",
+            name: "playerAddresses",
+            type: "address[]",
+          },
+          {
+            internalType: "uint256",
+            name: "currentRoundDeadline",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "playerTimeout",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "tableInactiveTimeout",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "lastActivityTimestamp",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "implementationVersion",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct GameTableView[]",
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "_count",
+        type: "uint8",
+      },
+    ],
+    name: "getNewestGameTables",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "tableAddr",
+            type: "address",
+          },
+          {
+            internalType: "string",
+            name: "tableName",
+            type: "string",
+          },
+          {
+            internalType: "address",
+            name: "bankerAddr",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "betAmount",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "totalPrizePool",
+            type: "uint256",
+          },
+          {
+            internalType: "uint8",
+            name: "playerCount",
+            type: "uint8",
+          },
+          {
+            internalType: "uint8",
+            name: "maxPlayers",
+            type: "uint8",
+          },
+          {
+            internalType: "uint256",
+            name: "creationTimestamp",
+            type: "uint256",
+          },
+          {
+            internalType: "enum GameState",
             name: "state",
             type: "uint8",
           },
@@ -1135,11 +953,6 @@ const abi = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "_minBet",
-        type: "uint256",
-      },
-      {
         internalType: "uint8",
         name: "_maxPlayers",
         type: "uint8",
@@ -1150,14 +963,14 @@ const abi = [
         type: "uint8",
       },
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "_maxBankerFeePercent",
-        type: "uint256",
+        type: "uint8",
       },
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "_liquidatorFeePercent",
-        type: "uint256",
+        type: "uint8",
       },
       {
         internalType: "uint256",
@@ -1204,9 +1017,9 @@ const abi = [
     name: "liquidatorFeePercent",
     outputs: [
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "",
-        type: "uint256",
+        type: "uint8",
       },
     ],
     stateMutability: "view",
@@ -1217,9 +1030,9 @@ const abi = [
     name: "maxBankerFeePercent",
     outputs: [
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "",
-        type: "uint256",
+        type: "uint8",
       },
     ],
     stateMutability: "view",
@@ -1246,19 +1059,6 @@ const abi = [
         internalType: "uint8",
         name: "",
         type: "uint8",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "minBet",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -1338,44 +1138,6 @@ const abi = [
   },
   {
     inputs: [],
-    name: "recalculateAllUserRoomCounts",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
-      {
-        internalType: "uint8",
-        name: "removeType",
-        type: "uint8",
-      },
-    ],
-    name: "removeGameTable",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
-    ],
-    name: "removeTableRewardPool",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "renounceOwnership",
     outputs: [],
     stateMutability: "nonpayable",
@@ -1389,6 +1151,30 @@ const abi = [
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_bankerAddr",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "_poolId",
+        type: "uint256",
+      },
+    ],
+    name: "rewardPoolIsInUse",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1409,38 +1195,12 @@ const abi = [
   },
   {
     inputs: [],
-    name: "roomCardEnabled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "roomLevelAddress",
     outputs: [
       {
         internalType: "address",
         name: "",
         type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "roomLevelEnabled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1514,56 +1274,12 @@ const abi = [
   {
     inputs: [
       {
-        internalType: "bool",
-        name: "_enabled",
-        type: "bool",
-      },
-    ],
-    name: "setRoomCardEnabled",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "address",
         name: "_roomLevelAddress",
         type: "address",
       },
     ],
     name: "setRoomLevelAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bool",
-        name: "_enabled",
-        type: "bool",
-      },
-    ],
-    name: "setRoomLevelEnabled",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "poolId",
-        type: "uint256",
-      },
-    ],
-    name: "setTableRewardPool",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1604,19 +1320,14 @@ const abi = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "_minBet",
-        type: "uint256",
-      },
-      {
         internalType: "uint8",
         name: "_maxPlayers",
         type: "uint8",
       },
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "_maxBankerFeePercent",
-        type: "uint256",
+        type: "uint8",
       },
       {
         internalType: "uint256",
@@ -1629,35 +1340,12 @@ const abi = [
         type: "uint256",
       },
       {
-        internalType: "uint256",
+        internalType: "uint8",
         name: "_liquidatorFeePercent",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "_roomCardEnabled",
-        type: "bool",
-      },
-      {
-        internalType: "bool",
-        name: "_roomLevelEnabled",
-        type: "bool",
+        type: "uint8",
       },
     ],
     name: "updateGameConfig",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_implementation",
-        type: "address",
-      },
-    ],
-    name: "upgradeGameTableImplementation",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1694,10 +1382,9 @@ export const BBGameMainABI = {
 // 导出具体的函数 ABI，可以更细粒度地 tree-shake
 export const getGameConfig = abi.find(x => "name" in x && x.name === "getGameConfig");
 export const createGameTable = abi.find(x => "name" in x && x.name === "createGameTable");
-export const batchCleanupInactiveTables = abi.find(x => "name" in x && x.name === "batchCleanupInactiveTables");
-export const getAllGameTables = abi.find(x => "name" in x && x.name === "getAllGameTables");
+export const getNewestGameTables = abi.find(x => "name" in x && x.name === "getNewestGameTables");
 export const getAllGameTablesInactive = abi.find(x => "name" in x && x.name === "getAllGameTablesInactive");
 export const getGameTableInfo = abi.find(x => "name" in x && x.name === "getGameTableInfo");
-export const getMyGameTablesActive = abi.find(x => "name" in x && x.name === "getMyGameTablesActive");
+export const getMyGameTables = abi.find(x => "name" in x && x.name === "getMyGameTables");
 export const GameTableCreated = abi.find(x => "name" in x && x.name === "GameTableCreated");
 export const GameTableRemoved = abi.find(x => "name" in x && x.name === "GameTableRemoved");

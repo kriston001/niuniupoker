@@ -10,12 +10,12 @@ import "./BBPlayer.sol";
  */
 
 struct GameConfig {
+    uint8 maxRoomCount;
     uint8 maxPlayers;
     uint8 maxBankerFeePercent;
     uint256 playerTimeout;
     uint256 tableInactiveTimeout;
     uint8 liquidatorFeePercent;
-    address gameHistoryAddress;
     address rewardPoolAddress;
     address randomnessManagerAddress;
     address roomCardAddress;

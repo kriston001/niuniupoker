@@ -132,7 +132,6 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         randomnessManagerAddr = config.randomnessManagerAddress;
         roomCardAddr = config.roomCardAddress;
         rewardPoolAddr = config.rewardPoolAddress;
-        gameHistoryAddr = config.gameHistoryAddress;
     }
 
     // 添加一个公共函数来获取玩家地址列表，数组需要显示定义get函数，int、string等不需要

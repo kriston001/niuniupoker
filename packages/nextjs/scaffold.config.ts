@@ -53,7 +53,7 @@ const scaffoldConfig = {
   walletConnectProjectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "3a8170812b534d0ff9d794f19a901d64",
 
   contracts: {
-    BBGameMain: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    BBGameMain: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     // 可以添加更多合约地址
   },
 

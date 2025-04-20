@@ -16,7 +16,6 @@ import "./BBVersion.sol";
 import "./BBRoomCardNFT.sol";
 import "./BBRewardPool.sol";
 import "./BBRoomLevelNFT.sol";
-import "./BBRandomnessManager.sol";
 import "./BBStructs.sol";
 
 
@@ -43,15 +42,14 @@ contract BBGameMain is
 
 
     // 游戏桌地址列表
-    address[] private tableAddresses;
+    address[] public tableAddresses;
     mapping(address => BBGameTableImplementation) public gameTables;
     // 用户创建的游戏桌映射
-    mapping(address => address[]) private userTables;
+    mapping(address => address[]) public userTables;
 
     // 记录每个用户创建的房间数量
-    mapping(address => uint256) private userCreatedRoomsCount;
+    mapping(address => uint256) public userCreatedRoomsCount;
 
-    address public gameHistoryAddress;  // 游戏历史记录合约地址
     address public rewardPoolAddress;    // 奖励池合约地址
 
 
@@ -107,7 +105,6 @@ contract BBGameMain is
         // 初始化游戏桌工厂地址
         if (_gameTableFactoryAddress != address(0)) {
             gameTableFactoryAddress = _gameTableFactoryAddress;
-            emit GameTableFactoryAddressUpdated(_gameTableFactoryAddress);
         }
     }
 
@@ -183,6 +180,11 @@ contract BBGameMain is
         emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, bankerFeePercent);
     }
 
+    // 获取tableAddresses列表
+    function getTableAddresses() external view returns (address[] memory) {
+        return tableAddresses;
+    }
+
 
     /**
      * @dev 暂停合约（仅限合约拥有者）
@@ -200,12 +202,12 @@ contract BBGameMain is
 
     function getGameConfig() external view returns (GameConfig memory) {
         return GameConfig({
+            maxRoomCount: maxRoomCount,
             maxPlayers: maxPlayers,
             maxBankerFeePercent: maxBankerFeePercent,
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
             liquidatorFeePercent: liquidatorFeePercent,
-            gameHistoryAddress: gameHistoryAddress,
             rewardPoolAddress: rewardPoolAddress,
             randomnessManagerAddress: randomnessManagerAddress,
             roomCardAddress: roomCardAddress,
@@ -244,8 +246,6 @@ contract BBGameMain is
     function setRoomCardAddress(address _roomCardAddress) external onlyOwner {
         if (_roomCardAddress == address(0)) revert InvalidRoomCardContract();
         roomCardAddress = _roomCardAddress;
-
-        emit RoomCardAddressUpdated(_roomCardAddress);
     }
 
 
@@ -262,7 +262,7 @@ contract BBGameMain is
         }
         GameTableView[] memory tables = new GameTableView[](tableCount);
 
-        //获取tableAddresses中最新的16个游戏桌
+        //获取tableAddresses中最新的几个游戏桌
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[tableAddresses.length - i - 1];
             BBGameTableImplementation gameTable = gameTables[tableAddr];
@@ -339,18 +339,10 @@ contract BBGameMain is
         return address(gameTables[tableAddr]) == tableAddr;
     }
 
-    //设置游戏历史记录合约地址
-    function setGameHistoryAddress(address _gameHistoryAddress) external onlyOwner nonReentrant{
-        if (_gameHistoryAddress == address(0)) revert InvalidGameHistoryAddress();
-        gameHistoryAddress = _gameHistoryAddress;
-    }
-
     //设置奖励池合约地址
     function setRewardPoolAddress(address _rewardPoolAddress) external onlyOwner nonReentrant{
         if (_rewardPoolAddress == address(0)) revert InvalidRewardPoolAddress();
         rewardPoolAddress = _rewardPoolAddress;
-
-        emit RewardPoolAddressUpdated(_rewardPoolAddress);
     }
 
     function rewardPoolIsInUse(address _bankerAddr, uint256 _poolId) external view returns (bool) {
@@ -372,7 +364,6 @@ contract BBGameMain is
     function setGameTableFactoryAddress(address _gameTableFactoryAddress) external onlyOwner nonReentrant {
         if (_gameTableFactoryAddress == address(0)) revert InvalidAddress();
         gameTableFactoryAddress = _gameTableFactoryAddress;
-        emit GameTableFactoryAddressUpdated(_gameTableFactoryAddress);
     }
 
     /**
@@ -382,8 +373,6 @@ contract BBGameMain is
     function setRandomnessManagerAddress(address _randomnessManagerAddress) external onlyOwner nonReentrant {
         if (_randomnessManagerAddress == address(0)) revert InvalidAddress();
         randomnessManagerAddress = _randomnessManagerAddress;
-
-        emit RandomnessManagerAddressUpdated(_randomnessManagerAddress);
     }
 
 
@@ -394,8 +383,6 @@ contract BBGameMain is
     function setRoomLevelAddress(address _roomLevelAddress) external onlyOwner nonReentrant {
         if (_roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
         roomLevelAddress = _roomLevelAddress;
-
-        emit RoomLevelAddressUpdated(_roomLevelAddress);
     }
 
 
@@ -425,11 +412,5 @@ contract BBGameMain is
     event GameTableCreated(address indexed tableAddr, address indexed banker, uint256 betAmount, uint8 maxPlayers, uint256 bankerFeePercent);
     event GameTableRemoved(address indexed tableAddr);
     event GameConfigUpdated(uint256 minBet, uint8 maxPlayers);
-    event RoomCardAddressUpdated(address indexed roomCardAddress);
-    event RoomLevelAddressUpdated(address indexed roomLevelAddress);
-    event RewardPoolAddressUpdated(address indexed rewardPoolAddress);
-    event GameTableFactoryAddressUpdated(address indexed gameTableFactoryAddress);
-    event GameTableImplementationUpgraded(address indexed implementation, uint256 version);
-    event RandomnessManagerAddressUpdated(address indexed randomnessManagerAddress);
 }
 

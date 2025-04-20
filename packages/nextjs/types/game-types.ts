@@ -40,20 +40,17 @@ export enum CardType {
 }
 
 export interface GameConfig {
-  minBet: bigint;
+  maxRoomCount: number;
   maxPlayers: number;
-  maxBankerFeePercent: bigint;
+  maxBankerFeePercent: number;
   playerTimeout: bigint;
   tableInactiveTimeout: bigint;
-  liquidatorFeePercent: bigint;
-  roomCardEnabled: boolean;
-  roomLevelEnabled: boolean;
-  gameHistoryAddress: string;
-  rewardPoolAddress: string;
-  randomnessManagerAddress: string;
-  roomCardAddress: string;
-  roomLevelAddress: string;
-  gameTableFactoryAddress: string;
+  liquidatorFeePercent: number;
+  rewardPoolAddress: `0x${string}`;
+  randomnessManagerAddress: `0x${string}`;
+  roomCardAddress: `0x${string}`;
+  roomLevelAddress: `0x${string}`;
+  gameTableFactoryAddress: `0x${string}`;
 }
 
 // 游戏桌信息类型定义
