@@ -151,13 +151,12 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
           notification.success("Create table success");
         },
         onError: async err => {
-          console.error("❌ create table fail:", err.message);
+          console.error("❌ create table fail:", err);
         },
       });
     } catch (error) {
       console.error("create table fail:", error);
     } finally {
-      console.log("create table finally");
     }
 
     setCreateRewardOpen(false);

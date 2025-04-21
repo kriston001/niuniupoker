@@ -1,1377 +1,1421 @@
 // BBGameMain.ts
 const abi = [
   {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
     ],
-    name: "AddressEmptyCode",
-    type: "error",
+    "name": "AddressEmptyCode",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "BankerFeePercentMustBePositive",
-    type: "error",
+    "inputs": [],
+    "name": "BankerFeePercentMustBePositive",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "BetAmountTooSmall",
-    type: "error",
+    "inputs": [],
+    "name": "BetAmountTooSmall",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ContractPaused",
-    type: "error",
+    "inputs": [],
+    "name": "ContractPaused",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
     ],
-    name: "ERC1967InvalidImplementation",
-    type: "error",
+    "name": "ERC1967InvalidImplementation",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ERC1967NonPayable",
-    type: "error",
+    "inputs": [],
+    "name": "ERC1967NonPayable",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "EnforcedPause",
-    type: "error",
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ExpectedPause",
-    type: "error",
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "FailedCall",
-    type: "error",
+    "inputs": [],
+    "name": "FailedCall",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidAddress",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidAddress",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidBankerFeePercent",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidBankerFeePercent",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidGameHistoryAddress",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidGameTableFactoryAddress",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidGameTableFactoryAddress",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidInitialization",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidLiquidatorFeePercent",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidLiquidatorFeePercent",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidMaxPlayers",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidMaxPlayers",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidRewardPoolAddress",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidRewardPoolAddress",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidRoomCardContract",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidRoomCardContract",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidRoomLevelAddress",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidRoomLevelAddress",
-    type: "error",
+    "inputs": [],
+    "name": "MaxPlayersTooSmall",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "MaxPlayersTooSmall",
-    type: "error",
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotInitializing",
-    type: "error",
-  },
-  {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
     ],
-    name: "OwnableInvalidOwner",
-    type: "error",
+    "name": "OwnableInvalidOwner",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
     ],
-    name: "OwnableUnauthorizedAccount",
-    type: "error",
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "PlayerTimeoutMustBePositive",
-    type: "error",
+    "inputs": [],
+    "name": "PlayerTimeoutMustBePositive",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ReentrancyGuardReentrantCall",
-    type: "error",
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "RoomLevelLimitExceeded",
-    type: "error",
+    "inputs": [],
+    "name": "RoomLevelLimitExceeded",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "RoomLevelRequired",
-    type: "error",
+    "inputs": [],
+    "name": "RoomLevelRequired",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "TableDoesNotExist",
-    type: "error",
+    "inputs": [],
+    "name": "TableDoesNotExist",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "TableInactiveTimeoutMustBePositive",
-    type: "error",
+    "inputs": [],
+    "name": "TableInactiveTimeoutMustBePositive",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "UUPSUnauthorizedCallContext",
-    type: "error",
+    "inputs": [],
+    "name": "UUPSUnauthorizedCallContext",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "bytes32",
-        name: "slot",
-        type: "bytes32",
-      },
+        "internalType": "bytes32",
+        "name": "slot",
+        "type": "bytes32"
+      }
     ],
-    name: "UUPSUnsupportedProxiableUUID",
-    type: "error",
+    "name": "UUPSUnsupportedProxiableUUID",
+    "type": "error"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "minBet",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minBet",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint8",
-        name: "maxPlayers",
-        type: "uint8",
-      },
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "maxPlayers",
+        "type": "uint8"
+      }
     ],
-    name: "GameConfigUpdated",
-    type: "event",
+    "name": "GameConfigUpdated",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
+        "indexed": true,
+        "internalType": "address",
+        "name": "tableAddr",
+        "type": "address"
       },
       {
-        indexed: true,
-        internalType: "address",
-        name: "banker",
-        type: "address",
+        "indexed": true,
+        "internalType": "address",
+        "name": "banker",
+        "type": "address"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "betAmount",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "betAmount",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint8",
-        name: "maxPlayers",
-        type: "uint8",
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "maxPlayers",
+        "type": "uint8"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "bankerFeePercent",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "bankerFeePercent",
+        "type": "uint256"
+      }
     ],
-    name: "GameTableCreated",
-    type: "event",
+    "name": "GameTableCreated",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "tableAddr",
+        "type": "address"
+      }
     ],
-    name: "GameTableRemoved",
-    type: "event",
+    "name": "GameTableRemoved",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint64",
-        name: "version",
-        type: "uint64",
-      },
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
     ],
-    name: "Initialized",
-    type: "event",
+    "name": "Initialized",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "previousOwner",
-        type: "address",
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
       },
       {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    name: "OwnershipTransferred",
-    type: "event",
+    "name": "OwnershipTransferred",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
     ],
-    name: "Paused",
-    type: "event",
+    "name": "Paused",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
     ],
-    name: "Unpaused",
-    type: "event",
+    "name": "Unpaused",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
     ],
-    name: "Upgraded",
-    type: "event",
+    "name": "Upgraded",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "UPGRADE_INTERFACE_VERSION",
-    outputs: [
+    "inputs": [],
+    "name": "UPGRADE_INTERFACE_VERSION",
+    "outputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "tableName",
-        type: "string",
+        "internalType": "string",
+        "name": "tableName",
+        "type": "string"
       },
       {
-        internalType: "uint256",
-        name: "betAmount",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "betAmount",
+        "type": "uint256"
       },
       {
-        internalType: "uint8",
-        name: "tableMaxPlayers",
-        type: "uint8",
+        "internalType": "uint8",
+        "name": "tableMaxPlayers",
+        "type": "uint8"
       },
       {
-        internalType: "uint8",
-        name: "bankerFeePercent",
-        type: "uint8",
-      },
+        "internalType": "uint8",
+        "name": "bankerFeePercent",
+        "type": "uint8"
+      }
     ],
-    name: "createGameTable",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
+    "name": "createGameTable",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "gameHistoryAddress",
-    outputs: [
+    "inputs": [],
+    "name": "gameTableFactoryAddress",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "gameTableFactoryAddress",
-    outputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "gameTables",
+    "outputs": [
+      {
+        "internalType": "contract BBGameTableImplementation",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "getAllGameTablesInactive",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "gameTables",
-    outputs: [
-      {
-        internalType: "contract BBGameTableImplementation",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getAllGameTablesInactive",
-    outputs: [
-      {
-        components: [
+        "components": [
           {
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
           },
           {
-            internalType: "string",
-            name: "tableName",
-            type: "string",
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
           },
           {
-            internalType: "address",
-            name: "bankerAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "totalPrizePool",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "totalPrizePool",
+            "type": "uint256"
           },
           {
-            internalType: "uint8",
-            name: "playerCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
           },
           {
-            internalType: "uint256",
-            name: "creationTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "creationTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "enum GameState",
-            name: "state",
-            type: "uint8",
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerContinuedCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerContinuedCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerFoldCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerFoldCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerReadyCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerReadyCount",
+            "type": "uint8"
           },
           {
-            internalType: "address[]",
-            name: "playerAddresses",
-            type: "address[]",
+            "internalType": "address[]",
+            "name": "playerAddresses",
+            "type": "address[]"
           },
           {
-            internalType: "uint256",
-            name: "currentRoundDeadline",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "currentRoundDeadline",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "playerTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "tableInactiveTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "lastActivityTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "implementationVersion",
-            type: "uint256",
-          },
+            "internalType": "uint256",
+            "name": "implementationVersion",
+            "type": "uint256"
+          }
         ],
-        internalType: "struct GameTableView[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct GameTableView[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getGameConfig",
-    outputs: [
+    "inputs": [],
+    "name": "getGameConfig",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "uint8",
-            name: "maxRoomCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxRoomCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxBankerFeePercent",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxBankerFeePercent",
+            "type": "uint8"
           },
           {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "playerTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "tableInactiveTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint8",
-            name: "liquidatorFeePercent",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "liquidatorFeePercent",
+            "type": "uint8"
           },
           {
-            internalType: "address",
-            name: "rewardPoolAddress",
-            type: "address",
+            "internalType": "address",
+            "name": "rewardPoolAddress",
+            "type": "address"
           },
           {
-            internalType: "address",
-            name: "randomnessManagerAddress",
-            type: "address",
+            "internalType": "address",
+            "name": "randomnessManagerAddress",
+            "type": "address"
           },
           {
-            internalType: "address",
-            name: "roomCardAddress",
-            type: "address",
+            "internalType": "address",
+            "name": "roomCardAddress",
+            "type": "address"
           },
           {
-            internalType: "address",
-            name: "roomLevelAddress",
-            type: "address",
+            "internalType": "address",
+            "name": "roomLevelAddress",
+            "type": "address"
           },
           {
-            internalType: "address",
-            name: "gameTableFactoryAddress",
-            type: "address",
-          },
+            "internalType": "address",
+            "name": "gameTableFactoryAddress",
+            "type": "address"
+          }
         ],
-        internalType: "struct GameConfig",
-        name: "",
-        type: "tuple",
-      },
+        "internalType": "struct GameConfig",
+        "name": "",
+        "type": "tuple"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "tableAddr",
+        "type": "address"
+      }
     ],
-    name: "getGameTableInfo",
-    outputs: [
+    "name": "getGameTableInfo",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
           },
           {
-            internalType: "string",
-            name: "tableName",
-            type: "string",
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
           },
           {
-            internalType: "address",
-            name: "bankerAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "totalPrizePool",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "totalPrizePool",
+            "type": "uint256"
           },
           {
-            internalType: "uint8",
-            name: "playerCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
           },
           {
-            internalType: "uint256",
-            name: "creationTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "creationTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "enum GameState",
-            name: "state",
-            type: "uint8",
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerContinuedCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerContinuedCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerFoldCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerFoldCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerReadyCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerReadyCount",
+            "type": "uint8"
           },
           {
-            internalType: "address[]",
-            name: "playerAddresses",
-            type: "address[]",
+            "internalType": "address[]",
+            "name": "playerAddresses",
+            "type": "address[]"
           },
           {
-            internalType: "uint256",
-            name: "currentRoundDeadline",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "currentRoundDeadline",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "playerTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "tableInactiveTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "lastActivityTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "implementationVersion",
-            type: "uint256",
-          },
+            "internalType": "uint256",
+            "name": "implementationVersion",
+            "type": "uint256"
+          }
         ],
-        internalType: "struct GameTableView",
-        name: "",
-        type: "tuple",
-      },
+        "internalType": "struct GameTableView",
+        "name": "",
+        "type": "tuple"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getMyGameTables",
-    outputs: [
+    "inputs": [],
+    "name": "getMyGameTables",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
           },
           {
-            internalType: "string",
-            name: "tableName",
-            type: "string",
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
           },
           {
-            internalType: "address",
-            name: "bankerAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "totalPrizePool",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "totalPrizePool",
+            "type": "uint256"
           },
           {
-            internalType: "uint8",
-            name: "playerCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
           },
           {
-            internalType: "uint256",
-            name: "creationTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "creationTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "enum GameState",
-            name: "state",
-            type: "uint8",
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerContinuedCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerContinuedCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerFoldCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerFoldCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerReadyCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerReadyCount",
+            "type": "uint8"
           },
           {
-            internalType: "address[]",
-            name: "playerAddresses",
-            type: "address[]",
+            "internalType": "address[]",
+            "name": "playerAddresses",
+            "type": "address[]"
           },
           {
-            internalType: "uint256",
-            name: "currentRoundDeadline",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "currentRoundDeadline",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "playerTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "tableInactiveTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "lastActivityTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "implementationVersion",
-            type: "uint256",
-          },
+            "internalType": "uint256",
+            "name": "implementationVersion",
+            "type": "uint256"
+          }
         ],
-        internalType: "struct GameTableView[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct GameTableView[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint8",
-        name: "_count",
-        type: "uint8",
-      },
+        "internalType": "uint8",
+        "name": "_count",
+        "type": "uint8"
+      }
     ],
-    name: "getNewestGameTables",
-    outputs: [
+    "name": "getNewestGameTables",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "address",
-            name: "tableAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
           },
           {
-            internalType: "string",
-            name: "tableName",
-            type: "string",
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
           },
           {
-            internalType: "address",
-            name: "bankerAddr",
-            type: "address",
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "betAmount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "totalPrizePool",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "totalPrizePool",
+            "type": "uint256"
           },
           {
-            internalType: "uint8",
-            name: "playerCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "maxPlayers",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
           },
           {
-            internalType: "uint256",
-            name: "creationTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "creationTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "enum GameState",
-            name: "state",
-            type: "uint8",
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerContinuedCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerContinuedCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerFoldCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerFoldCount",
+            "type": "uint8"
           },
           {
-            internalType: "uint8",
-            name: "playerReadyCount",
-            type: "uint8",
+            "internalType": "uint8",
+            "name": "playerReadyCount",
+            "type": "uint8"
           },
           {
-            internalType: "address[]",
-            name: "playerAddresses",
-            type: "address[]",
+            "internalType": "address[]",
+            "name": "playerAddresses",
+            "type": "address[]"
           },
           {
-            internalType: "uint256",
-            name: "currentRoundDeadline",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "currentRoundDeadline",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "playerTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "playerTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "tableInactiveTimeout",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "tableInactiveTimeout",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "lastActivityTimestamp",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "implementationVersion",
-            type: "uint256",
-          },
+            "internalType": "uint256",
+            "name": "implementationVersion",
+            "type": "uint256"
+          }
         ],
-        internalType: "struct GameTableView[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct GameTableView[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "getTableAddresses",
+    "outputs": [
       {
-        internalType: "address",
-        name: "userAddress",
-        type: "address",
-      },
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
     ],
-    name: "getUserCreatedRoomsCount",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getVersion",
-    outputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
+        "internalType": "address",
+        "name": "userAddress",
+        "type": "address"
+      }
     ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
+    "name": "getUserCreatedRoomsCount",
+    "outputs": [
       {
-        internalType: "uint8",
-        name: "_maxPlayers",
-        type: "uint8",
-      },
-      {
-        internalType: "uint8",
-        name: "_maxRoomCount",
-        type: "uint8",
-      },
-      {
-        internalType: "uint8",
-        name: "_maxBankerFeePercent",
-        type: "uint8",
-      },
-      {
-        internalType: "uint8",
-        name: "_liquidatorFeePercent",
-        type: "uint8",
-      },
-      {
-        internalType: "uint256",
-        name: "_playerTimeout",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_tableInactiveTimeout",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_gameTableFactoryAddress",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "initialize",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "getVersion",
+    "outputs": [
       {
-        internalType: "address",
-        name: "tableAddr",
-        type: "address",
-      },
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
     ],
-    name: "isValidGameTable",
-    outputs: [
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
+        "internalType": "uint8",
+        "name": "_maxPlayers",
+        "type": "uint8"
       },
+      {
+        "internalType": "uint8",
+        "name": "_maxRoomCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_maxBankerFeePercent",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_liquidatorFeePercent",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_playerTimeout",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tableInactiveTimeout",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_gameTableFactoryAddress",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "liquidatorFeePercent",
-    outputs: [
+    "inputs": [
       {
-        internalType: "uint8",
-        name: "",
-        type: "uint8",
-      },
+        "internalType": "address",
+        "name": "tableAddr",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "maxBankerFeePercent",
-    outputs: [
+    "name": "isValidGameTable",
+    "outputs": [
       {
-        internalType: "uint8",
-        name: "",
-        type: "uint8",
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "maxPlayers",
-    outputs: [
+    "inputs": [],
+    "name": "liquidatorFeePercent",
+    "outputs": [
       {
-        internalType: "uint8",
-        name: "",
-        type: "uint8",
-      },
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "maxRoomCount",
-    outputs: [
+    "inputs": [],
+    "name": "maxBankerFeePercent",
+    "outputs": [
       {
-        internalType: "uint8",
-        name: "",
-        type: "uint8",
-      },
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "owner",
-    outputs: [
+    "inputs": [],
+    "name": "maxPlayers",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "pause",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "paused",
-    outputs: [
+    "inputs": [],
+    "name": "maxRoomCount",
+    "outputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "playerTimeout",
-    outputs: [
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "proxiableUUID",
-    outputs: [
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "randomnessManagerAddress",
-    outputs: [
+    "inputs": [],
+    "name": "playerTimeout",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "rewardPoolAddress",
-    outputs: [
+    "inputs": [],
+    "name": "proxiableUUID",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "randomnessManagerAddress",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_bankerAddr",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_poolId",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "rewardPoolIsInUse",
-    outputs: [
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rewardPoolAddress",
+    "outputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "roomCardAddress",
-    outputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
+        "internalType": "address",
+        "name": "_bankerAddr",
+        "type": "address"
       },
+      {
+        "internalType": "uint256",
+        "name": "_poolId",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "roomLevelAddress",
-    outputs: [
+    "name": "rewardPoolIsInUse",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "roomCardAddress",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_gameHistoryAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "setGameHistoryAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "roomLevelAddress",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_gameTableFactoryAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "setGameTableFactoryAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_randomnessManagerAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_gameTableFactoryAddress",
+        "type": "address"
+      }
     ],
-    name: "setRandomnessManagerAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "setGameTableFactoryAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_rewardPoolAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_randomnessManagerAddress",
+        "type": "address"
+      }
     ],
-    name: "setRewardPoolAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "setRandomnessManagerAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_roomCardAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_rewardPoolAddress",
+        "type": "address"
+      }
     ],
-    name: "setRoomCardAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "setRewardPoolAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_roomLevelAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_roomCardAddress",
+        "type": "address"
+      }
     ],
-    name: "setRoomLevelAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "setRoomCardAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "tableInactiveTimeout",
-    outputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "_roomLevelAddress",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "setRoomLevelAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "transferOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "unpause",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
+    "name": "tableAddresses",
+    "outputs": [
       {
-        internalType: "uint8",
-        name: "_maxPlayers",
-        type: "uint8",
-      },
-      {
-        internalType: "uint8",
-        name: "_maxBankerFeePercent",
-        type: "uint8",
-      },
-      {
-        internalType: "uint256",
-        name: "_playerTimeout",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_tableInactiveTimeout",
-        type: "uint256",
-      },
-      {
-        internalType: "uint8",
-        name: "_liquidatorFeePercent",
-        type: "uint8",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "updateGameConfig",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "tableInactiveTimeout",
+    "outputs": [
       {
-        internalType: "address",
-        name: "newImplementation",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "upgradeToAndCall",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    stateMutability: "payable",
-    type: "receive",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "_maxPlayers",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_maxBankerFeePercent",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_playerTimeout",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tableInactiveTimeout",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_liquidatorFeePercent",
+        "type": "uint8"
+      }
+    ],
+    "name": "updateGameConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userCreatedRoomsCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userTables",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
+  }
 ] as const;
 
 // 导出合约配置

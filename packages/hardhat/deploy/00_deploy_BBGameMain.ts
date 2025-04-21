@@ -1,6 +1,8 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * 带颜色的控制台日志函数
@@ -33,189 +35,185 @@ function colorLog(message: string, data: any = "", color: string = "green") {
 }
 
 /**
+ * 读取部署地址文件
+ * @param hre HardhatRuntimeEnvironment对象
+ * @returns 部署地址对象
+ */
+// const readDeployedAddresses = (hre: HardhatRuntimeEnvironment): Record<string, string> => {
+//   const networkName = hre.network.name;
+//   const deployAddressPath = path.join(__dirname, `../deployments/${networkName}/addresses.json`);
+
+//   try {
+//     if (fs.existsSync(deployAddressPath)) {
+//       const fileContent = fs.readFileSync(deployAddressPath, 'utf8');
+//       return JSON.parse(fileContent);
+//     }
+//   } catch (error) {
+//     console.log(`读取部署地址文件失败: ${error}`);
+//   }
+
+//   return {};
+// };
+
+/**
+ * 保存部署地址到文件
+ * @param hre HardhatRuntimeEnvironment对象
+ * @param addresses 部署地址对象
+ */
+const saveDeployedAddresses = (hre: HardhatRuntimeEnvironment, addresses: Record<string, string>): void => {
+  const networkName = hre.network.name;
+  const deployDirPath = path.join(__dirname, `../deployments/${networkName}`);
+  const deployAddressPath = path.join(deployDirPath, "addresses.json");
+
+  try {
+    // 确保目录存在
+    if (!fs.existsSync(deployDirPath)) {
+      fs.mkdirSync(deployDirPath, { recursive: true });
+    }
+
+    fs.writeFileSync(deployAddressPath, JSON.stringify(addresses, null, 2));
+    console.log(`部署地址已保存到: ${deployAddressPath}`);
+  } catch (error) {
+    console.log(`保存部署地址文件失败: ${error}`);
+  }
+};
+
+/**
+ * 部署合约的通用函数
+ *
+ * @param hre HardhatRuntimeEnvironment对象
+ * @param contractName 合约名称
+ * @param deployedAddresses 已部署的合约地址对象
+ * @param initArgs 初始化参数
+ * @param deployerAddress 部署者地址
+ * @returns 部署后的合约对象
+ */
+async function deployOrUpgrade(
+  hre: HardhatRuntimeEnvironment,
+  contractName: string,
+  initArgs: any[] = [],
+  deployerAddress: string,
+) {
+  const { deploy } = hre.deployments;
+  console.log(`----------开始部署${contractName}合约----------`);
+
+  // 直接执行部署操作
+  const contract = await deploy(contractName, {
+    from: deployerAddress,
+    args: [], // 构造函数参数为空，因为使用initialize初始化
+    log: true,
+    proxy: {
+      owner: deployerAddress,
+      proxyContract: "UUPS",
+      execute:
+        initArgs.length > 0
+          ? {
+              init: {
+                methodName: "initialize",
+                args: initArgs,
+              },
+            }
+          : undefined,
+    },
+    waitConfirmations: 1,
+  });
+
+  colorLog(`${contractName}合约已部署到地址:`, contract.address);
+  return contract;
+}
+
+/**
  * 部署BBGameMain合约
  *
  * @param hre HardhatRuntimeEnvironment对象
  */
 const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
-  const { deploy } = hre.deployments;
 
-  console.log("----------开始部署BBGameMain合约----------");
   // 设置初始化参数
   const maxPlayers = 6; // 最大玩家数
-  const maxRoomCount = 1; // 最大房间数
+  const maxRoomCount = 5; // 最大房间数
   const maxBankerFeePercent = 20; // 庄家手续费百分比
   const liquidatorFeePercent = 5; // 清算员手续费百分比
   const playerTimeout = 180; // 玩家超时时间，单位为秒
   const tableInactiveTimeout = 1200; // 桌子空闲超时时间，单位为秒，这里是20分钟
 
-  // 部署BBGameMain合约
-  const bbGameMain = await deploy("BBGameMain", {
-    from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
-    log: true,
-    // 我们使用代理模式部署，因为合约是可升级的
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize", // 初始化函数
-          args: [
-            maxPlayers,
-            maxRoomCount,
-            maxBankerFeePercent,
-            liquidatorFeePercent,
-            playerTimeout,
-            tableInactiveTimeout,
-            ethers.ZeroAddress, // gameTableFactoryAddress
-          ], // 初始化参数
-        },
-      },
-    },
-    // 等待确认
-    waitConfirmations: 1,
-    // gasLimit: 8000000, // Gas limit
-  });
+  // 用于存储本次部署的合约地址
+  const newDeployedAddresses: Record<string, string> = {};
 
-  colorLog("BBGameMain合约已部署到地址:", bbGameMain.address);
+  // 部署或获取BBGameMain合约
+  const bbGameMain = await deployOrUpgrade(
+    hre,
+    "BBGameMain",
+    [
+      maxPlayers,
+      maxRoomCount,
+      maxBankerFeePercent,
+      liquidatorFeePercent,
+      playerTimeout,
+      tableInactiveTimeout,
+      ethers.ZeroAddress, // gameTableFactoryAddress
+    ],
+    deployer,
+  );
+  newDeployedAddresses["BBGameMain"] = bbGameMain.address;
 
-  // 部署 BBGameTableImplementation 合约
-  console.log("----------开始部署BBGameTableImplementation合约----------");
+  const { deploy } = hre.deployments;
+
+  // 部署或获取BBGameTableImplementation合约
+  console.log(`----------开始部署BBGameTableImplementation合约----------`);
   const bbGameTableImplementation = await deploy("BBGameTableImplementation", {
     from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
     log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [
-            "Demo Table", // tableName
-            deployer, // bankerAddr
-            ethers.parseEther("0.1"), // betAmount
-            2, // maxPlayers
-            bbGameMain.address, // gameMainAddr
-            10, // bankerFeePercent
-            1, // implementationVersion
-          ],
-        },
-      },
-    },
-    waitConfirmations: 1,
   });
-  colorLog("BBGameTableImplementation合约已部署到地址:", bbGameTableImplementation.address);
+  newDeployedAddresses["BBGameTableImplementation"] = bbGameTableImplementation.address;
 
-  // 部署 BBGameTableFactory 合约
-  console.log("----------开始部署BBGameTableFactory合约----------");
-  const bbGameTableFactory = await deploy("BBGameTableFactory", {
-    from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
-    log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [bbGameTableImplementation.address],
-        },
-      },
-    },
-    waitConfirmations: 1,
-  });
-  colorLog("BBGameTableFactory合约已部署到地址:", bbGameTableFactory.address);
+  // ✅ 部署 Beacon（传 implementation 地址）
 
-  // 部署 BBRandomnessManager 合约
-  console.log("----------开始部署BBRandomnessManager合约----------");
-  const bbRandomnessManager = await deploy("BBRandomnessManager", {
+  const bbGameTableBeacon = await deploy("BBGameTableBeacon", {
     from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
     log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [bbGameMain.address],
-        },
-      },
-    },
-    waitConfirmations: 1,
+    args: [bbGameTableImplementation.address, deployer],
   });
-  colorLog("BBRandomnessManager合约已部署到地址:", bbRandomnessManager.address);
+  newDeployedAddresses["BBGameTableBeacon"] = bbGameTableBeacon.address;
 
-  // 部署 BBRoomCardNFT 合约
-  console.log("----------开始部署BBRoomCardNFT合约----------");
-  const bbRoomCardNFT = await deploy("BBRoomCardNFT", {
-    from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
-    log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [
-            "Room Card", // NFT名称
-            "NNRC", // NFT符号
-            "https://api.niuniu.game/metadata/roomcard/", // 基础URI
-          ],
-        },
-      },
-    },
-    waitConfirmations: 1,
-  });
-  colorLog("BBRoomCardNFT合约已部署到地址:", bbRoomCardNFT.address);
+  // 部署或获取BBGameTableFactory合约
+  const bbGameTableFactory = await deployOrUpgrade(hre, "BBGameTableFactory", [bbGameTableBeacon.address], deployer);
+  newDeployedAddresses["BBGameTableFactory"] = bbGameTableFactory.address;
 
-  // 部署 BBRoomLevelNFT 合约
-  console.log("----------开始部署BBRoomLevelNFT合约----------");
-  const bbRoomLevelNFT = await deploy("BBRoomLevelNFT", {
-    from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
-    log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [
-            "Room Level", // NFT名称
-            "NNRL", // NFT符号
-            "https://api.niuniu.game/metadata/roomlevel/", // 基础URI
-          ],
-        },
-      },
-    },
-    waitConfirmations: 1,
-  });
-  colorLog("BBRoomLevelNFT合约已部署到地址:", bbRoomLevelNFT.address);
+  // 部署或获取BBRandomnessManager合约
+  const bbRandomnessManager = await deployOrUpgrade(hre, "BBRandomnessManager", [bbGameMain.address], deployer);
+  newDeployedAddresses["BBRandomnessManager"] = bbRandomnessManager.address;
 
-  // 部署 BBRewardPool 合约
-  console.log("----------开始部署BBRewardPool合约----------");
-  const bbRewardPool = await deploy("BBRewardPool", {
-    from: deployer,
-    args: [], // 构造函数参数为空，因为使用initialize初始化
-    log: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "UUPS",
-      execute: {
-        init: {
-          methodName: "initialize",
-          args: [bbGameMain.address], // 传入 BBGameMain 合约地址
-        },
-      },
-    },
-    waitConfirmations: 1,
-  });
-  colorLog("BBRewardPool合约已部署到地址:", bbRewardPool.address);
+  // 部署或获取BBRoomCardNFT合约
+  const bbRoomCardNFT = await deployOrUpgrade(
+    hre,
+    "BBRoomCardNFT",
+    [
+      "Room Card", // NFT名称
+      "NNRC", // NFT符号
+      "https://api.niuniu.game/metadata/roomcard/", // 基础URI
+    ],
+    deployer,
+  );
+  newDeployedAddresses["BBRoomCardNFT"] = bbRoomCardNFT.address;
+
+  // 部署或获取BBRoomLevelNFT合约
+  const bbRoomLevelNFT = await deployOrUpgrade(
+    hre,
+    "BBRoomLevelNFT",
+    [
+      "Room Level", // NFT名称
+      "NNRL", // NFT符号
+      "https://api.niuniu.game/metadata/roomlevel/", // 基础URI
+    ],
+    deployer,
+  );
+  newDeployedAddresses["BBRoomLevelNFT"] = bbRoomLevelNFT.address;
+
+  // 部署或获取BBRewardPool合约
+  const bbRewardPool = await deployOrUpgrade(hre, "BBRewardPool", [bbGameMain.address], deployer);
+  newDeployedAddresses["BBRewardPool"] = bbRewardPool.address;
 
   const bbGameMainContract = await ethers.getContractAt("BBGameMain", bbGameMain.address);
 
@@ -314,10 +312,10 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log(`BBGameMain.gameTableFactoryAddress: ${factoryAddress} ${isFactoryAddressValid ? "✅" : "❌"}`);
 
   // BBGameTableFactory 关联验证
-  // 检查工厂合约中存储的 proxyAddress 是否正确指向 BBGameTableImplementation 的代理合约
-  const factoryStoredProxyAddress = await bbGameTableFactoryContract.proxyAddress();
-  const isProxyAddressValid = factoryStoredProxyAddress === bbGameTableImplementation.address; // bbGameTableImplementation.address 是其代理合约地址
-  console.log(`BBGameTableFactory.proxyAddress: ${factoryStoredProxyAddress} ${isProxyAddressValid ? "✅" : "❌"}`);
+  // 检查工厂合约中存储的 beacon 是否正确指向 beacon 的合约
+  const factoryStoredProxyAddress = await bbGameTableFactoryContract.beacon();
+  const isProxyAddressValid = factoryStoredProxyAddress === bbGameTableBeacon.address; // bbGameTableImplementation.address 是其代理合约地址
+  console.log(`BBGameTableFactory.beacon: ${factoryStoredProxyAddress} ${isProxyAddressValid ? "✅" : "❌"}`);
 
   // 验证 BBGameTableImplementation 版本号
   const bbGameTableImplementationContract = await ethers.getContractAt(
@@ -377,6 +375,9 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   console.log(`BBGameMain.rewardPoolAddress: ${rewardPoolAddress} ${isRewardPoolAddressValid ? "✅" : "❌"}`);
 
   console.log("----------部署完成----------");
+
+  // 保存部署地址到文件
+  saveDeployedAddresses(hre, newDeployedAddresses);
 };
 
 deployBBGameMain.tags = ["BBDeploy"];

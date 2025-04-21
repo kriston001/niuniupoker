@@ -160,19 +160,19 @@ contract BBGameMain is
 
         // 使用工厂合约创建游戏桌
         BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
-        address payable tableAddr = payable(factory.createGameTable(
+        address tableAddr = factory.createGameTable(
             tableName,
             msg.sender,
             betAmount,
             tableMaxPlayers,
             address(this),
             bankerFeePercent
-        ));
+        );
 
 
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
-        gameTables[tableAddr] = BBGameTableImplementation(tableAddr);
+        gameTables[tableAddr] = BBGameTableImplementation(payable(tableAddr));
         // 添加到用户的游戏桌列表
         userTables[msg.sender].push(tableAddr);
 
@@ -256,15 +256,22 @@ contract BBGameMain is
     function getNewestGameTables(uint8 _count) external view returns(GameTableView[] memory) {
         uint256 tableCount = tableAddresses.length;
         
-        //获取最新的游戏桌
-        if(tableCount > _count){
-            tableCount = _count;
+        // 如果请求的数量大于现有游戏桌数量，则使用现有数量
+        uint256 resultCount = _count;
+        if(tableCount < resultCount){
+            resultCount = tableCount;
         }
-        GameTableView[] memory tables = new GameTableView[](tableCount);
+        
+        // 防止空数组情况
+        if (resultCount == 0) {
+            return new GameTableView[](0);
+        }
+        
+        GameTableView[] memory tables = new GameTableView[](resultCount);
 
-        //获取tableAddresses中最新的几个游戏桌
-        for (uint256 i = 0; i < tableCount; i++) {
-            address tableAddr = tableAddresses[tableAddresses.length - i - 1];
+        // 获取tableAddresses中最新的几个游戏桌
+        for (uint256 i = 0; i < resultCount; i++) {
+            address tableAddr = tableAddresses[tableCount - i - 1];
             BBGameTableImplementation gameTable = gameTables[tableAddr];
             // 直接从合约实例获取信息
             tables[i] = gameTable.getTableInfo();
@@ -287,8 +294,8 @@ contract BBGameMain is
             BBGameTableImplementation gameTable = gameTables[tableAddr];
             //超过清算时间并且游戏在进行中的table可以被清算
             if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp &&
-            (gameTable.state() == GameState.FIRST_BETTING && gameTable.state() == GameState.SECOND_BETTING)){
-                tempTables[i] = gameTable.getTableInfo();
+            (gameTable.state() == GameState.FIRST_BETTING || gameTable.state() == GameState.SECOND_BETTING)){
+                tempTables[validCount] = gameTable.getTableInfo();
                 validCount++;
             }
         }

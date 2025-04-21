@@ -7,17 +7,16 @@ import "./BBPlayer.sol";
 import "./BBTypes.sol";
 import "./BBCardDealer.sol";
 import "./BBVersion.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+// import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./BBInterfaces.sol";
 
 /**
  * @title BBGameTableImplementation
  * @dev 牛牛游戏桌实现合约，管理单个游戏桌的逻辑
  */
-contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     using BBPlayerLib for BBPlayer;
     using BBCardUtils for uint8[5];
     using BBCardDealer for BBCardDealer.DealerState;
@@ -58,7 +57,6 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
 
     //主合约地址
     address public gameMainAddr;
-    address public gameHistoryAddr;  //游戏记录合约地址
     address public rewardPoolAddr; // 奖励池合约地址
     address public randomnessManagerAddr; // 随机数管理合约地址
     address public roomCardAddr; // 房间卡合约地址
@@ -79,11 +77,12 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     event GameTableInitialized(address indexed tableAddr, address indexed banker, uint256 version);
     event CreateGameHistory(address indexed tableAddr, uint256 round, uint256 gameStartTimestamp, uint256 gameEndTimestamp, address[] playerAddrs, address[] winnerAddrs, uint256[] playerBets, uint8[5][] playerCards);
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
 
+    // 修改构造函数，传入初始所有者
+    constructor() Ownable(msg.sender){
+        // 构造函数体可以为空，因为所有权已经在 Ownable 构造函数中设置
+    }
+   
     /**
      * @dev 初始化函数，替代构造函数
      */
@@ -95,11 +94,11 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
         address _gameMainAddr,
         uint8 _bankerFeePercent,
         uint256 _implementationVersion
-    ) public initializer {
-        // 初始化可升级合约
-        __Ownable_init(msg.sender);
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+    ) external {
+        // 确保只初始化一次的检查
+        require(creationTimestamp == 0, "Already initialized");
+        
+        _transferOwnership(_gameMainAddr);
 
         // 参数验证
         if (_maxPlayers < 2) revert InvalidMaxPlayers();
@@ -1188,9 +1187,4 @@ contract BBGameTableImplementation is Initializable, ReentrancyGuardUpgradeable,
     }
 
     receive() external payable {}
-
-    /**
-     * @dev 授权升级函数，只有合约所有者可以升级
-     */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
