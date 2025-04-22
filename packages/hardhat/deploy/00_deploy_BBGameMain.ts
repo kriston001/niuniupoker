@@ -132,7 +132,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
 
   // 设置初始化参数
   const maxPlayers = 6; // 最大玩家数
-  const maxRoomCount = 5; // 最大房间数
+  const maxRoomCount = 10; // 最大房间数
   const maxBankerFeePercent = 20; // 庄家手续费百分比
   const liquidatorFeePercent = 5; // 清算员手续费百分比
   const playerTimeout = 180; // 玩家超时时间，单位为秒

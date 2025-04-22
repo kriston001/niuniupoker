@@ -16,6 +16,26 @@ interface IRandomnessManager {
     function getSessionDeadline(address) external view returns (uint256);
 }
 
+interface IGameTableFactory {
+    function createGameTable(
+        uint256 tableId,
+        string memory tableName,
+        address bankerAddr,
+        uint256 betAmount,
+        uint8 maxPlayers,
+        address gameMainAddr,
+        uint8 bankerFeePercent
+    ) external returns (address);
+}
+
+interface IGameTableImplementation {
+    function getTableInfo() external view returns (GameTableView memory);
+    function lastActivityTimestamp() external view returns (uint256);
+    function state() external view returns (GameState);
+    function rewardPoolId() external view returns (uint256);
+    function initialize(uint256, string memory, address, uint256, uint8, address, uint8, uint256) external;
+}
+
 interface IGameMain {
     function isValidGameTable(address) external view returns (bool);
     function liquidatorFeePercent() external view returns (uint256);
@@ -32,6 +52,7 @@ interface IGameMain {
 interface IRewardPool{
     function tryDistributeReward(address, address[] calldata) external returns (bool);
     function isBankerPool(address, uint256) external view returns (bool);
+    function getRewardPoolInfo(address, uint256) external view returns (RewardPoolInfo memory);
 }
 
 interface IRoomCardNFT{

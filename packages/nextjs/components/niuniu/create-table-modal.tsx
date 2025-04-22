@@ -26,18 +26,17 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { watch } from "fs";
-import { Coins, DollarSign, Info, Percent, PlusCircle, Sparkles, Trophy, X, XCircle } from "lucide-react";
+import { Info, PlusCircle, Sparkles, XCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { formatEther, parseEther } from "viem";
-import { useAccount, useBalance } from "wagmi";
+import toast from "react-hot-toast";
+import { parseEther } from "viem";
+import { useAccount } from "wagmi";
 import { z } from "zod";
 import { createGameTable } from "~~/contracts/abis/BBGameMainABI";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
 import scaffoldConfig from "~~/scaffold.config";
 import { useGlobalState } from "~~/services/store/store";
-import { notification } from "~~/utils/scaffold-eth/notification";
 
 // Sample reward data
 const rewardOptions = [
@@ -68,9 +67,10 @@ interface CreateTableModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
+  onCreatedTable?: () => void;
 }
 
-export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableModalProps) {
+export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }: CreateTableModalProps) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
 
@@ -97,6 +97,7 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(formSchema),
@@ -108,12 +109,6 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
   const { address: connectedAddress } = useAccount();
   const [selectedReward, setSelectedReward] = useState<string | undefined>(undefined);
   const [createRewardOpen, setCreateRewardOpen] = useState(false);
-  const [newReward, setNewReward] = useState({
-    name: "",
-    totalPool: 0,
-    rewardPerRound: 0,
-    winRate: 0,
-  });
   const [hasRewards] = useState(true); // Always show rewards for this implementation
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -145,13 +140,19 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
         functionName: "createGameTable",
         args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent],
         account: connectedAddress as `0x${string}`,
-        gas: 1000000n,
+        // gas: 1000000n,
         onSuccess: async () => {
-          console.log("✅ create table success");
-          notification.success("Create table success");
+          toast.success("Table created successfully");
+          reset();
+          onOpenChange?.(false);
+          onCreatedTable && onCreatedTable();
         },
         onError: async err => {
-          console.error("❌ create table fail:", err);
+          // 用户取消交易不显示错误提示
+          if (err.message.includes("User rejected") || err.message.includes("user rejected")) {
+            return;
+          }
+          toast.error(`Failed to create table: ${err.message}`);
         },
       });
     } catch (error) {
@@ -169,6 +170,7 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
         if (!newOpen) {
           setCreateRewardOpen(false);
         }
+        reset();
         onOpenChange && onOpenChange(newOpen);
       }}
     >
@@ -349,6 +351,7 @@ export function CreateTableModal({ open, onOpenChange, trigger }: CreateTableMod
                         <Slider
                           {...register("bankerFeePercent", { valueAsNumber: true })}
                           defaultValue={[3]}
+                          min={0}
                           max={Number(gameConfig.maxBankerFeePercent)}
                           className="w-full"
                         />

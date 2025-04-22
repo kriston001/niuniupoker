@@ -26,7 +26,17 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
       <div className={`flex flex-col min-h-screen `}>
         <main className="relative flex flex-col flex-1">{children}</main>
       </div>
-      <Toaster />
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#333",
+            color: "#fff",
+          },
+        }}
+      />
     </>
   );
 };

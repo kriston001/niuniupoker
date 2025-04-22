@@ -37,6 +37,9 @@ import {
   Wallet,
 } from "lucide-react";
 import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
+import { TableCard } from "~~/components/niuniu/table-card";
+import { useGameTablesData } from "~~/hooks/my-hooks/useGameTablesData";
+import { GameState } from "~~/types/game-types";
 
 // First, update the sample data to include the enhanced reward details
 // Update the tablesData array to include totalPool, perWinPayout, and winRate properties
@@ -256,21 +259,32 @@ export default function TablesPage() {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  const { gameTables, refreshData } = useGameTablesData({
+    refreshInterval: 0,
+    limit: 9,
+  });
+
   const filterTables = () => {
-    let filtered = [...tablesData];
+    let filtered = gameTables ? [...gameTables] : [];
 
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(
         table =>
-          table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          truncateAddress(table.dealerAddress).toLowerCase().includes(searchQuery.toLowerCase()),
+          table.tableName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          truncateAddress(table.bankerAddr).toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
     // Apply status filter
     if (statusFilter) {
-      filtered = filtered.filter(table => table.status === statusFilter);
+      if (statusFilter == "active") {
+        filtered = filtered.filter(table => table.active == true);
+      } else if (statusFilter == "waiting") {
+        filtered = filtered.filter(table => table.state == GameState.WAITING);
+      } else if (statusFilter == "full") {
+        filtered = filtered.filter(table => table.playerCount == table.maxPlayers);
+      }
     }
 
     // Apply sorting
@@ -279,16 +293,16 @@ export default function TablesPage() {
         let comparison = 0;
         switch (sortBy) {
           case "betAmount":
-            comparison = a.betAmount - b.betAmount;
+            comparison = Number(a.betAmount - b.betAmount);
             break;
           case "players":
-            comparison = a.currentPlayers - b.currentPlayers;
+            comparison = a.playerCount - b.playerCount;
             break;
-          case "reward":
-            comparison = a.reward - b.reward;
+          case "bankerFeePercent":
+            comparison = a.bankerFeePercent - b.bankerFeePercent;
             break;
-          case "createdAt":
-            comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case "gameRound":
+            comparison = new Date(Number(a.gameRound)).getTime() - new Date(Number(b.gameRound)).getTime();
             break;
           default:
             return 0;
@@ -310,19 +324,6 @@ export default function TablesPage() {
   };
 
   const filteredTables = filterTables();
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`;
-    } else {
-      const diffInHours = Math.floor(diffInMinutes / 60);
-      return `${diffInHours}h ago`;
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -361,6 +362,9 @@ export default function TablesPage() {
           <CreateTableModal
             open={open}
             onOpenChange={setOpen}
+            onCreatedTable={() => {
+              refreshData();
+            }}
             trigger={
               <Button
                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium"
@@ -403,11 +407,11 @@ export default function TablesPage() {
         <Button
           variant="outline"
           size="sm"
-          className={`border-zinc-700 ${sortBy === "reward" ? "text-amber-400 border-amber-400/50" : "text-zinc-400"}`}
-          onClick={() => toggleSort("reward")}
+          className={`border-zinc-700 ${sortBy === "bankerFeePercent" ? "text-amber-400 border-amber-400/50" : "text-zinc-400"}`}
+          onClick={() => toggleSort("bankerFeePercent")}
         >
-          Reward
-          {sortBy === "reward" && (
+          Commission
+          {sortBy === "bankerFeePercent" && (
             <ArrowUpDown className={`ml-2 h-3 w-3 ${sortDirection === "asc" ? "rotate-180" : ""}`} />
           )}
         </Button>
@@ -415,12 +419,12 @@ export default function TablesPage() {
           variant="outline"
           size="sm"
           className={`border-zinc-700 ${
-            sortBy === "createdAt" ? "text-amber-400 border-amber-400/50" : "text-zinc-400"
+            sortBy === "gameRound" ? "text-amber-400 border-amber-400/50" : "text-zinc-400"
           }`}
-          onClick={() => toggleSort("createdAt")}
+          onClick={() => toggleSort("gameRound")}
         >
-          Newest
-          {sortBy === "createdAt" && (
+          Hottest
+          {sortBy === "gameRound" && (
             <ArrowUpDown className={`ml-2 h-3 w-3 ${sortDirection === "asc" ? "rotate-180" : ""}`} />
           )}
         </Button>
@@ -432,113 +436,11 @@ export default function TablesPage() {
       {/* Update the card rendering in the grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTables.map(table => (
-          <Card key={table.id} className="bg-zinc-900/80 border-zinc-800 overflow-hidden group flex flex-col h-full">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-            <CardContent className="p-6 flex-grow flex flex-col">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold text-white">{table.name}</h3>
-                <Badge
-                  className={`
-                    ${
-                      table.status === "active"
-                        ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20"
-                        : table.status === "waiting"
-                          ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/20"
-                          : "bg-red-500/20 text-red-300 hover:bg-red-500/20"
-                    }
-                  `}
-                >
-                  {table.status === "active" ? "Active" : table.status === "waiting" ? "Waiting" : "Full"}
-                </Badge>
-              </div>
-
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center text-zinc-400">
-                  <Wallet className="h-4 w-4 mr-2 text-amber-500" />
-                  <span className="text-sm">Dealer: </span>
-                  <span className="text-sm text-zinc-300 ml-1">{truncateAddress(table.dealerAddress)}</span>
-                </div>
-
-                <div className="flex items-center text-zinc-400">
-                  <Users className="h-4 w-4 mr-2 text-amber-500" />
-                  <span className="text-sm">Players: </span>
-                  <span className="text-sm text-zinc-300 ml-1">
-                    {table.currentPlayers}/{table.maxPlayers}
-                  </span>
-                </div>
-
-                <div className="flex items-center text-zinc-400">
-                  <Trophy className="h-4 w-4 mr-2 text-amber-500" />
-                  <span className="text-sm">Reward: </span>
-                  <span className="text-sm text-zinc-300 ml-1">{table.reward}%</span>
-                </div>
-              </div>
-
-              {/* Add new section for additional table info */}
-              <div className="border-t border-zinc-800 pt-3 mt-3">
-                <div className="flex justify-center gap-8 px-3 py-2 bg-zinc-800/30 rounded-md border border-zinc-700/30">
-                  {/* Games Played */}
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs text-zinc-500">Rounds</span>
-                    <span className="text-sm font-bold text-amber-400 mt-1">{table.gamesPlayed}</span>
-                  </div>
-
-                  {/* Settlements */}
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs text-zinc-500">Settlements</span>
-                    <span className="text-sm font-bold text-amber-400 mt-1">{table.settlements}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Enhanced Reward Information Block */}
-              {table.rewardInfo ? (
-                <div className="mt-3 bg-zinc-800/50 rounded-md p-3 border border-zinc-700/50">
-                  <div className="flex items-center mb-2">
-                    <Trophy className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
-                    <span className="text-xs font-medium text-amber-400">{table.rewardInfo} Reward</span>
-                  </div>
-                  <div className="flex justify-between items-center px-1">
-                    <div className="flex items-center">
-                      <Coins className="h-3.5 w-3.5 text-amber-500 mr-1" />
-                      <span className="text-xs text-zinc-300">{table.totalPool} USDT</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Gift className="h-3.5 w-3.5 text-amber-500 mr-1" />
-                      <span className="text-xs text-zinc-300">{table.perWinPayout} USDT</span>
-                    </div>
-                    <div className="flex items-center">
-                      <TrendingUp className="h-3.5 w-3.5 text-amber-500 mr-1" />
-                      <span className="text-xs text-zinc-300">{table.winRate}%</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 bg-zinc-800/30 rounded-md p-3 border border-zinc-700/30">
-                  <div className="flex items-center justify-center">
-                    <span className="text-xs text-zinc-500">No reward assigned</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1 text-amber-500" />
-                  <span className="text-xs text-zinc-500">{getTimeAgo(table.createdAt)}</span>
-                </div>
-                <div className="text-lg font-bold text-amber-500">{table.betAmount} ETH</div>
-              </div>
-            </CardContent>
-            <CardFooter className="p-0 mt-auto">
-              <Button
-                className="w-full rounded-none py-4 bg-zinc-800 hover:bg-zinc-700 text-white border-t border-zinc-700 group-hover:bg-gradient-to-r group-hover:from-amber-500 group-hover:to-amber-600 group-hover:text-black transition-all duration-300"
-                disabled={table.status === "full"}
-                onClick={() => (window.location.href = `/table/${table.id}`)}
-              >
-                {table.status === "full" ? "Table Full" : "Join Table"}
-              </Button>
-            </CardFooter>
-          </Card>
+          <TableCard
+            key={table.tableId}
+            table={table}
+            onJoinTableClick={(tableAddr: `0x${string}`) => (window.location.href = `/table/${tableAddr}`)}
+          />
         ))}
       </div>
 

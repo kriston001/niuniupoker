@@ -78,11 +78,12 @@ contract BBRewardPool is
 
     /**
      * @dev 创建新的奖励池
+     * @param name 奖励池名称
      * @param _totalReward 总奖励金额
      * @param _rewardPerGame 每局游戏奖励金额
      * @param _winProbability 中奖概率（以百分之一为单位，例如10表示10%的概率）
      */
-    function createRewardPool(uint256 _totalReward, uint256 _rewardPerGame, uint256 _winProbability) external payable nonReentrant {
+    function createRewardPool(string calldata name, uint256 _totalReward, uint256 _rewardPerGame, uint256 _winProbability) external payable nonReentrant {
         // 验证参数
         if (_rewardPerGame == 0 || _totalReward == 0) revert InvalidRewardAmount();
         if (_winProbability == 0 || _winProbability > MAX_PROBABILITY) revert InvalidWinProbability();
@@ -90,12 +91,14 @@ contract BBRewardPool is
 
         // 创建奖励池
         RewardPoolInfo memory pool;
+        pool.name = name;
         pool.poolId = nextPoolId++;
         pool.banker = msg.sender;
         pool.totalAmount = _totalReward;
         pool.rewardPerGame = _rewardPerGame;
         pool.winProbability = _winProbability;
         pool.remainingAmount = _totalReward;
+        pool.__gap = [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)];
 
         // 添加到庄家的奖励池列表
         bankerPools[msg.sender].push(pool);
@@ -118,8 +121,9 @@ contract BBRewardPool is
      * @dev 庄家删除奖励池并取回剩余资金
      * @param _poolId 要删除的奖励池ID
      */
-    function removeRewardPool(uint256 _poolId) external onlyOwner nonReentrant {
+    function removeRewardPool(uint256 _poolId) external nonReentrant {
         RewardPoolInfo[] storage pools = bankerPools[msg.sender];
+        if (pools.length == 0) revert RewardPoolNotActive();
         
         // 查找并验证奖励池
         uint256 poolIndex = type(uint256).max;
@@ -145,9 +149,12 @@ contract BBRewardPool is
         }
         pools.pop();
 
-        // 转账剩余资金给庄家
-        (bool success, ) = payable(msg.sender).call{value: remainingAmount}("");
-        if (!success) revert TransferFailed();
+        if(remainingAmount > 0){
+            // 转账剩余资金给庄家
+            (bool success, ) = payable(msg.sender).call{value: remainingAmount}("");
+            if (!success) revert TransferFailed();
+        }
+        
 
         emit RewardPoolRemoved(_poolId, msg.sender, remainingAmount);
     }
@@ -163,6 +170,7 @@ contract BBRewardPool is
     function tryDistributeReward(address _bankerAddr, uint256 _poolId, address[] calldata _players, uint256 finalSeed) external onlyGameTable nonReentrant returns (bool) {
         address tableAddr = msg.sender;
         RewardPoolInfo storage pool = bankerPools[_bankerAddr][_poolId];
+        if (pool.poolId == 0) return false;
 
         // 验证有足够的资金
         if (pool.remainingAmount < pool.rewardPerGame) return false;
@@ -215,7 +223,7 @@ contract BBRewardPool is
                 return pools[i];
             }
         }
-        revert RewardPoolNotActive();
+        return RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]);
     }
 
     /**

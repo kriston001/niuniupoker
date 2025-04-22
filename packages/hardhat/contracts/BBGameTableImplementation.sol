@@ -22,6 +22,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     using BBCardDealer for BBCardDealer.DealerState;
 
     // 游戏桌数据
+    bool public active;
+    uint256 public tableId; // 游戏桌ID
     string public tableName;
     address public bankerAddr;
     uint256 public betAmount;  // 固定押注金额
@@ -87,6 +89,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 初始化函数，替代构造函数
      */
     function initialize(
+        uint256 _tableId,
         string memory _tableName,
         address _bankerAddr,
         uint256 _betAmount,
@@ -103,6 +106,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 参数验证
         if (_maxPlayers < 2) revert InvalidMaxPlayers();
 
+        active = true;
+        tableId = _tableId;
         tableName = _tableName;
         bankerAddr = _bankerAddr;
         betAmount = _betAmount;
@@ -232,7 +237,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             additionalBet1: 0,
             additionalBet2: 0,
             cards: [0, 0, 0, 0, 0],
-            cardType: CardType.NONE
+            cardType: CardType.NONE,
+            __gap: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
         })); 
 
         playerCount++;
@@ -1149,17 +1155,24 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
     // 修改 getTableInfo 函数
     function getTableInfo() external view returns (GameTableView memory) {
+        IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
         return GameTableView({
             // balance: address(this).balance / 1 ether,
+            active: active,
+            gameRound: gameRound,
+            gameLiquidatedCount: gameLiquidatedCount,
             tableAddr: address(this),
+            tableId: tableId,
             tableName: tableName,
             bankerAddr: bankerAddr,
             betAmount: betAmount,
+            bankerFeePercent: bankerFeePercent,
             totalPrizePool: totalPrizePool,
             playerCount: playerCount,
             maxPlayers: maxPlayers,
             creationTimestamp: creationTimestamp,
             state: state,
+            liquidatorFeePercent: liquidatorFeePercent,
             playerContinuedCount: playerContinuedCount,
             playerFoldCount: playerFoldCount,
             playerReadyCount: playerReadyCount,
@@ -1168,6 +1181,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
             lastActivityTimestamp: lastActivityTimestamp,
+            rewardPoolId: rewardPoolId,
+            rewardPoolInfo: rewardPoolId != 0 ? rewardPool.getRewardPoolInfo(bankerAddr, rewardPoolId) : 
+            RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, [uint256(0), uint256(0), uint256(0), 
+            uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]), // 奖励池信息，如果没有奖励池，则返回空结构体
             implementationVersion: implementationVersion
         });
     }

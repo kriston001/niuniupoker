@@ -26,11 +26,14 @@ struct GameConfig {
 // 奖励池结构
 struct RewardPoolInfo {
     uint256 poolId;           // 奖励池ID
+    string name;              // 奖励池名称
     address banker;           // 创建者（庄家）地址
     uint256 totalAmount;      // 总奖池金额
     uint256 rewardPerGame;    // 每局游戏奖励金额
     uint256 winProbability;   // 中奖概率（以百分之一为单位）
     uint256 remainingAmount;  // 剩余奖池金额
+
+    uint256[10] __gap;
 }
 
 struct RoomCardNftType {
@@ -43,6 +46,8 @@ struct RoomCardNftType {
     uint256 maxMint;         // Maximum mint amount for this card type
     string rarity;           // Rarity of the card type
     uint256 minted;          // 已mint数量
+
+    uint256[10] __gap;
 }
 
 // Room level structure
@@ -56,19 +61,27 @@ struct RoomLevelNftType {
     uint256 maxMint;         // Maximum mint amount for this level type
     uint256 minted;          // Already minted amount for this level type
     string rarity;           // Rarity of this level type
+
+    uint256[10] __gap;
 }
 
 // 添加一个新的结构体用于返回游戏桌信息
 struct GameTableView {
+    bool active;
+    uint256 gameRound;
+    uint256 gameLiquidatedCount;
     address tableAddr; // 游戏桌合约地址
+    uint256 tableId;
     string tableName;
     address bankerAddr;
     uint256 betAmount;
+    uint8 bankerFeePercent;
     uint256 totalPrizePool;
     uint8 playerCount;
     uint8 maxPlayers;
     uint256 creationTimestamp;
     GameState state;
+    uint8 liquidatorFeePercent;
     uint8 playerContinuedCount;
     uint8 playerFoldCount;
     uint8 playerReadyCount;
@@ -77,19 +90,9 @@ struct GameTableView {
     uint256 playerTimeout;
     uint256 tableInactiveTimeout;
     uint256 lastActivityTimestamp;
+    uint256 rewardPoolId;
+    RewardPoolInfo rewardPoolInfo; // 奖励池信息，如果没有奖励池，则返回空结构体
     uint256 implementationVersion; // 添加实现版本号
-}
-
-//用于把playerData数据转换成结构体用以在函数参数中传递
-struct BBPlayerEntry {
-    address playerAddr;
-    BBPlayer playerData;
-}
-
-struct BBPlayerCardEntry {
-    address playerAddr;
-    uint8[5] cards;
-    CardType cardType;
 }
 
 // 随机数会话结构
@@ -100,6 +103,8 @@ struct RandomSession {
     SessionState state;        // 会话状态
     address[] participants;    // 参与者列表
     mapping(address => RandomCommitment) commitments; // 参与者的提交
+
+    uint256[10] __gap;
 }
 
 // 随机数提交结构
@@ -108,4 +113,6 @@ struct RandomCommitment {
     bool hasCommitted;         // 是否已提交
     bool hasRevealed;          // 是否已揭示
     uint256 revealedValue;     // 揭示的随机值
+
+    uint256[10] __gap;
 }

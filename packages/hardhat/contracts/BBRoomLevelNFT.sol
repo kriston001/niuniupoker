@@ -122,7 +122,8 @@ contract BBRoomLevelNFT is
             active: true,
             maxMint: maxMint,
             minted: 0,
-            rarity: rarity
+            rarity: rarity,
+            __gap: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
         });
 
         _allNftTypeIds.push(newNftTypeId);

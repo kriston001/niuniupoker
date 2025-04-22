@@ -89,6 +89,7 @@ error ContractPaused();
 error InvalidBankerFeePercent();
 error InvalidLiquidatorFeePercent();
 error BankerCannotLiquidate();
+error InvalidTableName();
 
 // Game progress related errors
 error NotAllPlayersReady();
@@ -107,6 +108,7 @@ error NotTableBanker();
 error NoRewardPoolForTable();
 error InvalidRewardPoolAddress();
 error InvalidRoomLevelAddress();
+
 
 // nft related errors
 error RoomLevelLimitExceeded();

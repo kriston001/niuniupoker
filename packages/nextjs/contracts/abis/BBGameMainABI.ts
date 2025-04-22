@@ -1,5 +1,5 @@
 // BBGameMain.ts
-const abi = [
+const abi =  [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -405,9 +405,29 @@ const abi = [
       {
         "components": [
           {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
             "internalType": "address",
             "name": "tableAddr",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -423,6 +443,11 @@ const abi = [
             "internalType": "uint256",
             "name": "betAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -447,6 +472,11 @@ const abi = [
           {
             "internalType": "enum GameState",
             "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "liquidatorFeePercent",
             "type": "uint8"
           },
           {
@@ -488,6 +518,58 @@ const abi = [
             "internalType": "uint256",
             "name": "lastActivityTimestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
           },
           {
             "internalType": "uint256",
@@ -586,9 +668,29 @@ const abi = [
       {
         "components": [
           {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
             "internalType": "address",
             "name": "tableAddr",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -604,6 +706,11 @@ const abi = [
             "internalType": "uint256",
             "name": "betAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -628,6 +735,11 @@ const abi = [
           {
             "internalType": "enum GameState",
             "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "liquidatorFeePercent",
             "type": "uint8"
           },
           {
@@ -669,6 +781,58 @@ const abi = [
             "internalType": "uint256",
             "name": "lastActivityTimestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
           },
           {
             "internalType": "uint256",
@@ -691,9 +855,29 @@ const abi = [
       {
         "components": [
           {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
             "internalType": "address",
             "name": "tableAddr",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -709,6 +893,11 @@ const abi = [
             "internalType": "uint256",
             "name": "betAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -733,6 +922,11 @@ const abi = [
           {
             "internalType": "enum GameState",
             "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "liquidatorFeePercent",
             "type": "uint8"
           },
           {
@@ -774,6 +968,58 @@ const abi = [
             "internalType": "uint256",
             "name": "lastActivityTimestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
           },
           {
             "internalType": "uint256",
@@ -802,9 +1048,29 @@ const abi = [
       {
         "components": [
           {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
             "internalType": "address",
             "name": "tableAddr",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -820,6 +1086,11 @@ const abi = [
             "internalType": "uint256",
             "name": "betAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -844,6 +1115,11 @@ const abi = [
           {
             "internalType": "enum GameState",
             "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "liquidatorFeePercent",
             "type": "uint8"
           },
           {
@@ -885,6 +1161,58 @@ const abi = [
             "internalType": "uint256",
             "name": "lastActivityTimestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
           },
           {
             "internalType": "uint256",
@@ -1054,6 +1382,19 @@ const abi = [
         "internalType": "uint8",
         "name": "",
         "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextTableId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

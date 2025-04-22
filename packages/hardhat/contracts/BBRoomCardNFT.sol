@@ -118,7 +118,8 @@ contract BBRoomCardNFT is
             active: true,
             maxMint: maxMint,
             rarity: rarity,
-            minted: 0
+            minted: 0,
+            __gap: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
         });
         _allNftTypeIds.push(newNftTypeId);
         emit CardTypeAdded(newNftTypeId, name, maxPlayers, price, uriSuffix, maxMint, rarity);

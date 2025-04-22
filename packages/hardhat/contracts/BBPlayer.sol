@@ -15,6 +15,8 @@ struct BBPlayer {
 
     uint8[5] cards;
     CardType cardType;
+
+    uint256[10] __gap;
 }
 
 library BBPlayerLib {

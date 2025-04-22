@@ -10,13 +10,12 @@ import "./BBErrors.sol";
 
 
 import "./BBTypes.sol";
-import "./BBGameTableImplementation.sol";
-import "./BBGameTableFactory.sol";
 import "./BBVersion.sol";
 import "./BBRoomCardNFT.sol";
 import "./BBRewardPool.sol";
 import "./BBRoomLevelNFT.sol";
 import "./BBStructs.sol";
+import "./BBInterfaces.sol";
 
 
 
@@ -33,6 +32,7 @@ contract BBGameMain is
 {
 
     // 游戏配置
+    uint256 public nextTableId;
     uint8 public maxRoomCount;  //最大创建房间数
     uint8 public maxPlayers;
     uint256 public playerTimeout;  // 玩家超时时间
@@ -43,7 +43,7 @@ contract BBGameMain is
 
     // 游戏桌地址列表
     address[] public tableAddresses;
-    mapping(address => BBGameTableImplementation) public gameTables;
+    mapping(address => address) public gameTables;
     // 用户创建的游戏桌映射
     mapping(address => address[]) public userTables;
 
@@ -95,6 +95,7 @@ contract BBGameMain is
         __Pausable_init();
         __UUPSUpgradeable_init();
 
+        nextTableId = 1;
         maxPlayers = _maxPlayers;
         maxRoomCount = _maxRoomCount;
         maxBankerFeePercent = _maxBankerFeePercent;
@@ -126,6 +127,7 @@ contract BBGameMain is
         if (betAmount == 0) revert BetAmountTooSmall();
         if (tableMaxPlayers <= 1 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
         if (bankerFeePercent > maxBankerFeePercent) revert InvalidBankerFeePercent();
+        if (bytes(tableName).length == 0 || bytes(tableName).length > 20) revert InvalidTableName();
 
         // 将玩家的房间数量加1
         userCreatedRoomsCount[msg.sender]++;
@@ -159,8 +161,9 @@ contract BBGameMain is
         if (randomnessManagerAddress == address(0)) revert InvalidAddress();
 
         // 使用工厂合约创建游戏桌
-        BBGameTableFactory factory = BBGameTableFactory(gameTableFactoryAddress);
+        IGameTableFactory factory = IGameTableFactory(gameTableFactoryAddress);
         address tableAddr = factory.createGameTable(
+            nextTableId,
             tableName,
             msg.sender,
             betAmount,
@@ -169,10 +172,13 @@ contract BBGameMain is
             bankerFeePercent
         );
 
+        nextTableId++;
+        
+
 
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
-        gameTables[tableAddr] = BBGameTableImplementation(payable(tableAddr));
+        gameTables[tableAddr] = tableAddr;
         // 添加到用户的游戏桌列表
         userTables[msg.sender].push(tableAddr);
 
@@ -272,7 +278,7 @@ contract BBGameMain is
         // 获取tableAddresses中最新的几个游戏桌
         for (uint256 i = 0; i < resultCount; i++) {
             address tableAddr = tableAddresses[tableCount - i - 1];
-            BBGameTableImplementation gameTable = gameTables[tableAddr];
+            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
             // 直接从合约实例获取信息
             tables[i] = gameTable.getTableInfo();
         }
@@ -291,9 +297,9 @@ contract BBGameMain is
 
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = tableAddresses[i];
-            BBGameTableImplementation gameTable = gameTables[tableAddr];
+            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
             //超过清算时间并且游戏在进行中的table可以被清算
-            if(gameTable.lastActivityTimestamp() + gameTable.tableInactiveTimeout() < block.timestamp &&
+            if(gameTable.lastActivityTimestamp() + tableInactiveTimeout < block.timestamp &&
             (gameTable.state() == GameState.FIRST_BETTING || gameTable.state() == GameState.SECOND_BETTING)){
                 tempTables[validCount] = gameTable.getTableInfo();
                 validCount++;
@@ -336,8 +342,8 @@ contract BBGameMain is
 
     // 添加一个内部函数来获取游戏桌信息
     function _getTableInfo(address tableAddr) internal view returns (GameTableView memory) {
-        if (tableAddr == address(0) || address(gameTables[tableAddr]) == address(0)) revert TableDoesNotExist();
-        BBGameTableImplementation gameTable = gameTables[tableAddr];
+        if (tableAddr == address(0) || gameTables[tableAddr] == address(0)) revert TableDoesNotExist();
+        IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
         return gameTable.getTableInfo();
     }
 
@@ -357,7 +363,7 @@ contract BBGameMain is
 
         for (uint256 i = 0; i < tableAddrs.length; i++) {
             address tableAddr = tableAddrs[i];
-            if (gameTables[tableAddr].rewardPoolId() == _poolId) {
+            if (IGameTableImplementation(tableAddr).rewardPoolId() == _poolId) {
                 return true;
             }
         }

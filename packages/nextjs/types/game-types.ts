@@ -53,27 +53,50 @@ export interface GameConfig {
   gameTableFactoryAddress: `0x${string}`;
 }
 
+// 奖励池信息类型定义
+export interface RewardPoolInfo {
+  name: string; // 奖励池名称
+  poolId: bigint; // 奖励池ID
+  banker: `0x${string}`; // 创建者（庄家）地址
+  totalAmount: bigint; // 总奖池金额
+  rewardPerGame: bigint; // 每局游戏奖励金额
+  winProbability: bigint; // 中奖概率（以百分之一为单位）
+  remainingAmount: bigint; // 剩余奖池金额
+}
+
 // 游戏桌信息类型定义
 export interface GameTable {
-  tableAddr: string;
-  tableName: string;
-  bankerAddr: string;
-  betAmount: bigint;
-  playerCount: number;
-  maxPlayers: number;
-  creationTimestamp: bigint;
-  state: number;
-  playerContinuedCount: number;
-  playerFoldCount: number;
-  playerReadyCount: number;
-  playerAddresses: string[];
-  currentRoundDeadline: bigint;
-};
+  active: boolean;
+  gameRound: bigint; // 游戏场次
+  gameLiquidatedCount: bigint; // 被清算的游戏场数
+  tableAddr: `0x${string}`; // 游戏桌合约地址
+  tableId: bigint;
+  tableName: string; // 游戏桌名称
+  bankerAddr: `0x${string}`; // 庄家地址
+  betAmount: bigint; // 下注金额
+  bankerFeePercent: number; // 庄家费用百分比
+  totalPrizePool: bigint; // 总奖池金额
+  playerCount: number; // 当前玩家数量
+  maxPlayers: number; // 最大玩家数量
+  creationTimestamp: bigint; // 创建时间戳
+  state: number; // 游戏状态
+  liquidatorFeePercent: number; // 清算人费用百分比
+  playerContinuedCount: number; // 继续游戏的玩家数量
+  playerFoldCount: number; // 弃牌的玩家数量
+  playerReadyCount: number; // 准备好的玩家数量
+  playerAddresses: `0x${string}`[]; // 玩家地址列表
+  currentRoundDeadline: bigint; // 当前回合截止时间
+  playerTimeout: bigint; // 玩家超时时间
+  tableInactiveTimeout: bigint; // 游戏桌不活跃超时时间
+  lastActivityTimestamp: bigint; // 最后活动时间戳
+  rewardPoolId: bigint; // 奖励池ID
+  rewardPoolInfo: RewardPoolInfo; // 奖励池信息
+  implementationVersion: bigint; // 实现版本号
+}
 
 // 玩家信息类型定义
 export interface Player {
-  playerAddr: string;
-  isBanker: boolean;
+  addr: string;
   state: PlayerState;
   initialBet: bigint;
   additionalBet1: bigint;
@@ -126,40 +149,40 @@ export interface RoomLevelNftDetail {
 }
 
 // 获取牌型名称
-export const getCardTypeName = (cardType: number) => {
+export const getCardTypeName = (cardType: CardType) => {
   switch (cardType) {
     case CardType.NONE:
-      return "无牌型";
+      return "None";
     case CardType.NO_BULL:
-      return "没牛";
+      return "No Bull";
     case CardType.BULL_1:
-      return "牛一";
+      return "Bull 1";
     case CardType.BULL_2:
-      return "牛二";
+      return "Bull 2";
     case CardType.BULL_3:
-      return "牛三";
+      return "Bull 3";
     case CardType.BULL_4:
-      return "牛四";
+      return "Bull 4";
     case CardType.BULL_5:
-      return "牛五";
+      return "Bull 5";
     case CardType.BULL_6:
-      return "牛六";
+      return "Bull 6";
     case CardType.BULL_7:
-      return "牛七";
+      return "Bull 7";
     case CardType.BULL_8:
-      return "牛八";
+      return "Bull 8";
     case CardType.BULL_9:
-      return "牛九";
+      return "Bull 9";
     case CardType.BULL_BULL:
-      return "牛牛";
+      return "Bull Bull";
     case CardType.FIVE_BOMB:
-      return "五炸";
+      return "Five Bomb";
     case CardType.FIVE_SMALL:
-      return "五小";
+      return "Five Small";
     case CardType.FIVE_FLOWERS:
-      return "五花";
+      return "Five Flowers";
     default:
-      return "未知";
+      return "Unknown";
   }
 };
 

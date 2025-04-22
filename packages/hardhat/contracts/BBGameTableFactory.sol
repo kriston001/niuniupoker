@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BBGameTableImplementation.sol";
 import "./BBVersion.sol";
+import "./BBInterfaces.sol";
 
 /**
  * @title BBGameTableFactory
@@ -61,6 +61,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     
     /**
      * @dev 创建游戏桌
+     * @param tableId 游戏桌ID
      * @param tableName 游戏桌名称
      * @param bankerAddr 庄家地址
      * @param betAmount 下注金额
@@ -70,6 +71,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
      * @return 新创建的游戏桌地址
      */
     function createGameTable(
+        uint256 tableId,
         string memory tableName,
         address bankerAddr,
         uint256 betAmount,
@@ -79,7 +81,8 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     ) external returns (address) {
         // 准备初始化数据
         bytes memory initData = abi.encodeWithSelector(
-            BBGameTableImplementation.initialize.selector,
+            IGameTableImplementation.initialize.selector,
+            tableId,
             tableName,
             bankerAddr,
             betAmount,
