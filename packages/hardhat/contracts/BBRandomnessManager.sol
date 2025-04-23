@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BBErrors.sol";
 import "./BBInterfaces.sol";
 import "./BBTypes.sol";
 import "./BBStructs.sol";
@@ -47,7 +46,7 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
      * @param _gameMainAddr 游戏主合约地址
      */
     function setGameMainAddress(address _gameMainAddr) external onlyOwner {
-        if (_gameMainAddr == address(0)) revert InvalidAddress();
+        require(_gameMainAddr != address(0), "Invalid game main address");
         gameMainAddr = _gameMainAddr;
     }
 
@@ -63,7 +62,7 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
                 isValidTable = false;
             }
         }
-        if (!isValidTable) revert OnlyGameTableCanCall();
+        require(isValidTable, "Only game table can call");
         _;
     }
 
@@ -83,7 +82,7 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
 
     function startCommit(address[] calldata _participants, uint256 _timeout) external returns (uint256) {
         RandomSession storage session = sessions[msg.sender];
-        if (session.tableAddress == address(0)) revert SessionNotFound();
+        require(session.tableAddress != address(0), "Session not found");
         require(msg.sender == session.tableAddress, "Only the table can start commit");
         require(session.state == SessionState.READY, "Only in ready state");
         session.timeout = _timeout;
@@ -101,9 +100,9 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
     function commitRandom(address _playerAddress, bytes32 _commitment) external {
         address tableAddress = msg.sender;
         RandomSession storage session = sessions[tableAddress];
-        if (session.tableAddress == address(0)) revert SessionNotFound();
+        require(session.tableAddress != address(0), "Session not found");
         require(msg.sender == session.tableAddress, "Only the table can start commit");
-        if(session.state != SessionState.COMMITING || block.timestamp > session.deadline) revert CommitDeadlineExpired();
+        require(session.state == SessionState.COMMITING && block.timestamp <= session.deadline, "Commit deadline expired");
 
         bool isParticipant = false;
         for (uint256 i = 0; i < session.participants.length; i++) {
@@ -112,15 +111,15 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
                 break;
             }
         }
-        if (!isParticipant) revert NotAParticipant();
-        if (session.commitments[_playerAddress].hasCommitted) revert AlreadyCommitted();
+        require(isParticipant, "Not a participant");
+        require(!session.commitments[_playerAddress].hasCommitted, "Already committed");
         session.commitments[_playerAddress].commitment = _commitment;
         session.commitments[_playerAddress].hasCommitted = true;
     }
 
     function startReveal() external returns (uint256) {
         RandomSession storage session = sessions[msg.sender];
-        if (session.tableAddress == address(0)) revert SessionNotFound();
+        require(session.tableAddress != address(0), "Session not found");
         require(msg.sender == session.tableAddress, "Only the table can go to reveal");
         require(session.state == SessionState.COMMITING, "Only in committing state");
 
@@ -160,12 +159,12 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
         address tableAddress = msg.sender;
         RandomSession storage session = sessions[tableAddress];
         require(msg.sender == session.tableAddress, "Only the table can start commit");
-        if(session.state != SessionState.REVEALING || block.timestamp > session.deadline) revert RevealDeadlineExpired(); 
-        if (!session.commitments[_playerAddress].hasCommitted) revert NotCommitted();
-        if (session.commitments[_playerAddress].hasRevealed) revert AlreadyRevealed();
+        require(session.state == SessionState.REVEALING && block.timestamp <= session.deadline, "Reveal deadline expired");
+        require(session.commitments[_playerAddress].hasCommitted, "Not committed");
+        require(!session.commitments[_playerAddress].hasRevealed, "Already revealed");
         
         bytes32 commitment = keccak256(abi.encodePacked(_randomValue, _playerAddress, _salt));
-        if (commitment != session.commitments[_playerAddress].commitment) revert InvalidReveal();
+        require(commitment == session.commitments[_playerAddress].commitment, "Invalid reveal");
         session.commitments[_playerAddress].revealedValue = _randomValue;
         session.commitments[_playerAddress].hasRevealed = true;
     }
@@ -177,7 +176,7 @@ contract BBRandomnessManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
     function completeSession() external returns (uint256) {
         RandomSession storage session = sessions[msg.sender];
         require(msg.sender == session.tableAddress, "Only the table can start commit");
-        if (session.state != SessionState.REVEALING) revert SessionNotRevealing();
+        require(session.state == SessionState.REVEALING, "Session not revealing");
 
         uint256 finalSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
         bool isAllRevealed = true;

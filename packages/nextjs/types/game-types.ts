@@ -214,18 +214,16 @@ export const getGameStateName = (state: number) => {
     case GameState.NONE:
       return "未初始化";
     case GameState.WAITING:
-      return "等待中";
+      return "Waiting";
     case GameState.FIRST_BETTING:
-      return "第一轮下注";
+      return "First Betting";
     case GameState.SECOND_BETTING:
-      return "第二轮下注";
+      return "Second Betting";
     case GameState.ENDED:
-      return "已结束";
+      return "Ended";
     case GameState.LIQUIDATED:
-      return "已清算";
-    case GameState.DISBANDED:
-      return "已解散";
+      return "Liquidated";
     default:
-      return "未知";
+      return "Unknown";
   }
 };

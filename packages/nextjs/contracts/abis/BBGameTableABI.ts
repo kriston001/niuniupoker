@@ -1341,6 +1341,7 @@ export const playerUnready = abi.find(x => "name" in x && x.name === "playerUnre
 export const playerQuit = abi.find(x => "name" in x && x.name === "playerQuit");
 export const bankerRemovePlayer = abi.find(x => "name" in x && x.name === "bankerRemovePlayer");
 export const nextStep = abi.find(x => "name" in x && x.name === "nextStep");
+export const playerContinue = abi.find(x => "name" in x && x.name === "playerContinue");
 export const playerFold = abi.find(x => "name" in x && x.name === "playerFold");
 export const liquidateInactiveTable = abi.find(x => "name" in x && x.name === "liquidateInactiveTable");
 export const getAllPlayerData = abi.find(x => "name" in x && x.name === "getAllPlayerData");

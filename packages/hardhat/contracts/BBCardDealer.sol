@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./BBErrors.sol";
 import "./BBCardUtils.sol";
 import "./BBVersion.sol";
 import "./BBTypes.sol";
@@ -85,7 +84,7 @@ library BBCardDealer {
             attempts++;
             
             // 防止无限循环
-            if (attempts > 25) revert FailedToGenerateUniqueCard();
+            require(attempts <= 25, "Failed to generate unique card");
             
         } while (self.usedCards[newCard]);
         
@@ -128,7 +127,7 @@ library BBCardDealer {
         address player,
         uint8 round
     ) internal returns (uint8[] memory)  {
-        if (round < 1 || round > 3) revert InvalidRound();
+        require(round >= 1 && round <= 3, "Invalid round");
 
         // 根据轮次确定发牌数量
         uint8 cardCount = round == 1 ? 3 : 1;

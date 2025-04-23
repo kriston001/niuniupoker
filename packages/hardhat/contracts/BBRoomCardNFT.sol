@@ -299,12 +299,6 @@ contract BBRoomCardNFT is
         return balanceOf(owner) > 0;
     }
 
-    // 定义卡片详细信息结构体
-    struct NftDetail {
-        uint256 tokenId;       // 卡片的token ID
-        RoomCardNftType nftType;     // 继承CardType的所有属性
-    }
-
 
     /**
      * @dev 获取用户拥有的房卡信息
@@ -312,24 +306,24 @@ contract BBRoomCardNFT is
      * @return has 是否拥有房卡
      * @return details 房卡详细信息数组
      */
-    function getUserNfts(address userAddress) external view returns (bool has, NftDetail[] memory details) {
+    function getUserNfts(address userAddress) external view returns (bool has, RoomCardNftDetail[] memory details) {
         has = balanceOf(userAddress) > 0;
 
         if (has) {
             uint256 balance = balanceOf(userAddress);
-            details = new NftDetail[](balance);
+            details = new RoomCardNftDetail[](balance);
 
             for (uint256 i = 0; i < balance; i++) {
                 uint256 tokenId = tokenOfOwnerByIndex(userAddress, i);
                 uint256 nftTypeId = tokenNftTypes[tokenId];
                 
-                details[i] = NftDetail({
+                details[i] = RoomCardNftDetail({
                     tokenId: tokenId,
                     nftType: nftTypes[nftTypeId]
                 });
             }
         } else {
-            details = new NftDetail[](0);
+            details = new RoomCardNftDetail[](0);
         }
 
         return (has, details);

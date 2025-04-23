@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BBErrors.sol";
 import "./BBTypes.sol";
 import "./BBVersion.sol";
 import "./BBStructs.sol";
@@ -58,7 +57,7 @@ contract BBRewardPool is
                 isValidTable = false;
             }
         }
-        if (!isValidTable) revert OnlyGameTableCanCall();
+        require(isValidTable, "Only game table can call");
         _;
     }
 
@@ -71,7 +70,7 @@ contract BBRewardPool is
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
 
-        if (_gameMainAddr == address(0)) revert InvalidGameMainAddress();
+        require(_gameMainAddr != address(0), "Invalid game main address");
         gameMainAddr = _gameMainAddr;
         nextPoolId = 1;
     }
@@ -85,9 +84,9 @@ contract BBRewardPool is
      */
     function createRewardPool(string calldata name, uint256 _totalReward, uint256 _rewardPerGame, uint256 _winProbability) external payable nonReentrant {
         // 验证参数
-        if (_rewardPerGame == 0 || _totalReward == 0) revert InvalidRewardAmount();
-        if (_winProbability == 0 || _winProbability > MAX_PROBABILITY) revert InvalidWinProbability();
-        if (msg.value != _totalReward) revert InsufficientFunds();
+        require(_rewardPerGame > 0 && _totalReward > 0, "Invalid reward amount");
+        require(_winProbability > 0 && _winProbability <= MAX_PROBABILITY, "Invalid win probability");
+        require(msg.value == _totalReward, "Insufficient funds");
 
         // 创建奖励池
         RewardPoolInfo memory pool;
@@ -123,7 +122,7 @@ contract BBRewardPool is
      */
     function removeRewardPool(uint256 _poolId) external nonReentrant {
         RewardPoolInfo[] storage pools = bankerPools[msg.sender];
-        if (pools.length == 0) revert RewardPoolNotActive();
+        require(pools.length > 0, "Reward pool not active");
         
         // 查找并验证奖励池
         uint256 poolIndex = type(uint256).max;
@@ -134,10 +133,10 @@ contract BBRewardPool is
             }
         }
         
-        if (poolIndex == type(uint256).max) revert RewardPoolNotActive();
+        require(poolIndex != type(uint256).max, "Reward pool not active");
 
         if(IGameMain(gameMainAddr).rewardPoolIsInUse(msg.sender, _poolId)){
-            revert RewardPoolInUse();
+            require(false, "Reward pool in use");
         }
         
         RewardPoolInfo storage pool = pools[poolIndex];
@@ -152,7 +151,7 @@ contract BBRewardPool is
         if(remainingAmount > 0){
             // 转账剩余资金给庄家
             (bool success, ) = payable(msg.sender).call{value: remainingAmount}("");
-            if (!success) revert TransferFailed();
+            require(success, "Transfer failed");
         }
         
 
@@ -192,7 +191,7 @@ contract BBRewardPool is
 
             // 转账奖励给获胜者
             (bool success, ) = payable(winner).call{value: pool.rewardPerGame}("");
-            if (!success) revert TransferFailed();
+            require(success, "Transfer failed");
 
             emit RewardDistributed(_poolId, tableAddr, winner, pool.rewardPerGame);
             return true;
@@ -236,12 +235,12 @@ contract BBRewardPool is
         RewardPoolInfo[] storage pools = bankerPools[_banker];
         for (uint256 i = 0; i < pools.length; i++) {
             if (pools[i].poolId == _poolId) {
-                if (pools[i].remainingAmount < _amount) revert InsufficientFunds();
+                require(pools[i].remainingAmount >= _amount, "Insufficient funds");
                 pools[i].remainingAmount -= _amount;
                 return;
             }
         }
-        revert RewardPoolNotActive();
+        require(false, "Reward pool not active");
     }
 
     /**
@@ -267,7 +266,7 @@ contract BBRewardPool is
      * @param _gameMainAddr 新的游戏主合约地址
      */
     function setGameMainAddress(address _gameMainAddr) external onlyOwner {
-        if (_gameMainAddr == address(0)) revert InvalidGameMainAddress();
+        require(_gameMainAddr != address(0), "Invalid game main address");
         gameMainAddr = _gameMainAddr;
         emit GameMainAddressUpdated(_gameMainAddr);
     }

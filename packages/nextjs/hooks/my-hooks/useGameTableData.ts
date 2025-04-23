@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { multicall } from "@wagmi/core";
+import { useEffect, useMemo, useRef } from "react";
 import { Address } from "viem";
-import { usePublicClient, useReadContract, useWatchContractEvent } from "wagmi";
+import { useReadContracts, useWatchContractEvent } from "wagmi";
 import { GameTableChanged, getAllPlayerData, getPlayerData, getTableInfo } from "~~/contracts/abis/BBGameTableABI";
-import { wagmiConfig } from "~~/services/web3/wagmiConfig";
-import { GameTable, Player, PlayerCard } from "~~/types/game-types";
+import { getUserRoomCards } from "~~/contracts/abis/BBRoomCardNFTABI";
+import { convertToMyRoomCardNft } from "~~/lib/utils";
+import { useGlobalState } from "~~/services/store/store";
+import { GameTable, Player, RoomCardNftDetail } from "~~/types/game-types";
 
 /**
  * 游戏桌数据钩子
@@ -29,107 +30,83 @@ export function useGameTableData({
   playerAddress: Address | undefined;
   refreshInterval?: number;
 }) {
+  const gameConfig = useGlobalState(state => state.gameConfig);
+
+  let playerData = undefined;
+  let allPlayersData = undefined;
+  let tableInfo = undefined;
+  const myRoomCardNfts: any[] = [];
+
   // 所有 ref 的初始化
-  const refreshLockRef = useRef(false);
-  const lastRefreshTimeRef = useRef<number>(0);
   const refreshIntervalRef = useRef(refreshInterval);
-  const refreshAllDataRef = useRef<(() => Promise<void>) | null>(null);
-  
-  
 
-  // 读取合约数据
-  const {
-    data: playerData,
-    refetch: refetchPlayerData,
-  } = useReadContract({
-    address: tableAddress,
-    abi: [getPlayerData],
-    functionName: "getPlayerData",
-    args: [playerAddress],
-    query: {
-      enabled: Boolean(tableAddress && playerAddress && tableAddress !== "" && playerAddress !== ""),
+  const contracts = [
+    {
+      address: tableAddress,
+      abi: [getPlayerData],
+      functionName: "getPlayerData",
+      args: [playerAddress],
     },
-  });
-
-  const {
-    data: allPlayersData,
-    refetch: refetchAllPlayers,
-  } = useReadContract({
-    address: tableAddress,
-    abi: [getAllPlayerData],
-    functionName: "getAllPlayerData",
-    query: {
-      enabled: Boolean(tableAddress && tableAddress !== ""),
+    {
+      address: tableAddress,
+      abi: [getAllPlayerData],
+      functionName: "getAllPlayerData",
     },
-  });
+    {
+      address: tableAddress,
+      abi: [getTableInfo],
+      functionName: "getTableInfo",
+    },
+    {
+      address: gameConfig?.roomCardAddress,
+      abi: [getUserRoomCards],
+      functionName: "getUserNfts",
+      args: [playerAddress],
+    },
+  ] as const;
 
-  const {
-    data: tableInfo,
-    refetch: refetchTableInfo,
-  } = useReadContract({
-    address: tableAddress,
-    abi: [getTableInfo],
-    functionName: "getTableInfo",
+  const { data, refetch: refetchData } = useReadContracts({
+    contracts: contracts,
     query: {
       enabled: Boolean(tableAddress && tableAddress !== ""),
     },
   });
 
-  // 将 refetch 函数存储在 ref 中
-  const refetchTableInfoRef = useRef(refetchTableInfo);
-  const refetchAllPlayersRef = useRef(refetchAllPlayers);
-  const refetchPlayerDataRef = useRef(refetchPlayerData);
+  if (data) {
+    console.log("useGameTableData：", data);
+    playerData = data[0].status === "success" ? data[0].result : undefined;
+    allPlayersData = data[1].status === "success" ? data[1].result : undefined;
+    tableInfo = data[2].status === "success" ? data[2].result : undefined;
+
+    if (data[3].status === "success") {
+      const myRoomCardNfts = Array.isArray(data[3].result) ? (data[3].result[1] as RoomCardNftDetail[]) : [];
+      myRoomCardNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
+    }
+  }
+
+  const refetchDataRef = useRef(refetchData);
 
   // 更新 refetch 函数的 ref
   useEffect(() => {
-    refetchTableInfoRef.current = refetchTableInfo;
-    refetchAllPlayersRef.current = refetchAllPlayers;
-    refetchPlayerDataRef.current = refetchPlayerData;
-  }, [refetchTableInfo, refetchAllPlayers, refetchPlayerData]);
-
-  // 刷新数据函数
-  const refreshAllData = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastRefreshTimeRef.current < 2000) return;
-    if (refreshLockRef.current) return;
-    if (!tableAddress || tableAddress === "") return;
-
-    refreshLockRef.current = true;
-    try {
-      console.log("refreshAllData");
-      await Promise.all([
-        refetchTableInfoRef.current?.(),
-        refetchAllPlayersRef.current?.(),
-        playerAddress ? refetchPlayerDataRef.current?.() : Promise.resolve(),
-      ]);
-      lastRefreshTimeRef.current = now;
-    } finally {
-      refreshLockRef.current = false;
-    }
-  }, [tableAddress, playerAddress]); // 只依赖这两个地址
-
-  // 更新 refreshAllData ref
-  useEffect(() => {
-    refreshAllDataRef.current = refreshAllData;
-  }, [refreshAllData]);
+    refetchDataRef.current = refetchData;
+  }, [refetchData]);
 
   // 监听地址变化并刷新数据
   useEffect(() => {
     if (!tableAddress || tableAddress === "") return;
-    refreshAllData();
+    refetchDataRef.current?.();
   }, [tableAddress, playerAddress]); // 只在地址变化时刷新
 
   // 定时刷新
   useEffect(() => {
     if (refreshIntervalRef.current <= 0) return;
-    if (!tableAddress || tableAddress === "") return;
 
     const intervalId = setInterval(() => {
-      refreshAllDataRef.current?.();
+      refetchDataRef.current?.();
     }, refreshIntervalRef.current);
 
     return () => clearInterval(intervalId);
-  }, [tableAddress]); // 只在 tableAddress 变化时重设定时器
+  }, [refreshInterval]);
 
   // 事件监听
   useWatchContractEvent({
@@ -137,7 +114,7 @@ export function useGameTableData({
     abi: [GameTableChanged],
     eventName: "GameTableChanged",
     onLogs: () => {
-      refreshAllDataRef.current?.();
+      refetchDataRef.current?.();
     },
     onError: error => {
       console.error("Error watching GameTableChanged event:", error);
@@ -158,9 +135,9 @@ export function useGameTableData({
       playerData: isValidPlayer ? validPlayerData : undefined,
       allPlayers: allPlayersData as Player[] | undefined,
       tableInfo: tableInfo as GameTable | undefined,
-      refreshData: refreshAllData,
+      myRoomCardNfts: myRoomCardNfts as any[],
+      refreshData: refetchData,
     }),
-    [validPlayerData, allPlayersData, tableInfo, refreshAllData]
+    [validPlayerData, allPlayersData, tableInfo, refetchData],
   );
 }
-

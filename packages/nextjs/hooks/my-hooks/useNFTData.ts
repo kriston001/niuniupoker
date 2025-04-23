@@ -5,6 +5,7 @@ import { RoomCardPurchased, getActiveCardTypes, getUserRoomCards } from "~~/cont
 import { RoomLevelPurchased, getActiveLevelTypes, getUserLevelDetails } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
+import { convertToMyRoomCardNft, convertToMyRoomLevelNft } from "~~/lib/utils";
 
 /**
  * 获取NFT信息的钩子
@@ -13,7 +14,6 @@ import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftTyp
  * 使用多种策略保持数据的实时性：
  * 1. 事件监听：监听合约事件，当事件触发时刷新数据
  * 2. 手动刷新：提供刷新函数，可以在需要时手动刷新数据
- * 3. 定时刷新：定期刷新数据，作为备份机制
  *
  * @param playerAddress 玩家地址
  * @returns NFT数据和操作函数
@@ -42,21 +42,7 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
   });
   // 解析合约返回的数组
   const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? (myRoomCardNftsRaw[1] as RoomCardNftDetail[]) : [];
-
-  if (myRoomCardNfts) {
-    for (const nft of myRoomCardNfts) {
-      const exist = myNfts.find(mynft => mynft.type == "room-card" && mynft.nftType.id === nft.nftType.id);
-      if (exist) {
-        exist.quantity += 1;
-      } else {
-        myNfts.push({
-          type: "room-card",
-          nftType: nft.nftType,
-          quantity: 1,
-        });
-      }
-    }
-  }
+  myNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
 
   const { data: roomLevelTypesRaw, refetch: refetchRoomLevelTypes } = useReadContract({
     address: gameConfig?.roomLevelAddress,
@@ -78,22 +64,7 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
   });
   // 解析合约返回的数组
   const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? (myRoomLevelNftsRaw[1] as RoomLevelNftDetail[]) : [];
-
-  if (myRoomLevelNfts) {
-    for (const nft of myRoomLevelNfts) {
-      const exist = myNfts.find(mynft => mynft.type == "room-level" && mynft.nftType.id === nft.nftType.id);
-      if (exist) {
-        exist.quantity += 1;
-      } else {
-        myNfts.push({
-          type: "room-level",
-          nftType: nft.nftType,
-          quantity: 1,
-        });
-      }
-    }
-  }
-
+  myNfts.push(...convertToMyRoomLevelNft(myRoomLevelNfts));
 
   // 刷新所有数据
   const refreshData = async () => {
@@ -107,7 +78,6 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
       ]);
     } catch (err) {
       console.error("刷新NFT数据失败:", err);
-    } finally {
     }
   };
 

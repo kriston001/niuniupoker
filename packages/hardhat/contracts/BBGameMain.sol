@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BBErrors.sol";
 
 
 import "./BBTypes.sol";
@@ -123,11 +122,11 @@ contract BBGameMain is
         uint8 bankerFeePercent
 
     ) external payable nonReentrant {
-        if (paused()) revert ContractPaused();
-        if (betAmount == 0) revert BetAmountTooSmall();
-        if (tableMaxPlayers <= 1 || tableMaxPlayers > maxPlayers) revert InvalidMaxPlayers();
-        if (bankerFeePercent > maxBankerFeePercent) revert InvalidBankerFeePercent();
-        if (bytes(tableName).length == 0 || bytes(tableName).length > 20) revert InvalidTableName();
+        require(!paused(), "Contract paused");
+        require(betAmount != 0, "Bet amount too small");
+        require(tableMaxPlayers > 1 && tableMaxPlayers <= maxPlayers, "Invalid max players");
+        require(bankerFeePercent <= maxBankerFeePercent, "Invalid banker fee percent");
+        require(bytes(tableName).length > 0 && bytes(tableName).length <= 20, "Invalid table name");
 
         // 将玩家的房间数量加1
         userCreatedRoomsCount[msg.sender]++;
@@ -135,11 +134,11 @@ contract BBGameMain is
         uint256 createdRooms = getUserCreatedRoomsCount(msg.sender);
         // 验证用户的房间等级和已创建的房间数量
         if (createdRooms > maxRoomCount) {
-            if (roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
+            require(roomLevelAddress != address(0), "Invalid room level address");
 
             // 验证用户是否拥有房间等级
             BBRoomLevelNFT roomLevel = BBRoomLevelNFT(payable(roomLevelAddress));
-            if (!roomLevel.hasNft(msg.sender)) revert RoomLevelRequired();
+            require(roomLevel.hasNft(msg.sender), "Room level required");
 
             // 获取用户等等级NFT可创建的房间总数
             uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
@@ -148,17 +147,17 @@ contract BBGameMain is
             if (createdRooms > maxRooms + maxRoomCount) {
                 // 如果超过上限，先将计数减回去，再抛出错误
                 userCreatedRoomsCount[msg.sender]--;
-                revert RoomLevelLimitExceeded();
+                require(false, "room level limit exceeded");
             }
         }
 
         
 
         // 检查游戏桌工厂地址是否设置
-        if (gameTableFactoryAddress == address(0)) revert InvalidGameTableFactoryAddress();
+        require(gameTableFactoryAddress != address(0), "Invalid game table factory address");
 
         // 检查随机数管理器地址是否设置
-        if (randomnessManagerAddress == address(0)) revert InvalidAddress();
+        require(randomnessManagerAddress != address(0), "Invalid randomness manager address");
 
         // 使用工厂合约创建游戏桌
         IGameTableFactory factory = IGameTableFactory(gameTableFactoryAddress);
@@ -232,11 +231,11 @@ contract BBGameMain is
         uint256 _tableInactiveTimeout,
         uint8 _liquidatorFeePercent
     ) external onlyOwner {
-        if (_maxPlayers <= 1) revert MaxPlayersTooSmall();
-        if (_maxBankerFeePercent == 0) revert BankerFeePercentMustBePositive();
-        if (_playerTimeout == 0) revert PlayerTimeoutMustBePositive();
-        if (_tableInactiveTimeout == 0) revert TableInactiveTimeoutMustBePositive();
-        if (_liquidatorFeePercent == 0) revert InvalidLiquidatorFeePercent();
+        require(_maxPlayers > 1, "Invalid max players");
+        require(_maxBankerFeePercent != 0 && _maxBankerFeePercent < 100, "Banker fee percent must be positive");
+        require(_playerTimeout != 0, "Player timeout must be positive");
+        require(_tableInactiveTimeout != 0, "Table inactive timeout must be positive");
+        require(_liquidatorFeePercent != 0 && _liquidatorFeePercent < 100, "Invalid liquidator fee percent");
 
         maxPlayers = _maxPlayers;
         maxBankerFeePercent = _maxBankerFeePercent;
@@ -250,7 +249,7 @@ contract BBGameMain is
      * @param _roomCardAddress 房卡合约地址
      */
     function setRoomCardAddress(address _roomCardAddress) external onlyOwner {
-        if (_roomCardAddress == address(0)) revert InvalidRoomCardContract();
+        require(_roomCardAddress != address(0), "Invalid room card contract");
         roomCardAddress = _roomCardAddress;
     }
 
@@ -342,7 +341,7 @@ contract BBGameMain is
 
     // 添加一个内部函数来获取游戏桌信息
     function _getTableInfo(address tableAddr) internal view returns (GameTableView memory) {
-        if (tableAddr == address(0) || gameTables[tableAddr] == address(0)) revert TableDoesNotExist();
+        require(tableAddr != address(0) && gameTables[tableAddr] != address(0), "Table does not exist");
         IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
         return gameTable.getTableInfo();
     }
@@ -354,7 +353,7 @@ contract BBGameMain is
 
     //设置奖励池合约地址
     function setRewardPoolAddress(address _rewardPoolAddress) external onlyOwner nonReentrant{
-        if (_rewardPoolAddress == address(0)) revert InvalidRewardPoolAddress();
+        require(_rewardPoolAddress != address(0), "Invalid reward pool address");
         rewardPoolAddress = _rewardPoolAddress;
     }
 
@@ -375,7 +374,7 @@ contract BBGameMain is
      * @param _gameTableFactoryAddress 游戏桌工厂合约地址
      */
     function setGameTableFactoryAddress(address _gameTableFactoryAddress) external onlyOwner nonReentrant {
-        if (_gameTableFactoryAddress == address(0)) revert InvalidAddress();
+        require(_gameTableFactoryAddress != address(0), "Invalid game table factory address");
         gameTableFactoryAddress = _gameTableFactoryAddress;
     }
 
@@ -384,7 +383,7 @@ contract BBGameMain is
      * @param _randomnessManagerAddress 随机数管理器地址
      */
     function setRandomnessManagerAddress(address _randomnessManagerAddress) external onlyOwner nonReentrant {
-        if (_randomnessManagerAddress == address(0)) revert InvalidAddress();
+        require(_randomnessManagerAddress != address(0), "Invalid randomness manager address");
         randomnessManagerAddress = _randomnessManagerAddress;
     }
 
@@ -394,7 +393,7 @@ contract BBGameMain is
      * @param _roomLevelAddress 房间等级合约地址
      */
     function setRoomLevelAddress(address _roomLevelAddress) external onlyOwner nonReentrant {
-        if (_roomLevelAddress == address(0)) revert InvalidRoomLevelAddress();
+        require(_roomLevelAddress != address(0), "Invalid room level address");
         roomLevelAddress = _roomLevelAddress;
     }
 

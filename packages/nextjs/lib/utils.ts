@@ -3,7 +3,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { formatEther } from "viem";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
+import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -143,4 +143,42 @@ export function convertCardNumber(cardNumber: number) {
     value: displayValue,
     suit: suits[suitIndex],
   };
+}
+
+export function convertToMyRoomCardNft(nfts: RoomCardNftDetail[]) {
+  const myNfts: any[] = [];
+  for (const nft of nfts) {
+    const exist = myNfts.find(mynft => mynft.type == "room-card" && mynft.nftType.id === nft.nftType.id);
+    if (exist) {
+      exist.quantity += 1;
+      exist.tokenIds.push(nft.tokenId);
+    } else {
+      myNfts.push({
+        type: "room-card",
+        nftType: nft.nftType,
+        tokenIds: [],
+        quantity: 1,
+      });
+    }
+  }
+  return myNfts;
+}
+
+export function convertToMyRoomLevelNft(nfts: RoomLevelNftDetail[]) {
+  const myNfts: any[] = [];
+  for (const nft of nfts) {
+    const exist = myNfts.find(mynft => mynft.type == "room-level" && mynft.nftType.id === nft.nftType.id);
+    if (exist) {
+      exist.quantity += 1;
+      exist.tokenIds.push(nft.tokenId);
+    } else {
+      myNfts.push({
+        type: "room-level",
+        nftType: nft.nftType,
+        tokenIds: [],
+        quantity: 1,
+      });
+    }
+  }
+  return myNfts;
 }

@@ -24,13 +24,6 @@ contract BBRoomLevelNFT is
     using Strings for uint256;
 
     
-
-    // Level details structure for returning comprehensive information
-    struct NftDetail {
-        uint256 tokenId;         // Level token ID
-        RoomLevelNftType nftType;     // Level type information
-    }
-
     // Used to generate unique token IDs
     uint256 private _tokenIdCounter;
 
@@ -333,21 +326,21 @@ contract BBRoomLevelNFT is
      */
     function getUserNfts(address userAddress) external view returns (
         bool has,
-        NftDetail[] memory details,
+        RoomLevelNftDetail[] memory details,
         uint256 totalMaxRooms
     ) {
         has = balanceOf(userAddress) > 0;
 
         if (has) {
             uint256 balance = balanceOf(userAddress);
-            details = new NftDetail[](balance);
+            details = new RoomLevelNftDetail[](balance);
 
             totalMaxRooms = 0;
             for (uint256 i = 0; i < balance; i++) {
                 uint256 tokenId = tokenOfOwnerByIndex(userAddress, i);
                 uint256 nftTypeId = tokenNftTypes[tokenId];
                 
-                details[i] = NftDetail({
+                details[i] = RoomLevelNftDetail({
                     tokenId: tokenId,
                     nftType: nftTypes[nftTypeId]
                 });
@@ -355,7 +348,7 @@ contract BBRoomLevelNFT is
                 totalMaxRooms += nftTypes[nftTypeId].maxRooms;
             }
         } else {
-            details = new NftDetail[](0);
+            details = new RoomLevelNftDetail[](0);
             totalMaxRooms = 0;
         }
 

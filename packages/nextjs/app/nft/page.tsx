@@ -105,7 +105,6 @@ export default function NFTPage() {
       });
     } catch (error) {
       console.error("Mint失败:", error);
-    } finally {
     }
   };
 

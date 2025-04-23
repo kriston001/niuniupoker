@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./BBErrors.sol";
 import "./BBCardUtils.sol";
 import "./BBPlayer.sol";
 import "./BBTypes.sol";
@@ -104,7 +103,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         _transferOwnership(_gameMainAddr);
 
         // 参数验证
-        if (_maxPlayers < 2) revert InvalidMaxPlayers();
+        require(_maxPlayers >= 2, "Invalid max players");
 
         active = true;
         tableId = _tableId;
@@ -163,7 +162,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 修饰器：适用于庄家
      */
     modifier onlyBanker() {
-        if (msg.sender != bankerAddr) revert NotBanker();
+        require(msg.sender == bankerAddr, "not banker");
         _;
     }
 
@@ -180,7 +179,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      */
     modifier onlyNotBanker() {
         (, BBPlayer storage player) = _getPlayer(msg.sender);
-        if (msg.sender == bankerAddr) revert PlayerNotFound();
+        require(msg.sender != bankerAddr, "Not normal player");
         _;
     }
 
@@ -188,7 +187,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 修饰器：只允许游戏主合约调用
      */
     modifier onlyGameMain() {
-        if (msg.sender != gameMainAddr) revert OnlyMainContractCanCall();
+        require(msg.sender == gameMainAddr, "only main contract can call");
         _;
     }
 
@@ -197,13 +196,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @param poolId 奖励池ID
      */
     function setTableRewardPool(uint256 poolId) external onlyBanker nonReentrant {
-        if(rewardPoolAddr == address(0)) revert InvalidRewardPoolAddress();
+        require(rewardPoolAddr != address(0), "Invalid reward pool address");
+        bool isBankerPool = IRewardPool(rewardPoolAddr).isBankerPool(bankerAddr, poolId);
+        require(isBankerPool, "poolId is not your pool");
 
-        if(IRewardPool(rewardPoolAddr).isBankerPool(bankerAddr, poolId)){
-            rewardPoolId = poolId;
-        }else{
-            revert NotPoolOwner();
-        }
+        rewardPoolId = poolId;
     }
 
     /**
@@ -251,7 +248,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
                 return i;
             }
         }
-        revert PlayerNotFound();
+        require(false, "Player not found");
     }
 
     function _getPlayer(address playerAddr) internal view returns (uint8 index, BBPlayer storage) {
@@ -292,9 +289,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      */
     function playerJoin() external nonReentrant {
         address playerAddr = msg.sender;
-        if(_isPlayerExists(playerAddr)) revert PlayerAlreadyJoined();
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
-        if (playerCount >= maxPlayers) revert MaxPlayersReached();
+        require(!_isPlayerExists(playerAddr), "Player already joined");
+        require(state == GameState.WAITING, "Game not in waiting state");
+        require(playerCount < maxPlayers, "Max players reached");
 
         _addPlayer(playerAddr);
 
@@ -307,11 +304,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家准备
      */
     function playerReady() external payable onlyPlayers nonReentrant {
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
+        require(state == GameState.WAITING, "Game not in waiting state");
         address playerAddr = msg.sender;
         (, BBPlayer storage player) = _getPlayer(playerAddr);
-        if (player.state != PlayerState.JOINED) revert InvalidPlayerState();
-        if (msg.value != betAmount) revert InsufficientFunds();
+        require(player.state == PlayerState.JOINED, "Player not in joined state");
+        require(msg.value == betAmount, "Insufficient funds");
 
         player.initialBet = betAmount;
         totalPrizePool += betAmount;
@@ -328,10 +325,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家取消准备
      */
     function playerUnready() external payable onlyPlayers nonReentrant {
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
+        require(state == GameState.WAITING, "Game not in waiting state");
         address playerAddr = msg.sender;
         (, BBPlayer storage player) = _getPlayer(playerAddr);
-        if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
+        require(player.state == PlayerState.READY, "Player not in ready state");
 
         totalPrizePool -= betAmount;
         playerReadyCount--;
@@ -343,7 +340,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         // 返还押金给玩家 - 使用更安全的 call 方法而不是 transfer
         (bool success, ) = payable(playerAddr).call{value: betAmount}("");
-        if (!success) revert TransferFailed();
+        require(success, "transfer failed");
 
         emit GameTableChanged(address(this));
     }
@@ -352,10 +349,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家退出游戏
      */
     function playerQuit() external payable onlyNotBanker nonReentrant {
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
+        require(state == GameState.WAITING, "Game not in waiting state");
         address playerAddr = msg.sender;
         (uint8 playerIndex, BBPlayer storage player) = _getPlayer(playerAddr);
-        if (player.state != PlayerState.JOINED || player.state != PlayerState.READY) revert InvalidPlayerState();
+        require(player.state == PlayerState.JOINED || player.state == PlayerState.READY, "Player not in JOINED or READY state");
 
         // 先保存需要返还的金额
         uint256 amountToReturn = player.initialBet;
@@ -366,7 +363,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         if(amountToReturn > 0){
             //返还押金
             (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
-            if (!success) revert TransferFailed();
+            require(success, "transfer failed");
         }
 
         _updateLastActivity();
@@ -378,8 +375,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 庄家移除玩家
      */
     function bankerRemovePlayer(address playerAddr) external onlyBanker nonReentrant {
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
-        if (playerAddr == bankerAddr) revert NotBanker();
+        require(state == GameState.WAITING, "Game not in waiting state");
+        require(playerAddr != bankerAddr, "Can not remove banker");
         (uint8 playerIndex, BBPlayer storage player) = _getPlayer(playerAddr);
 
 
@@ -397,7 +394,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 最后进行转账
         if(amountToReturn > 0){
             (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
-            if (!success) revert TransferFailed();
+            require(success, "transfer failed");
         }
 
 
@@ -408,27 +405,24 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 刷新游戏数据
         refreshConfig();
 
-        if (roomCardId == 0) revert InvalidRoomCardParams();
-        if (roomCardAddr == address(0)) revert InvalidRoomCardContract();
-        if (playerReadyCount != playerCount) revert NotAllPlayersReady();
-        if (state != GameState.WAITING) revert GameNotInWaitingState();
-        if (playerCount < 2) revert NotEnoughPlayers();
+        require(roomCardId != 0, "Invalid room card params");
+        require(roomCardAddr != address(0), "Invalid room card contract");
+        require(playerReadyCount == playerCount, "Not all players ready");
+        require(state == GameState.WAITING, "Game not in waiting state");
+        require(playerCount >= 2, "Not enough players");
 
         // 庄家需要押金
-        if (msg.value != betAmount) revert InsufficientFunds();
+        require(msg.value == betAmount, "Insufficient funds");
 
         //验证房卡
         IRoomCardNFT roomCard = IRoomCardNFT(roomCardAddr);
-        if (!roomCard.validateParams(roomCardId, playerCount)) revert InvalidRoomCardParams();
+        require(roomCard.validateParams(roomCardId, playerCount), "Invalid room card params");
  
         // 消耗房卡
-        try roomCard.consume(msg.sender, roomCardId) {
-            // 房卡消耗成功
-        } catch {
-            revert RoomCardConsumptionFailed();
-        }
+        roomCard.consume(msg.sender, roomCardId);
         
-        if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
+        
+        require(randomnessManagerAddr != address(0), "Invalid randomness manager address");
 
         IRandomnessManager randomnessMgr = IRandomnessManager(randomnessManagerAddr);
 
@@ -445,8 +439,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function _resetGame() internal {
-        if (state != GameState.ENDED) revert GameNotEnded();
-        if (block.timestamp < gameEndTimestamp + 20) revert GameNotTimeToReset();   //20秒后才能重新开局
+        require(state == GameState.ENDED, "Game not ended");
+        require(block.timestamp > gameEndTimestamp + 20, "Game not time to reset");   //20秒后才能重新开局
 
         playerContinuedCount = 0;
         playerFoldCount = 0;
@@ -493,9 +487,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @param commitment 提交的哈希值
      */
     function commitRandom(bytes32 commitment) external onlyPlayers nonReentrant {
-        if (state != GameState.COMMITTING) revert GameNotInPlayingState();
-        if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
-        if (block.timestamp > currentRoundDeadline) revert ActionTimeOut();
+        require(state == GameState.COMMITTING, "Game not in committing state");
+        require(randomnessManagerAddr != address(0), "Invalid randomness manager address");
+        require(block.timestamp <= currentRoundDeadline, "Action time out");
+
 
         // 调用随机数管理合约提交随机数
         IRandomnessManager(randomnessManagerAddr).commitRandom(msg.sender, commitment);
@@ -510,9 +505,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @param salt 盐值
      */
     function revealRandom(uint256 randomValue, bytes32 salt) external onlyPlayers nonReentrant {
-        if (state != GameState.REVEALING) revert GameNotInPlayingState();
-        if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
-        if (block.timestamp > currentRoundDeadline) revert ActionTimeOut();
+        require(state == GameState.REVEALING, "Game not in revealing state");
+        require(randomnessManagerAddr != address(0), "Invalid randomness manager address");
+        require(block.timestamp <= currentRoundDeadline, "Action time out");
 
         // 调用随机数管理合约揭示随机数
         IRandomnessManager(randomnessManagerAddr).revealRandom(msg.sender, randomValue, salt);
@@ -525,8 +520,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 检查提交阶段状态，如果所有玩家都已提交或超时，进入揭示阶段
      */
     function _startReveal() internal {
-        if (state != GameState.COMMITTING) revert GameNotInPlayingState();
-        if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
+        require(state == GameState.COMMITTING, "Game not in committing state");
+        require(randomnessManagerAddr != address(0), "Invalid randomness manager address");
 
         uint256 deadline = IRandomnessManager(randomnessManagerAddr).startReveal();
 
@@ -566,8 +561,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 检查揭示阶段状态，如果所有玩家都已揭示或超时，完成会话并进入下注阶段
      */
     function _startFirstBetting() internal {
-        if (state != GameState.REVEALING) revert GameNotInPlayingState();
-        if (randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
+        require(state == GameState.REVEALING, "Game not in revealing state");
+        require(randomnessManagerAddr != address(0), "Invalid randomness manager address");
 
         // 完成随机数会话并获取最终随机种子
         uint256 finalSeed = IRandomnessManager(randomnessManagerAddr).completeSession();
@@ -589,7 +584,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     
 
     function _startSecondBetting() internal {
-        if (state!= GameState.FIRST_BETTING) revert GameNotInPlayingState();
+        require(state == GameState.FIRST_BETTING, "Game not in first betting state");
 
         if(playerFoldCount >= playerCount - 1){
             //所有玩家都弃牌，则进入结算
@@ -615,13 +610,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
                 setState(GameState.ENDED);
                 _settleGame();
             }
-        }else{
-            revert GameNotInPlayingState();
         }
     }
 
     function _endGame() internal {
-        if (state != GameState.SECOND_BETTING) revert GameNotInPlayingState();
+        require(state == GameState.SECOND_BETTING, "Game not in second betting state");
 
         if(playerFoldCount >= playerCount - 1){
             //所有玩家都弃牌，则进入结算
@@ -673,20 +666,20 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家弃牌
      */
     function playerFold() external onlyPlayers nonReentrant{
-        if (state != GameState.FIRST_BETTING && state != GameState.SECOND_BETTING) revert GameNotInPlayingState();
+        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state");
         address playerAddr = msg.sender;
 
         // 检查是否超时
-        if (_isTimeOut()) revert ActionTimeOut();
+        require(!_isTimeOut(), "action timeout");
 
         (, BBPlayer storage player) = _getPlayer(playerAddr);
 
         if(state == GameState.FIRST_BETTING){
             // 第一轮弃牌
-            if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
+            require(player.state == PlayerState.READY, "Player not in ready state");
         }else{
             // 第二轮弃牌
-            if (player.state != PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
+            require(player.state == PlayerState.FIRST_CONTINUED, "Player not in first continued state");
         }
 
         _updateLastActivity();
@@ -701,21 +694,21 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家继续游戏
      */
     function playerContinue() external payable onlyPlayers nonReentrant{
-        if (state != GameState.FIRST_BETTING && state != GameState.SECOND_BETTING) revert GameNotInPlayingState();
+        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state");
         address playerAddr = msg.sender;
-        if (msg.value != betAmount) revert InsufficientFunds();
+        require(msg.value == betAmount, "Insufficient funds");
 
         // 检查是否超时
-        if (_isTimeOut()) revert ActionTimeOut();
+        require(!_isTimeOut(), "action timeout");
 
         (, BBPlayer storage player) = _getPlayer(playerAddr);
 
         if(state == GameState.FIRST_BETTING){
             // 第一轮继续
-            if (player.state != PlayerState.READY) revert PlayerNotInReadyState();
+            require(player.state == PlayerState.READY, "Player not in ready state");
         }else{
             // 第二轮继续
-            if (player.state != PlayerState.FIRST_CONTINUED) revert InvalidPlayerState();
+            require(player.state == PlayerState.FIRST_CONTINUED, "Player not in first continued state");
         }
 
         player.playerContinue(betAmount);
@@ -728,7 +721,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function _gameTimeout() internal view returns (bool)  {
-        if (state!= GameState.COMMITTING && state!= GameState.REVEALING && state!= GameState.FIRST_BETTING && state!= GameState.SECOND_BETTING) revert GameNotInPlayingState(); 
+        require(state == GameState.COMMITTING || state == GameState.REVEALING || state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state"); 
 
         // 检查是否超时
         return block.timestamp > lastActivityTimestamp + tableInactiveTimeout;
@@ -738,13 +731,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家结算游戏，如果庄家没结算的话
      */
     function playerSettle() external payable onlyPlayers nonReentrant{
-        require(_gameTimeout(), "GameTimeout");
+        require(_gameTimeout(), "Game not timeout");
 
         _settleGame();
     }
 
     function _settleGame() internal {
-        if (state != GameState.ENDED) revert GameNotInEndedState();
+        require(state == GameState.ENDED, "game not in ended state");
         gameEndTimestamp = block.timestamp;
 
         // 计算费用
@@ -767,7 +760,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 统一处理庄家费用转账
         if (bankerFee > 0) {
             (bool success, ) = payable(bankerAddr).call{value: bankerFee}("");
-            if (!success) revert TransferFailed();
+            require(success, "transfer to banker failed");
         }
 
         // 如果设置了奖励池，尝试分配奖励
@@ -819,7 +812,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 将剩余奖池给获胜者
         if (continuedPlayer != address(0)) {
             (bool success, ) = payable(continuedPlayer).call{value: remainingPrizePool}("");
-            if (!success) revert TransferFailed();
+            require(success, "transfer to winners failed");
         }
 
         emit CreateGameHistory(address(this), gameRound, gameStartTimestamp, gameEndTimestamp, playerAddresses, winnerAddrs, playerBets, playerCards);
@@ -862,7 +855,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 返还每个玩家的押注
         for (uint i = 0; i < refundCount; i++) {
             (bool success, ) = payable(refundAddresses[i]).call{value: refundAmounts[i]}("");
-            if (!success) revert TransferFailed();
+            require(success, "refund failed");
         }
 
         emit CreateGameHistory(address(this), gameRound, gameStartTimestamp, gameEndTimestamp, playerAddresses, winnerAddrs, playerBets, playerCards);
@@ -933,14 +926,14 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             for (uint i = 0; i < winnerCount; i++) {
                 address winnerAddr = winnerAddrs[i];
                 (bool success, ) = payable(winnerAddr).call{value: prizePerWinner}("");
-                if (!success) revert TransferFailed();
+                require(success, "transfer to winners failed");
             }
 
             // 处理可能的舍入误差，将剩余的少量奖金给第一个获胜者
             uint256 remainingPrize = remainingPrizePool - (prizePerWinner * winnerCount);
             if (remainingPrize > 0) {
                 (bool success, ) = payable(winnerAddrs[0]).call{value: remainingPrize}("");
-                if (!success) revert TransferFailed();
+                require(success, "transfer to winners failed");
             }
         }
 
@@ -1014,9 +1007,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      */
     function liquidateInactiveTable() external onlyPlayers nonReentrant {
         // 检查游戏桌是否超时
-        if (block.timestamp <= lastActivityTimestamp + tableInactiveTimeout) revert TableNotInactive();
-        if (msg.sender == bankerAddr) revert BankerCannotLiquidate();
-        if (state != GameState.COMMITTING || state != GameState.REVEALING || state != GameState.SECOND_BETTING || state != GameState.SECOND_BETTING) revert TableNotInBetting();
+        require(block.timestamp > lastActivityTimestamp + tableInactiveTimeout, "Table not inactive");
+        require(msg.sender != bankerAddr, "Banker cannot liquidate");
+        require(state == GameState.COMMITTING || state == GameState.REVEALING || state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Table not in gaming");
 
         // 计算庄家的押金，庄家每局不管玩不玩都需要押金
         uint256 bankerBet = betAmount;
@@ -1102,12 +1095,12 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 然后进行其他转账
         for (uint i = 0; i < paymentCount; i++) {
             (bool otherSuccess, ) = payable(paymentAddresses[i]).call{value: paymentAmounts[i]}("");
-            if (!otherSuccess) revert TransferFailed();
+            require(otherSuccess, "transfer to players failed");
         }
 
         // 支付清算人奖励
         (bool liquidatorSuccess, ) = payable(msg.sender).call{value: liquidatorReward}("");
-        if (!liquidatorSuccess) revert TransferFailed();
+        require(liquidatorSuccess, "transfer to liquidator failed");
 
         emit GameTableChanged(address(this));
     }
@@ -1199,7 +1192,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @param _randomnessManagerAddr 随机数管理器地址
      */
     function setRandomnessManagerAddress(address _randomnessManagerAddr) external onlyGameMain {
-        if (_randomnessManagerAddr == address(0)) revert InvalidRandomnessManagerAddress();
+        require(_randomnessManagerAddr != address(0), "Invalid randomness manager address");
         randomnessManagerAddr = _randomnessManagerAddr;
     }
 

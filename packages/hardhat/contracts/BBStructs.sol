@@ -50,6 +50,12 @@ struct RoomCardNftType {
     uint256[10] __gap;
 }
 
+// 定义卡片详细信息结构体
+struct RoomCardNftDetail {
+    uint256 tokenId;       // 卡片的token ID
+    RoomCardNftType nftType;     // 继承CardType的所有属性
+}
+
 // Room level structure
 struct RoomLevelNftType {
     uint256 id;              // Unique identifier for the level type
@@ -63,6 +69,12 @@ struct RoomLevelNftType {
     string rarity;           // Rarity of this level type
 
     uint256[10] __gap;
+}
+
+// Level details structure for returning comprehensive information
+struct RoomLevelNftDetail {
+    uint256 tokenId;         // Level token ID
+    RoomLevelNftType nftType;     // Level type information
 }
 
 // 添加一个新的结构体用于返回游戏桌信息

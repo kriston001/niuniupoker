@@ -1,0 +1,156 @@
+import { useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ArrowLeft,
+  Ban,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Coins,
+  Gift,
+  Info,
+  MessageSquare,
+  MinusCircle,
+  PhoneCall,
+  PlayCircle,
+  RefreshCw,
+  Send,
+  Shuffle,
+  TrendingUp,
+  Trophy,
+  Users,
+  Wallet,
+  X,
+} from "lucide-react";
+import { GameState, GameTable, Player, PlayerState } from "~~/types/game-types";
+
+interface PlayerControlsPanelProps {
+  tableInfo: GameTable;
+  playerInfo?: Player;
+  onJoinGameClick?: () => void;
+  onReadyClick?: () => void;
+  onUnreadyClick?: () => void;
+  onLeaveClick?: () => void;
+  onContinueClick?: () => void;
+  onFoldClick?: () => void;
+}
+
+export function PlayerControlsPanel({
+  tableInfo,
+  playerInfo,
+  onJoinGameClick,
+  onReadyClick,
+  onUnreadyClick,
+  onLeaveClick,
+  onContinueClick,
+  onFoldClick,
+}: PlayerControlsPanelProps) {
+  return (
+    <div>
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-zinc-400">Actions</h4>
+        <div className="flex flex-col gap-3">
+          {tableInfo.state == GameState.WAITING && (
+            <div>
+              {!playerInfo && (
+                <Button
+                  size="lg"
+                  onClick={() => onJoinGameClick?.()}
+                  className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Join Game
+                </Button>
+              )}
+
+              {playerInfo && (
+                <div>
+                  {playerInfo.state === PlayerState.JOINED && (
+                    <Button
+                      size="lg"
+                      onClick={() => onReadyClick?.()}
+                      className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                    >
+                      <CheckCircle2 className="mr-2 h-5 w-5" />
+                      Ready
+                    </Button>
+                  )}
+
+                  {playerInfo.state === PlayerState.READY && (
+                    <Button
+                      size="lg"
+                      onClick={() => onUnreadyClick?.()}
+                      className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                    >
+                      <CheckCircle2 className="mr-2 h-5 w-5" />
+                      Unready
+                    </Button>
+                  )}
+
+                  <Button
+                    size="lg"
+                    onClick={() => onLeaveClick?.()}
+                    className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                  >
+                    <CheckCircle2 className="mr-2 h-5 w-5" />
+                    Leave
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tableInfo.state == GameState.FIRST_BETTING && playerInfo && playerInfo.state == PlayerState.READY && (
+            <div>
+              <Button
+                size="lg"
+                onClick={() => onContinueClick?.()}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                Call
+              </Button>
+
+              <Button
+                size="lg"
+                onClick={() => onFoldClick?.()}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                Fold
+              </Button>
+            </div>
+          )}
+
+          {tableInfo.state == GameState.SECOND_BETTING &&
+            playerInfo &&
+            playerInfo.state == PlayerState.FIRST_CONTINUED && (
+              <div>
+                <Button
+                  size="lg"
+                  onClick={() => onContinueClick?.()}
+                  className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Call
+                </Button>
+
+                <Button
+                  size="lg"
+                  onClick={() => onFoldClick?.()}
+                  className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Fold
+                </Button>
+              </div>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+}

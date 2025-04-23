@@ -1,13 +1,22 @@
 import { HandResultDisplay } from "@/components/hand-result-display";
 import { CardSuit, CardValue, PokerCard } from "@/components/poker-card";
 import { convertCardNumber, truncateAddress } from "@/lib/utils";
-import { Player, PlayerState } from "@/types/game-types";
+import { CardType, Player, PlayerState } from "@/types/game-types";
 
 export function PlayerInfo({ player, isBanker, isSelf }: { player: Player; isBanker: boolean; isSelf: boolean }) {
   return (
     <div>
       {/* Hand result display with visual effects */}
-      {player.cardType && <HandResultDisplay result={player.cardType} className="translate-y-[-3rem]" />}
+      {player.cardType != CardType.NONE && (
+        <HandResultDisplay result={player.cardType} className="translate-y-[-3rem]" />
+      )}
+
+      {/* Ready indicator */}
+      {player.state === PlayerState.READY && (
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-1.5 rounded-full backdrop-blur-sm font-bold text-lg transition-all duration-500 text-emerald-300 bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.5)] translate-y-[-3rem]">
+          Ready
+        </div>
+      )}
 
       <div
         className={`
@@ -29,6 +38,7 @@ export function PlayerInfo({ player, isBanker, isSelf }: { player: Player; isBan
                 return (
                   <PokerCard
                     key={cardIndex}
+                    hidden={cardValue === 0}
                     suit={card.suit as CardSuit}
                     value={card.value as CardValue}
                     className="absolute transition-all duration-200 hover:translate-y-[-5px]"
@@ -84,7 +94,3 @@ export function PlayerInfo({ player, isBanker, isSelf }: { player: Player; isBan
     </div>
   );
 }
-
-
-
-

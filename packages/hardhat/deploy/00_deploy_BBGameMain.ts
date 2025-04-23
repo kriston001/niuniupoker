@@ -211,6 +211,13 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   );
   newDeployedAddresses["BBRoomLevelNFT"] = bbRoomLevelNFT.address;
 
+  // 部署Multicall3合约
+  const multicall3 = await deploy("Multicall3", {
+    from: deployer,
+    log: true,
+  });
+  newDeployedAddresses["Multicall3"] = multicall3.address;
+
   // 部署或获取BBRewardPool合约
   const bbRewardPool = await deployOrUpgrade(hre, "BBRewardPool", [bbGameMain.address], deployer);
   newDeployedAddresses["BBRewardPool"] = bbRewardPool.address;
