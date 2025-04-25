@@ -135,7 +135,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const maxRoomCount = 10; // 最大房间数
   const maxBankerFeePercent = 20; // 庄家手续费百分比
   const liquidatorFeePercent = 5; // 清算员手续费百分比
-  const playerTimeout = 180; // 玩家超时时间，单位为秒
+  const playerTimeout = 1800; // 玩家超时时间，单位为秒
   const tableInactiveTimeout = 1200; // 桌子空闲超时时间，单位为秒，这里是20分钟
 
   // 用于存储本次部署的合约地址

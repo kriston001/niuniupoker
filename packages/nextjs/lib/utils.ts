@@ -1,9 +1,9 @@
-import { GameState, GameTable, PlayerCard, getCardTypeName } from "@/types/game-types";
+import { GameState, GameTable, PlayerCard, PlayerState, getCardTypeName } from "@/types/game-types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { formatEther } from "viem";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
+import { Player, RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -38,29 +38,69 @@ export function getPlayerCardTypeName(playerAddr: string, cardsData: PlayerCard[
   }
 }
 
-export function checkNext(tableInfo: GameTable): { b: boolean; name: string } {
+export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
+  if (player.state == PlayerState.FIRST_FOLDED || player.state == PlayerState.SECOND_FOLDED) {
+    return "Folded";
+  }
+  switch (tableInfo.state) {
+    case GameState.WAITING:
+      return player.state == PlayerState.READY ? "Ready" : "";
+    case GameState.COMMITTING:
+      return player.state == PlayerState.COMMITTED ? "Committed" : "";
+    case GameState.REVEALING:
+      return player.state == PlayerState.REVEALED ? "Revealed" : "";
+    case GameState.FIRST_BETTING:
+      return player.state == PlayerState.FIRST_CONTINUED ? "Raised" : "";
+    case GameState.SECOND_BETTING:
+      return player.state == PlayerState.SECOND_CONTINUED ? "Raised" : "";
+    default:
+      return "";
+  }
+}
+
+export function checkNext(tableInfo: GameTable): { b: boolean; name: string; desc: string } {
   if (tableInfo.state == GameState.LIQUIDATED) {
-    return { b: false, name: "游戏已被清算" };
+    return { b: false, name: "Game has been liquidated", desc: "" };
   }
 
-  if (tableInfo.state == GameState.WAITING) {
-    //等待状态，人数大于一人并且都已准备，则可以开始游戏
-    if (tableInfo.playerCount >= 2 && tableInfo.playerReadyCount == tableInfo.playerCount) {
-      return { b: true, name: "开始游戏" };
+  if (
+    tableInfo.state == GameState.COMMITTING &&
+    (tableInfo.committedCount == tableInfo.playerCount || Number(tableInfo.currentRoundDeadline) * 1000 < Date.now())
+  ) {
+    return { b: true, name: "Enter Reveal", desc: "" };
+  }
+
+  if (tableInfo.state == GameState.REVEALING) {
+    if (
+      tableInfo.revealedCount == tableInfo.playerCount ||
+      Number(tableInfo.currentRoundDeadline) * 1000 < Date.now()
+    ) {
+      return { b: true, name: "Enter First Betting", desc: "" };
     } else {
-      return { b: false, name: "等待玩家准备" };
+      return { b: false, name: "Enter First Betting", desc: "Wait for all players to reveal" };
     }
-  } else if (tableInfo.state == GameState.FIRST_BETTING || tableInfo.state == GameState.SECOND_BETTING) {
+  }
+
+  if (tableInfo.state == GameState.FIRST_BETTING || tableInfo.state == GameState.SECOND_BETTING) {
+    if (tableInfo.playerFoldCount >= tableInfo.playerCount - 1) {
+      // 去结算，只有一个玩家继续或者全部弃牌
+      return { b: true, name: "Settle Game", desc: "" };
+    }
+    if (Number(tableInfo.currentRoundDeadline) * 1000 < Date.now() && tableInfo.playerContinuedCount == 0) {
+      // 超时，并且没有玩家继续
+      return { b: true, name: "Settle Game", desc: "" };
+    }
+
     //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
     if (tableInfo.playerContinuedCount + tableInfo.playerFoldCount == tableInfo.playerCount) {
-      return { b: true, name: "进入下一轮" };
+      return { b: true, name: "Next Round", desc: "" };
     } else if (Number(tableInfo.currentRoundDeadline) * 1000 < Date.now()) {
-      return { b: true, name: "进入下一轮" };
+      return { b: true, name: "Next Round", desc: "" };
     } else {
-      return { b: false, name: "等待玩家行动" };
+      return { b: false, name: "Waiting for players to act", desc: "" };
     }
   } else {
-    return { b: true, name: "重新开局" };
+    return { b: true, name: "Play Again", desc: "" };
   }
 }
 
@@ -156,7 +196,7 @@ export function convertToMyRoomCardNft(nfts: RoomCardNftDetail[]) {
       myNfts.push({
         type: "room-card",
         nftType: nft.nftType,
-        tokenIds: [],
+        tokenIds: [nft.tokenId],
         quantity: 1,
       });
     }
@@ -175,7 +215,7 @@ export function convertToMyRoomLevelNft(nfts: RoomLevelNftDetail[]) {
       myNfts.push({
         type: "room-level",
         nftType: nft.nftType,
-        tokenIds: [],
+        tokenIds: [nft.tokenId],
         quantity: 1,
       });
     }

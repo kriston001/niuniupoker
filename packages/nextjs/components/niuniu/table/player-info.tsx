@@ -1,9 +1,19 @@
 import { HandResultDisplay } from "@/components/hand-result-display";
 import { CardSuit, CardValue, PokerCard } from "@/components/poker-card";
-import { convertCardNumber, truncateAddress } from "@/lib/utils";
-import { CardType, Player, PlayerState } from "@/types/game-types";
+import { convertCardNumber, getPlayerGameStateName, truncateAddress } from "@/lib/utils";
+import { CardType, GameTable, Player, PlayerState } from "@/types/game-types";
 
-export function PlayerInfo({ player, isBanker, isSelf }: { player: Player; isBanker: boolean; isSelf: boolean }) {
+export function PlayerInfo({
+  tableInfo,
+  player,
+  isBanker,
+  isSelf,
+}: {
+  tableInfo: GameTable;
+  player: Player;
+  isBanker: boolean;
+  isSelf: boolean;
+}) {
   return (
     <div>
       {/* Hand result display with visual effects */}
@@ -12,9 +22,9 @@ export function PlayerInfo({ player, isBanker, isSelf }: { player: Player; isBan
       )}
 
       {/* Ready indicator */}
-      {player.state === PlayerState.READY && (
+      {getPlayerGameStateName(tableInfo, player) !== "" && (
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-1.5 rounded-full backdrop-blur-sm font-bold text-lg transition-all duration-500 text-emerald-300 bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.5)] translate-y-[-3rem]">
-          Ready
+          {getPlayerGameStateName(tableInfo, player)}
         </div>
       )}
 

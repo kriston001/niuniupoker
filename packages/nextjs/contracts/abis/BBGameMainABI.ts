@@ -17,21 +17,6 @@ const abi =  [
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "BankerFeePercentMustBePositive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "BetAmountTooSmall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ContractPaused",
-    "type": "error"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -64,52 +49,7 @@ const abi =  [
   },
   {
     "inputs": [],
-    "name": "InvalidAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidBankerFeePercent",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidGameTableFactoryAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "InvalidInitialization",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidLiquidatorFeePercent",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidMaxPlayers",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRewardPoolAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRoomCardContract",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRoomLevelAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MaxPlayersTooSmall",
     "type": "error"
   },
   {
@@ -141,32 +81,7 @@ const abi =  [
   },
   {
     "inputs": [],
-    "name": "PlayerTimeoutMustBePositive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RoomLevelLimitExceeded",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RoomLevelRequired",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TableDoesNotExist",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TableInactiveTimeoutMustBePositive",
     "type": "error"
   },
   {
@@ -390,7 +305,7 @@ const abi =  [
     "name": "gameTables",
     "outputs": [
       {
-        "internalType": "contract BBGameTableImplementation",
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
@@ -575,6 +490,21 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "bankerIsGaming",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "committedCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "revealedCount",
+            "type": "uint8"
           }
         ],
         "internalType": "struct GameTableView[]",
@@ -838,6 +768,21 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "bankerIsGaming",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "committedCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "revealedCount",
+            "type": "uint8"
           }
         ],
         "internalType": "struct GameTableView",
@@ -1025,6 +970,21 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "bankerIsGaming",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "committedCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "revealedCount",
+            "type": "uint8"
           }
         ],
         "internalType": "struct GameTableView[]",
@@ -1218,6 +1178,21 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "bankerIsGaming",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "committedCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "revealedCount",
+            "type": "uint8"
           }
         ],
         "internalType": "struct GameTableView[]",

@@ -35,6 +35,8 @@ interface PlayerControlsPanelProps {
   onReadyClick?: () => void;
   onUnreadyClick?: () => void;
   onLeaveClick?: () => void;
+  onCommitClick?: () => void;
+  onRevealClick?: () => void;
   onContinueClick?: () => void;
   onFoldClick?: () => void;
 }
@@ -46,6 +48,8 @@ export function PlayerControlsPanel({
   onReadyClick,
   onUnreadyClick,
   onLeaveClick,
+  onCommitClick,
+  onRevealClick,
   onContinueClick,
   onFoldClick,
 }: PlayerControlsPanelProps) {
@@ -104,7 +108,35 @@ export function PlayerControlsPanel({
             </div>
           )}
 
-          {tableInfo.state == GameState.FIRST_BETTING && playerInfo && playerInfo.state == PlayerState.READY && (
+          {tableInfo.state == GameState.COMMITTING && playerInfo && (
+            <div>
+              <Button
+                size="lg"
+                disabled={playerInfo.state == PlayerState.COMMITTED}
+                onClick={() => onCommitClick?.()}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                {playerInfo.state === PlayerState.COMMITTED ? "Committed" : "Commit Random"}
+              </Button>
+            </div>
+          )}
+
+          {tableInfo.state == GameState.REVEALING && playerInfo && (
+            <div>
+              <Button
+                size="lg"
+                disabled={playerInfo.state == PlayerState.REVEALED}
+                onClick={() => onRevealClick?.()}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                {playerInfo.state === PlayerState.REVEALED ? "Revealed" : "Reveal Random"}
+              </Button>
+            </div>
+          )}
+
+          {tableInfo.state == GameState.FIRST_BETTING && playerInfo && (
             <div>
               <Button
                 size="lg"
@@ -112,7 +144,7 @@ export function PlayerControlsPanel({
                 className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" />
-                Call
+                Raise
               </Button>
 
               <Button

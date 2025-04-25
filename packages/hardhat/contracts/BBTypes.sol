@@ -15,8 +15,7 @@ enum GameState {
     FIRST_BETTING,
     SECOND_BETTING,
     ENDED,
-    LIQUIDATED,
-    DISBANDED
+    LIQUIDATED
 }
 
 // 玩家状态
@@ -24,6 +23,8 @@ enum PlayerState {
     NONE,
     JOINED,
     READY,
+    COMMITTED,
+    REVEALED,
     FIRST_FOLDED,
     FIRST_CONTINUED,
     SECOND_FOLDED,

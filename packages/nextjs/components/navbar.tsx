@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronDown, Droplet, Home, Layers, LayoutGrid, Menu, User, X } from "lucide-react";
+import { useAccount } from "wagmi";
 import { CustomWalletConnection } from "~~/components/CustomWalletConnection";
 import { FaucetButton } from "~~/components/scaffold-eth";
+import { Balance } from "~~/components/scaffold-eth/Balance";
 import { Button } from "~~/components/ui/button";
 import {
   DropdownMenu,
@@ -84,6 +86,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { address: connectedAddress } = useAccount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -167,6 +170,13 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <div className="hidden sm:block">
               <NetworkSelector />
+            </div>
+            {/* Balance Display */}
+            <div className="hidden sm:block">
+              <Balance
+                address={connectedAddress}
+                className="border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800/80 text-zinc-300 hover:text-white hover:border-amber-500/50 transition-all duration-200 rounded-md px-3 py-1.5"
+              />
             </div>
             <div className="hidden sm:block">
               <CustomWalletConnection />

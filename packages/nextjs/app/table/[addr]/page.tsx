@@ -8,133 +8,37 @@ import { TableInfo } from "@/components/niuniu/table/table-info";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { formatEther } from "viem";
+import { bytesToHex, concat, formatEther, hexToBytes, keccak256, toBytes } from "viem";
 import { useAccount } from "wagmi";
+import { readContract } from "wagmi/actions";
 import { BankerControlsPanel } from "~~/components/niuniu/table/banker-controls-panel";
 import { ChatPanel } from "~~/components/niuniu/table/chat-panel";
 import { PlayerControlsPanel } from "~~/components/niuniu/table/player-controls-panel";
 import { PlayerInfo } from "~~/components/niuniu/table/player-info";
 import {
+  commitRandom,
+  nextStep,
   playerContinue,
   playerFold,
   playerJoin,
   playerQuit,
   playerReady,
   playerUnready,
+  revealRandom,
+  startGame,
 } from "~~/contracts/abis/BBGameTableABI";
+import { computeCommitment } from "~~/contracts/abis/BBRandomnessManagerABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
-import { CardType, getGameStateName } from "~~/types/game-types";
-
-// Sample table data
-const tableData = {
-  id: "table-123",
-  name: "High Rollers VIP",
-  dealerAddress: "0x1234567890abcdef1234567890abcdef12345678",
-  betAmount: 0.5,
-  currentPlayers: 5,
-  maxPlayers: 6,
-  status: "active",
-  reward: 5,
-  createdAt: "2024-04-17T08:27:59.000Z",
-  round: 3,
-  pot: 2.5,
-  timeRemaining: 45, // seconds
-  rewardInfo: "High Roller",
-  totalPool: 500,
-  perWinPayout: 10,
-  winRate: 20,
-  gamesPlayed: 152,
-  settlements: 48,
-  allPlayersReady: false,
-};
-
-// Sample players data
-const playersData = [
-  {
-    id: 1,
-    name: "Player 1",
-    addr: "0x1234...5678",
-    chips: 2.8,
-    betAmount: 0.5,
-    status: "ready",
-    position: 0, // 正上方位置
-    cards: [7, 8, 9, 10, 36],
-    cardType: CardType.BULL_9,
-    isDealer: true,
-  },
-  {
-    id: 2,
-    name: "Player 2",
-    addr: "0xabcd...ef12",
-    chips: 1.5,
-    betAmount: 0.5,
-    status: "ready",
-    position: 1, // 右上方位置
-    cards: [2, 3, 4, 5, 6],
-    cardType: CardType.BULL_8,
-    isDealer: false,
-  },
-  {
-    id: 3,
-    name: "Player 3",
-    addr: "0x7890...abcd",
-    chips: 3.2,
-    betAmount: 0.5,
-    status: "ready",
-    position: 2, // 右下方位置
-    cards: [1, 2, 44, 4, 5],
-    cardType: CardType.BULL_3,
-    isDealer: false,
-  },
-  {
-    id: 4,
-    name: "Player 4",
-    addr: "0xdef1...2345",
-    chips: 0.8,
-    betAmount: 0.5,
-    status: "thinking",
-    position: 3, // 正下方位置
-    cards: [9, 10, 26, 12, 13],
-    cardType: CardType.BULL_9,
-    isDealer: false,
-  },
-  {
-    id: 5,
-    name: "Player 5",
-    addr: "0x5678...9012",
-    chips: 1.2,
-    betAmount: 0.5,
-    status: "ready",
-    position: 4, // 左下方位置
-    cards: [3, 4, 5, 6, 7],
-    cardType: CardType.BULL_5,
-    isDealer: false,
-  },
-  {
-    id: 6,
-    name: "Player 6",
-    addr: "0x9012...3456",
-    chips: 1.8,
-    betAmount: 0.5,
-    status: "ready",
-    position: 5, // 左上方位置
-    cards: [8, 9, 10, 11, 12],
-    cardType: CardType.BULL_7,
-    isDealer: false,
-  },
-];
+import { useGlobalState } from "~~/services/store/store";
+import { wagmiConfig } from "~~/services/web3/wagmiConfig";
+import { GameState, getGameStateName } from "~~/types/game-types";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
   const tableAddr = resolvedParams.addr;
 
-  const [isDealer, setIsDealer] = useState(true); // For demo purposes
-  const [currentPlayer, setCurrentPlayer] = useState(playersData[0]);
-  const [gamePhase, setGamePhase] = useState("waiting"); // waiting, betting, dealing, revealing, settling
-  const [timeRemaining, setTimeRemaining] = useState(tableData.timeRemaining);
-  const [selectedRoomCard, setSelectedRoomCard] = useState<string | undefined>(undefined);
-  const [tableReady, setTableReady] = useState(false);
+  const gameConfig = useGlobalState(state => state.gameConfig);
 
   const { address: connectedAddress } = useAccount();
 
@@ -149,20 +53,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     const now = Math.floor(Date.now() / 1000);
     const deadline = Number(tableInfo.currentRoundDeadline);
     return deadline > now ? deadline - now : 0;
-  }, [tableInfo?.currentRoundDeadline]);
-
-  // Get current user (for demo, we'll assume player 1)
-  useEffect(() => {
-    const player = playersData.find(p => p.id === 1);
-    if (player) {
-      setCurrentPlayer(player);
-      setIsDealer(player.isDealer);
-    }
-
-    // Check if all players are ready
-    const allReady = playersData.filter(p => p.status === "ready").length >= 3;
-    setTableReady(allReady);
-  }, []);
+  }, [tableInfo]);
 
   // Handle timer completion
   const handleTimerComplete = () => {
@@ -171,6 +62,22 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   };
 
   const { writeContractWithCallback } = useWriteContractWithCallback();
+
+  const handleNext = () => {
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [nextStep],
+      functionName: "nextStep",
+      account: connectedAddress as `0x${string}`,
+      onSuccess: async () => {
+        console.log("✅ Next Step 成功");
+        await refreshData();
+      },
+      onError: async err => {
+        console.error("❌ Next Step 失败:", err);
+      },
+    });
+  };
 
   const handlePlayerJoin = () => {
     writeContractWithCallback({
@@ -221,6 +128,103 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     });
   };
 
+  const handleStartGame = (tokenId: string) => {
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [startGame],
+      functionName: "startGame",
+      args: [BigInt(tokenId)],
+      value: tableInfo?.betAmount,
+      account: connectedAddress as `0x${string}`,
+      gas: 1000000n,
+      onSuccess: async () => {
+        console.log("✅ Start Game 成功");
+        await refreshData();
+      },
+      onError: async err => {
+        console.error("❌ Start Game 失败:", err);
+      },
+    });
+  };
+
+  const handlePlayerCommit = async () => {
+    // 生成随机值 (32位整数)
+    const randomValue = BigInt(Math.floor(Math.random() * 2 ** 32));
+
+    // 生成随机盐值
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const saltHex = bytesToHex(salt);
+
+    // 调用合约的computeCommitment函数生成哈希
+    const commitment = await readContract(wagmiConfig, {
+      address: gameConfig.randomnessManagerAddress,
+      abi: [computeCommitment],
+      functionName: "computeCommitment",
+      args: [connectedAddress as `0x${string}`, randomValue, saltHex],
+    });
+
+    // 将随机值和盐值保存到localStorage，以便后续reveal时使用
+    localStorage.setItem(`${tableAddr}_randomValue`, randomValue.toString());
+    localStorage.setItem(`${tableAddr}_salt`, bytesToHex(salt));
+
+    // 调用合约的commitRandom函数
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [commitRandom],
+      functionName: "commitRandom",
+      args: [commitment],
+      account: connectedAddress as `0x${string}`,
+      onSuccess: async () => {
+        console.log("✅ Commit Random 成功");
+        await refreshData();
+      },
+      onError: async err => {
+        console.error("❌ Commit Random 失败:", err);
+      },
+    });
+  };
+
+  const handlePlayerReveal = () => {
+    // 从localStorage获取之前保存的随机值和盐值
+    const randomValue = localStorage.getItem(`${tableAddr}_randomValue`);
+    const salt = localStorage.getItem(`${tableAddr}_salt`);
+
+    if (!randomValue || !salt) {
+      console.error("❌ No random value or salt found in localStorage");
+      return;
+    }
+
+    // 在reveal时
+    console.log("Reveal values:", {
+      randomValue,
+      connectedAddress,
+      salt,
+      calculatedCommitment: keccak256(
+        concat([toBytes(BigInt(randomValue)), toBytes(connectedAddress as `0x${string}`), hexToBytes(salt as string)]),
+      ),
+    });
+
+    // 调用合约的revealRandom函数
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [revealRandom],
+      functionName: "revealRandom",
+      args: [BigInt(randomValue), salt as `0x${string}`],
+      account: connectedAddress as `0x${string}`,
+      gas: 1000000n,
+      onSuccess: async () => {
+        console.log("✅ Reveal Random 成功");
+        // 清除localStorage中的数据
+        localStorage.removeItem(`${tableAddr}_randomValue`);
+        localStorage.removeItem(`${tableAddr}_salt`);
+        await refreshData();
+      },
+      onError: async err => {
+        console.error("❌ Reveal Random 失败:", err);
+      },
+    });
+  };
+
   const handlePlayerFold = () => {
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
@@ -243,6 +247,8 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       abi: [playerContinue],
       functionName: "playerContinue",
       account: connectedAddress as `0x${string}`,
+      value: tableInfo?.betAmount,
+      gas: 1000000n,
       onSuccess: async () => {
         console.log("✅ Player Continue 成功");
         await refreshData();
@@ -322,7 +328,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                   <ArrowLeft className="h-5 w-5 text-zinc-400" />
                 </a>
               </Button>
-              <h1 className="text-xl font-bold text-white ml-2">Table: {tableData.name}</h1>
+              <h1 className="text-xl font-bold text-white ml-2">Table: {tableInfo.tableName}</h1>
               <Badge className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 ml-3">Active</Badge>
             </div>
 
@@ -352,7 +358,17 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                       <div className="text-amber-500 font-bold text-3xl">
                         {formatEther(tableInfo.totalPrizePool)} ETH
                       </div>
-                      <div className="text-zinc-400 text-lg mt-2">Round {getGameStateName(tableInfo.state)}</div>
+                      <div className="text-zinc-400 text-lg mt-2">{getGameStateName(tableInfo.state)} Round</div>
+                      <div className="text-zinc-500 text-sm mt-1">
+                        {tableInfo.state === GameState.WAITING &&
+                          'Click "Ready" to join the game and stake your entry deposit'}
+                        {tableInfo.state === GameState.COMMITTING && "Please commit your random number"}
+                        {tableInfo.state === GameState.REVEALING && "Please reveal your random number"}
+                        {tableInfo.state === GameState.FIRST_BETTING && "First Betting Round: choose to Raise or Fold"}
+                        {tableInfo.state === GameState.SECOND_BETTING &&
+                          "Second Betting Round: choose to Raise or Fold"}
+                        {tableInfo.state === GameState.WAITING && "Waiting for players to be ready"}
+                      </div>
 
                       {/* Countdown Timer - only show when game is active */}
                       {remainingSeconds > 0 && (
@@ -400,6 +416,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                           }}
                         >
                           <PlayerInfo
+                            tableInfo={tableInfo}
                             player={player}
                             isBanker={player.addr == tableInfo.bankerAddr}
                             isSelf={player.addr === connectedAddress}
@@ -416,7 +433,12 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                   <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-white mb-6">Owner Controls</h3>
                     <div className="space-y-6">
-                      <BankerControlsPanel tableInfo={tableInfo} myRoomCardNfts={myRoomCardNfts} />
+                      <BankerControlsPanel
+                        tableInfo={tableInfo}
+                        myRoomCardNfts={myRoomCardNfts}
+                        onStartGameClick={handleStartGame}
+                        onNextClick={handleNext}
+                      />
                     </div>
                   </div>
                 )}
@@ -434,6 +456,8 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                         onReadyClick={handlePlayerReady}
                         onUnreadyClick={handlePlayerUnready}
                         onLeaveClick={handlePlayerQuit}
+                        onCommitClick={handlePlayerCommit}
+                        onRevealClick={handlePlayerReveal}
                         onContinueClick={handlePlayerContinue}
                         onFoldClick={handlePlayerFold}
                       />
@@ -448,4 +472,3 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     </div>
   );
 }
-

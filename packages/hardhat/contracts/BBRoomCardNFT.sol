@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "./BBVersion.sol";
 import "./BBStructs.sol";
+import "./BBInterfaces.sol";
 
 /**
  * @title BBRoomCard
@@ -71,7 +72,7 @@ contract BBRoomCardNFT is
         __UUPSUpgradeable_init();
 
         _baseTokenURI = baseTokenURI;
-        _tokenIdCounter = 0;
+        _tokenIdCounter = 1;
         _nftTypeIdCounter = 1; // Start from 1
     }
 
@@ -82,6 +83,19 @@ contract BBRoomCardNFT is
     function setGameMainAddress(address _gameMainAddress) external onlyOwner {
         require(_gameMainAddress != address(0), "Invalid game main address");
         gameMainAddress = _gameMainAddress;
+    }
+
+    modifier onlyGameTable() {
+        bool isValidTable = false;
+        if (gameMainAddress != address(0)) {
+            if(IGameMain(gameMainAddress).isValidGameTable(msg.sender)){
+                isValidTable = true;
+            }else{
+                isValidTable = false;
+            }
+        }
+        require(isValidTable, "Only game table can call");
+        _;
     }
 
     /**
@@ -234,8 +248,7 @@ contract BBRoomCardNFT is
      * @param owner Owner of the room card
      * @param tokenId Room card ID to be consumed
      */
-    function consume(address owner, uint256 tokenId) external {
-        require(msg.sender == gameMainAddress, "Only game main contract can consume room cards");
+    function consume(address owner, uint256 tokenId) external onlyGameTable {
         require(_ownerOf(tokenId) == owner, "Not approved or owner");
         _burn(tokenId);
 

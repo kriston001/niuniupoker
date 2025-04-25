@@ -1,710 +1,567 @@
 // BBGameMain.ts
 const abi = [
   {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
     ],
-    name: "AddressEmptyCode",
-    type: "error",
+    "name": "AddressEmptyCode",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "AlreadyCommitted",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "AlreadyRevealed",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "CommitDeadlineExpired",
-    type: "error",
-  },
-  {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
     ],
-    name: "ERC1967InvalidImplementation",
-    type: "error",
+    "name": "ERC1967InvalidImplementation",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ERC1967NonPayable",
-    type: "error",
+    "inputs": [],
+    "name": "ERC1967NonPayable",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "FailedCall",
-    type: "error",
+    "inputs": [],
+    "name": "FailedCall",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidAddress",
-    type: "error",
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidInitialization",
-    type: "error",
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "InvalidParticipants",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidReveal",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "NotAParticipant",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "NotCommitted",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "NotInitializing",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "OnlyGameTableCanCall",
-    type: "error",
-  },
-  {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
     ],
-    name: "OwnableInvalidOwner",
-    type: "error",
+    "name": "OwnableInvalidOwner",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
     ],
-    name: "OwnableUnauthorizedAccount",
-    type: "error",
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "RevealDeadlineExpired",
-    type: "error",
+    "inputs": [],
+    "name": "UUPSUnauthorizedCallContext",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "RevealPhaseNotStarted",
-    type: "error",
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "slot",
+        "type": "bytes32"
+      }
+    ],
+    "name": "UUPSUnsupportedProxiableUUID",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "SessionAlreadyCompleted",
-    type: "error",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "SessionNotFound",
-    type: "error",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "UUPSUnauthorizedCallContext",
-    type: "error",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "Upgraded",
+    "type": "event"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "UPGRADE_INTERFACE_VERSION",
+    "outputs": [
       {
-        internalType: "bytes32",
-        name: "slot",
-        type: "bytes32",
-      },
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
     ],
-    name: "UUPSUnsupportedProxiableUUID",
-    type: "error",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "gameMainAddr",
-        type: "address",
+        "internalType": "address",
+        "name": "_playerAddress",
+        "type": "address"
       },
+      {
+        "internalType": "bytes32",
+        "name": "_commitment",
+        "type": "bytes32"
+      }
     ],
-    name: "GameMainAddressUpdated",
-    type: "event",
+    "name": "commitRandom",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [],
+    "name": "completeSession",
+    "outputs": [
       {
-        indexed: false,
-        internalType: "uint64",
-        name: "version",
-        type: "uint64",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "Initialized",
-    type: "event",
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "previousOwner",
-        type: "address",
+        "internalType": "address",
+        "name": "_playerAddress",
+        "type": "address"
       },
       {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
+        "internalType": "uint256",
+        "name": "_randomValue",
+        "type": "uint256"
       },
+      {
+        "internalType": "bytes32",
+        "name": "_salt",
+        "type": "bytes32"
+      }
     ],
-    name: "OwnershipTransferred",
-    type: "event",
+    "name": "computeCommitment",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddress",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "sessionId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "participant",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "tableAddr",
+        "type": "address"
+      }
     ],
-    name: "RandomCommitted",
-    type: "event",
+    "name": "createSession",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [],
+    "name": "gameMainAddr",
+    "outputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddress",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "sessionId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "participant",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "revealedValue",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "RandomRevealed",
-    type: "event",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddress",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "sessionId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "finalSeed",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
+      }
     ],
-    name: "SessionCompleted",
-    type: "event",
+    "name": "getCommittedCount",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "tableAddress",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "sessionId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "commitDeadline",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "revealDeadline",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
+      }
     ],
-    name: "SessionCreated",
-    type: "event",
+    "name": "getRevealedCount",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
+      }
     ],
-    name: "Upgraded",
-    type: "event",
+    "name": "getSession",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "commitment",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bool",
+            "name": "hasCommitted",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "hasRevealed",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "revealedValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256[10]",
+            "name": "__gap",
+            "type": "uint256[10]"
+          }
+        ],
+        "internalType": "struct RandomCommitment[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "version",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
+      }
     ],
-    name: "VersionUpdated",
-    type: "event",
+    "name": "getSessionDeadline",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "UPGRADE_INTERFACE_VERSION",
-    outputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
       },
+      {
+        "internalType": "address",
+        "name": "_participant",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "hasCommitted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
+        "internalType": "address",
+        "name": "_tableAddress",
+        "type": "address"
       },
       {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes32",
-        name: "_commitment",
-        type: "bytes32",
-      },
+        "internalType": "address",
+        "name": "_participant",
+        "type": "address"
+      }
     ],
-    name: "commitRandom",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "hasRevealed",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "_gameMainAddr",
+        "type": "address"
+      }
     ],
-    name: "completeSession",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
       {
-        internalType: "address[]",
-        name: "_participants",
-        type: "address[]",
-      },
-      {
-        internalType: "uint256",
-        name: "_commitTimeout",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_revealTimeout",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "createSession",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "gameMainAddr",
-    outputs: [
+    "inputs": [],
+    "name": "proxiableUUID",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
-      },
-    ],
-    name: "getCurrentSessionId",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
+        "internalType": "address",
+        "name": "_playerAddress",
+        "type": "address"
       },
       {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_randomValue",
+        "type": "uint256"
       },
+      {
+        "internalType": "bytes32",
+        "name": "_salt",
+        "type": "bytes32"
+      }
     ],
-    name: "getSessionStatus",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "isCompleted",
-        type: "bool",
-      },
-      {
-        internalType: "uint256",
-        name: "commitDeadline",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "revealDeadline",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "finalSeed",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "commitCount",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "revealCount",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "totalParticipants",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "name": "revealRandom",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_participant",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_gameMainAddr",
+        "type": "address"
+      }
     ],
-    name: "hasCommitted",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "name": "setGameMainAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
+        "internalType": "address[]",
+        "name": "_participants",
+        "type": "address[]"
       },
       {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_participant",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "_timeout",
+        "type": "uint256"
+      }
     ],
-    name: "hasRevealed",
-    outputs: [
+    "name": "startCommit",
+    "outputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "startReveal",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_gameMainAddr",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "initialize",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "owner",
-    outputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "proxiableUUID",
-    outputs: [
+    "inputs": [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
+        "internalType": "uint256",
+        "name": "_version",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "updateVersion",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "version",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_tableAddress",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_randomValue",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes32",
-        name: "_salt",
-        type: "bytes32",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "revealRandom",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_gameMainAddr",
-        type: "address",
-      },
-    ],
-    name: "setGameMainAddress",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "transferOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_version",
-        type: "uint256",
-      },
-    ],
-    name: "updateVersion",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newImplementation",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "upgradeToAndCall",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "version",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
+    "stateMutability": "view",
+    "type": "function"
+  }
 ] as const;
 
 // 导出合约配置
@@ -715,7 +572,8 @@ export const BBRandomnessManagerABI = {
 // 导出具体的函数 ABI，可以更细粒度地 tree-shake
 export const commitRandom = abi.find(x => "name" in x && x.name === "commitRandom");
 export const revealRandom = abi.find(x => "name" in x && x.name === "revealRandom");
-export const getSessionStatus = abi.find(x => "name" in x && x.name === "getSessionStatus");
+export const getCommittedCount = abi.find(x => "name" in x && x.name === "getCommittedCount");
 export const hasCommitted = abi.find(x => "name" in x && x.name === "hasCommitted");
 export const hasRevealed = abi.find(x => "name" in x && x.name === "hasRevealed");
-export const getCurrentSessionId = abi.find(x => "name" in x && x.name === "getCurrentSessionId");
+export const getRevealedCount = abi.find(x => "name" in x && x.name === "getRevealedCount");
+export const computeCommitment = abi.find(x => "name" in x && x.name === "computeCommitment");

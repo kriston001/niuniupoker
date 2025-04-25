@@ -174,12 +174,15 @@ contract BBGameMain is
         nextTableId++;
         
 
-
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
         gameTables[tableAddr] = tableAddr;
         // 添加到用户的游戏桌列表
         userTables[msg.sender].push(tableAddr);
+
+        //创建session
+        IRandomnessManager randomnessManager = IRandomnessManager(randomnessManagerAddress);
+        randomnessManager.createSession(tableAddr);
 
         // 触发事件
         emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, bankerFeePercent);

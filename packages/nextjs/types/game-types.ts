@@ -3,21 +3,24 @@ export enum PlayerState {
   NONE = 0,
   JOINED = 1,
   READY = 2,
-  FIRST_FOLDED = 3,
-  FIRST_CONTINUED = 4,
-  SECOND_FOLDED = 5,
-  SECOND_CONTINUED = 6,
+  COMMITTED = 3,
+  REVEALED = 4,
+  FIRST_FOLDED = 5,
+  FIRST_CONTINUED = 6,
+  SECOND_FOLDED = 7,
+  SECOND_CONTINUED = 8,
 }
 
 // 游戏状态枚举
 export enum GameState {
   NONE = 0,
   WAITING = 1,
-  FIRST_BETTING = 2,
-  SECOND_BETTING = 3,
-  ENDED = 4,
-  LIQUIDATED = 5,
-  DISBANDED = 6,
+  COMMITTING = 2,
+  REVEALING = 3,
+  FIRST_BETTING = 4,
+  SECOND_BETTING = 5,
+  ENDED = 6,
+  LIQUIDATED = 7,
 }
 
 // 牌型枚举
@@ -92,6 +95,9 @@ export interface GameTable {
   rewardPoolId: bigint; // 奖励池ID
   rewardPoolInfo: RewardPoolInfo; // 奖励池信息
   implementationVersion: bigint; // 实现版本号
+  bankerIsGaming: boolean; // 庄家是否参与游戏
+  committedCount: number; // 已提交的参与者数量
+  revealedCount: number; // 已揭示的参与者数量
 }
 
 // 玩家信息类型定义
@@ -190,21 +196,25 @@ export const getCardTypeName = (cardType: CardType) => {
 export const getPlayerStateName = (state: number) => {
   switch (state) {
     case PlayerState.NONE:
-      return "未加入";
+      return "NONE";
     case PlayerState.JOINED:
-      return "已加入";
+      return "JOINED";
     case PlayerState.READY:
-      return "已准备";
+      return "READY";
+    case PlayerState.COMMITTED:
+      return "COMMITTED";
+    case PlayerState.REVEALED:
+      return "REVEALED";
     case PlayerState.FIRST_FOLDED:
-      return "第一轮弃牌";
+      return "FOLDED";
     case PlayerState.FIRST_CONTINUED:
-      return "第一轮继续";
+      return "RAISED";
     case PlayerState.SECOND_FOLDED:
-      return "第二轮弃牌";
+      return "FOLDED";
     case PlayerState.SECOND_CONTINUED:
-      return "第二轮继续";
+      return "RAISED";
     default:
-      return "未知";
+      return "UNKNOWN";
   }
 };
 
@@ -212,9 +222,13 @@ export const getPlayerStateName = (state: number) => {
 export const getGameStateName = (state: number) => {
   switch (state) {
     case GameState.NONE:
-      return "未初始化";
+      return "NONE";
     case GameState.WAITING:
       return "Waiting";
+    case GameState.COMMITTING:
+      return "Committing";
+    case GameState.REVEALING:
+      return "Revealing";
     case GameState.FIRST_BETTING:
       return "First Betting";
     case GameState.SECOND_BETTING:

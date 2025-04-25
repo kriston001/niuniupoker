@@ -1,21 +1,35 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronRight, MessageSquare, MinusCircle, PlayCircle, RefreshCw, Send, Trophy } from "lucide-react";
+import { checkNext } from "~~/lib/utils";
 import { GameState, GameTable } from "~~/types/game-types";
 
-export function BankerControlsPanel({ tableInfo, myRoomCardNfts }: { tableInfo: GameTable; myRoomCardNfts: any[] }) {
+export function BankerControlsPanel({
+  tableInfo,
+  myRoomCardNfts,
+  onStartGameClick,
+  onNextClick,
+}: {
+  tableInfo: GameTable;
+  myRoomCardNfts: any[];
+  onStartGameClick?: (tokenId: string) => void;
+  onNextClick?: () => void;
+}) {
   const [selectedRoomCardTypeId, setSelectedRoomCardTypeId] = useState<string | undefined>(undefined);
   const [startMsg, setStartMsg] = useState<string | undefined>(undefined);
   const [tableReady, setTableReady] = useState(false);
 
-  function getQuality(typeId: string) {
-    const card = myRoomCardNfts.find(card => card.cardType.id === typeId);
-    return card ? card.quantity : 0;
-  }
+  const getQuality = useCallback(
+    (typeId: string) => {
+      const card = myRoomCardNfts.find(card => card.nftType.id === typeId);
+      return card ? card.quantity : 0;
+    },
+    [myRoomCardNfts],
+  );
 
   useEffect(() => {
     // 检查桌子是否准备好
@@ -37,10 +51,16 @@ export function BankerControlsPanel({ tableInfo, myRoomCardNfts }: { tableInfo: 
     }
     setStartMsg(undefined);
     setTableReady(true);
-  }, [selectedRoomCardTypeId, tableInfo, myRoomCardNfts]); // 添加所有依赖项
+  }, [selectedRoomCardTypeId, tableInfo, myRoomCardNfts, getQuality]); // 添加所有依赖项
 
   function handleStartGame() {
-    console.log("Game started with room card:", selectedRoomCardTypeId);
+    const card = myRoomCardNfts.find(card => card.nftType.id === selectedRoomCardTypeId);
+    console.log("card", card);
+    onStartGameClick?.(card.tokenIds[0]);
+  }
+
+  function handleNext() {
+    onNextClick?.();
   }
 
   return (
@@ -57,10 +77,10 @@ export function BankerControlsPanel({ tableInfo, myRoomCardNfts }: { tableInfo: 
                       myRoomCardNfts.map(
                         card =>
                           card.nftType.id === selectedRoomCardTypeId && (
-                            <div key={card.id} className="flex items-center justify-between w-full">
+                            <div key={card.nftType.id} className="flex items-center justify-between w-full">
                               <div className="flex flex-col items-start">
-                                <span className="text-sm font-medium text-amber-400">{card.name}</span>
-                                <span className="text-xs text-zinc-400">Max {card.maxPlayers} players</span>
+                                <span className="text-sm font-medium text-amber-400">{card.nftType.name}</span>
+                                <span className="text-xs text-zinc-400">Max {card.nftType.maxPlayers} players</span>
                               </div>
                             </div>
                           ),
@@ -113,22 +133,25 @@ export function BankerControlsPanel({ tableInfo, myRoomCardNfts }: { tableInfo: 
         </div>
       )}
 
-      <div>
-        <Button size="lg" className="w-full bg-zinc-700 hover:bg-zinc-600 text-white">
-          <ChevronRight className="mr-2 h-5 w-5" />
-          Next Step
-        </Button>
-
-        <Button size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white">
-          <Trophy className="mr-2 h-5 w-5" />
-          Settle Game
-        </Button>
-        <Button size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-          <RefreshCw className="mr-2 h-5 w-5" />
-          Play Again
-        </Button>
-      </div>
+      {tableInfo.state != GameState.WAITING && (
+        <div>
+          {(() => {
+            const { b, name, desc } = checkNext(tableInfo);
+            return (
+              <Button
+                size="lg"
+                disabled={!b}
+                onClick={handleNext}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              >
+                <ChevronRight className="mr-2 h-5 w-5" />
+                {name}
+                {desc && <span className="text-xs text-zinc-400">{desc}</span>}
+              </Button>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
-

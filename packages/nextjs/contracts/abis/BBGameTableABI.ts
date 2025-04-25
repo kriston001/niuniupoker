@@ -6,116 +6,6 @@ const abi = [
     "type": "constructor"
   },
   {
-    "inputs": [],
-    "name": "ActionTimeOut",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "BankerCannotLiquidate",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FailedToGenerateUniqueCard",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GameNotEnded",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GameNotInEndedState",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GameNotInPlayingState",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GameNotInWaitingState",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GameNotTimeToReset",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientFunds",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidMaxPlayers",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidPlayerState",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRandomnessManagerAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRewardPoolAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRoomCardContract",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRoomCardParams",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidRound",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MaxPlayersReached",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotAllPlayersReady",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotBanker",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotEnoughPlayers",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotPoolOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyMainContractCanCall",
-    "type": "error"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -139,42 +29,7 @@ const abi = [
   },
   {
     "inputs": [],
-    "name": "PlayerAlreadyJoined",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "PlayerNotFound",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "PlayerNotInReadyState",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "RoomCardConsumptionFailed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TableNotInBetting",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TableNotInactive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TransferFailed",
     "type": "error"
   },
   {
@@ -354,6 +209,19 @@ const abi = [
         "internalType": "uint8",
         "name": "",
         "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bankerIsGaming",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -795,6 +663,21 @@ const abi = [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "bankerIsGaming",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "committedCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "revealedCount",
+            "type": "uint8"
           }
         ],
         "internalType": "struct GameTableView",
@@ -1339,6 +1222,8 @@ export const playerJoin = abi.find(x => "name" in x && x.name === "playerJoin");
 export const playerReady = abi.find(x => "name" in x && x.name === "playerReady");
 export const playerUnready = abi.find(x => "name" in x && x.name === "playerUnready");
 export const playerQuit = abi.find(x => "name" in x && x.name === "playerQuit");
+export const commitRandom = abi.find(x => "name" in x && x.name === "commitRandom");
+export const revealRandom = abi.find(x => "name" in x && x.name === "revealRandom");
 export const bankerRemovePlayer = abi.find(x => "name" in x && x.name === "bankerRemovePlayer");
 export const nextStep = abi.find(x => "name" in x && x.name === "nextStep");
 export const playerContinue = abi.find(x => "name" in x && x.name === "playerContinue");
@@ -1348,3 +1233,4 @@ export const getAllPlayerData = abi.find(x => "name" in x && x.name === "getAllP
 export const getPlayerData = abi.find(x => "name" in x && x.name === "getPlayerData");
 export const getTableInfo = abi.find(x => "name" in x && x.name === "getTableInfo");
 export const GameTableChanged = abi.find(x => "name" in x && x.name === "GameTableChanged");
+export const startGame = abi.find(x => "name" in x && x.name === "startGame");

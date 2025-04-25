@@ -79,8 +79,8 @@ export function useGameTableData({
     tableInfo = data[2].status === "success" ? data[2].result : undefined;
 
     if (data[3].status === "success") {
-      const myRoomCardNfts = Array.isArray(data[3].result) ? (data[3].result[1] as RoomCardNftDetail[]) : [];
-      myRoomCardNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
+      const nfts = Array.isArray(data[3].result) ? (data[3].result[1] as RoomCardNftDetail[]) : [];
+      myRoomCardNfts.push(...convertToMyRoomCardNft(nfts));
     }
   }
 

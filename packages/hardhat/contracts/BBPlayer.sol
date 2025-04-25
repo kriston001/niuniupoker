@@ -46,10 +46,24 @@ library BBPlayerLib {
     }
 
     /**
+     * @dev 玩家提交随机数
+     */
+    function playerCommit(BBPlayer storage self) internal {
+        self.state = PlayerState.COMMITTED;
+    }
+
+    /**
+     * @dev 玩家揭示随机数
+     */
+    function playerReveal(BBPlayer storage self) internal {
+        self.state = PlayerState.REVEALED;
+    }
+
+    /**
      * @dev 玩家弃牌
      */
     function playerFold(BBPlayer storage self) internal {
-        if(self.state == PlayerState.READY){
+        if(self.state == PlayerState.REVEALED){
             self.state = PlayerState.FIRST_FOLDED;
         }else{
             self.state = PlayerState.SECOND_FOLDED;
@@ -60,7 +74,7 @@ library BBPlayerLib {
      * @dev 玩家继续游戏
      */
     function playerContinue(BBPlayer storage self, uint256 additionalBet) internal {
-        if(self.state == PlayerState.READY){
+        if(self.state == PlayerState.REVEALED){
             self.additionalBet1 = additionalBet;
             self.state = PlayerState.FIRST_CONTINUED;
         }else{
