@@ -215,19 +215,6 @@ const abi = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "bankerIsGaming",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -238,6 +225,19 @@ const abi = [
     "name": "bankerRemovePlayer",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bankerStakeAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -254,6 +254,24 @@ const abi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "canMoveToNextStep",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "canMove",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -264,6 +282,43 @@ const abi = [
     "name": "commitRandom",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "committedCount",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_randomValue",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_salt",
+        "type": "bytes32"
+      }
+    ],
+    "name": "computeCommitment",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -287,6 +342,19 @@ const abi = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "firstBetX",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -375,17 +443,27 @@ const abi = [
           },
           {
             "internalType": "uint256",
-            "name": "initialBet",
+            "name": "totalBet",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "additionalBet1",
-            "type": "uint256"
+            "internalType": "bool",
+            "name": "hasActedThisRound",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "committed",
+            "type": "bool"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "commitHash",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
-            "name": "additionalBet2",
+            "name": "revealedValue",
             "type": "uint256"
           },
           {
@@ -449,17 +527,27 @@ const abi = [
           },
           {
             "internalType": "uint256",
-            "name": "initialBet",
+            "name": "totalBet",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "additionalBet1",
-            "type": "uint256"
+            "internalType": "bool",
+            "name": "hasActedThisRound",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "committed",
+            "type": "bool"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "commitHash",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
-            "name": "additionalBet2",
+            "name": "revealedValue",
             "type": "uint256"
           },
           {
@@ -665,11 +753,6 @@ const abi = [
             "type": "uint256"
           },
           {
-            "internalType": "bool",
-            "name": "bankerIsGaming",
-            "type": "bool"
-          },
-          {
             "internalType": "uint8",
             "name": "committedCount",
             "type": "uint8"
@@ -678,6 +761,21 @@ const abi = [
             "internalType": "uint8",
             "name": "revealedCount",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "firstBetX",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "secondBetX",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bankerStakeAmount",
+            "type": "uint256"
           }
         ],
         "internalType": "struct GameTableView",
@@ -983,36 +1081,33 @@ const abi = [
       },
       {
         "internalType": "uint256",
-        "name": "initialBet",
+        "name": "totalBet",
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
-        "name": "additionalBet1",
-        "type": "uint256"
+        "internalType": "bool",
+        "name": "hasActedThisRound",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "committed",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "commitHash",
+        "type": "bytes32"
       },
       {
         "internalType": "uint256",
-        "name": "additionalBet2",
+        "name": "revealedValue",
         "type": "uint256"
       },
       {
         "internalType": "enum CardType",
         "name": "cardType",
         "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "randomnessManagerAddr",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -1048,6 +1143,19 @@ const abi = [
     "name": "revealRandom",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "revealedCount",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1090,16 +1198,16 @@ const abi = [
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "secondBetX",
+    "outputs": [
       {
-        "internalType": "address",
-        "name": "_randomnessManagerAddr",
-        "type": "address"
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
-    "name": "setRandomnessManagerAddress",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1234,3 +1342,4 @@ export const getPlayerData = abi.find(x => "name" in x && x.name === "getPlayerD
 export const getTableInfo = abi.find(x => "name" in x && x.name === "getTableInfo");
 export const GameTableChanged = abi.find(x => "name" in x && x.name === "GameTableChanged");
 export const startGame = abi.find(x => "name" in x && x.name === "startGame");
+export const computeCommitment = abi.find(x => "name" in x && x.name === "computeCommitment");

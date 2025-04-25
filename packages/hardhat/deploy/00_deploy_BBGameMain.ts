@@ -181,10 +181,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const bbGameTableFactory = await deployOrUpgrade(hre, "BBGameTableFactory", [bbGameTableBeacon.address], deployer);
   newDeployedAddresses["BBGameTableFactory"] = bbGameTableFactory.address;
 
-  // 部署或获取BBRandomnessManager合约
-  const bbRandomnessManager = await deployOrUpgrade(hre, "BBRandomnessManager", [bbGameMain.address], deployer);
-  newDeployedAddresses["BBRandomnessManager"] = bbRandomnessManager.address;
-
   // 部署或获取BBRoomCardNFT合约
   const bbRoomCardNFT = await deployOrUpgrade(
     hre,
@@ -226,9 +222,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
 
   // 设置BBGameMain合约的BBGameTableFactory合约地址
   await bbGameMainContract.setGameTableFactoryAddress(bbGameTableFactory.address);
-
-  // 设置BBGameMain合约的BBRandomnessManager合约地址
-  await bbGameMainContract.setRandomnessManagerAddress(bbRandomnessManager.address);
 
   // 设置BBGameMain合约的BBRoomCardNFT合约地址
   await bbGameMainContract.setRoomCardAddress(bbRoomCardNFT.address);
@@ -275,13 +268,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
         constructorArguments: [],
       });
       console.log("BBGameTableFactory 验证成功!");
-
-      // 验证 BBRandomnessManager 合约
-      await hre.run("verify:verify", {
-        address: bbRandomnessManager.address,
-        constructorArguments: [],
-      });
-      console.log("BBRandomnessManager 验证成功!");
 
       // 验证 BBRoomCardNFT 合约
       await hre.run("verify:verify", {
@@ -335,21 +321,6 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   } catch (error) {
     console.log(`BBGameTableImplementation.implementationVersion: 无法读取 ❌，错误信息: ${error}`);
   }
-
-  // 验证 BBRandomnessManager 关联
-  const bbRandomnessManagerContract = await ethers.getContractAt("BBRandomnessManager", bbRandomnessManager.address);
-  const randomnessManagerGameMainAddr = await bbRandomnessManagerContract.gameMainAddr();
-  const isRandomnessManagerGameMainAddrValid = randomnessManagerGameMainAddr === bbGameMain.address;
-  console.log(
-    `BBRandomnessManager.gameMainAddr: ${randomnessManagerGameMainAddr} ${isRandomnessManagerGameMainAddrValid ? "✅" : "❌"}`,
-  );
-
-  // 验证 BBGameMain 的 randomnessManagerAddress
-  const randomnessManagerAddress = await (bbGameMainContract as any).randomnessManagerAddress();
-  const isRandomnessManagerAddressValid = randomnessManagerAddress === bbRandomnessManager.address;
-  console.log(
-    `BBGameMain.randomnessManagerAddress: ${randomnessManagerAddress} ${isRandomnessManagerAddressValid ? "✅" : "❌"}`,
-  );
 
   // 验证 BBRoomCardNFT 关联
   const roomCardGameMainAddr = await bbRoomCardNFTContract.gameMainAddress();

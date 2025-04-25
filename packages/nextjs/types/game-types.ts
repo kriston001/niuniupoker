@@ -5,10 +5,8 @@ export enum PlayerState {
   READY = 2,
   COMMITTED = 3,
   REVEALED = 4,
-  FIRST_FOLDED = 5,
-  FIRST_CONTINUED = 6,
-  SECOND_FOLDED = 7,
-  SECOND_CONTINUED = 8,
+  ACTIVE = 5,
+  FOLDED = 6,
 }
 
 // 游戏状态枚举
@@ -20,7 +18,8 @@ export enum GameState {
   FIRST_BETTING = 4,
   SECOND_BETTING = 5,
   ENDED = 6,
-  LIQUIDATED = 7,
+  SETTLED = 7,
+  LIQUIDATED = 8,
 }
 
 // 牌型枚举
@@ -50,7 +49,6 @@ export interface GameConfig {
   tableInactiveTimeout: bigint;
   liquidatorFeePercent: number;
   rewardPoolAddress: `0x${string}`;
-  randomnessManagerAddress: `0x${string}`;
   roomCardAddress: `0x${string}`;
   roomLevelAddress: `0x${string}`;
   gameTableFactoryAddress: `0x${string}`;
@@ -95,25 +93,22 @@ export interface GameTable {
   rewardPoolId: bigint; // 奖励池ID
   rewardPoolInfo: RewardPoolInfo; // 奖励池信息
   implementationVersion: bigint; // 实现版本号
-  bankerIsGaming: boolean; // 庄家是否参与游戏
   committedCount: number; // 已提交的参与者数量
   revealedCount: number; // 已揭示的参与者数量
+  firstBetX: number;
+  secondBetX: number;
+  bankerStakeAmount: bigint;
 }
 
 // 玩家信息类型定义
 export interface Player {
-  addr: string;
+  addr: `0x${string}`;
   state: PlayerState;
-  initialBet: bigint;
-  additionalBet1: bigint;
-  additionalBet2: bigint;
-  cards: number[];
-  cardType: CardType;
-}
-
-// 玩家卡牌信息定义
-export interface PlayerCard {
-  playerAddr: string;
+  totalBet: bigint;
+  hasActedThisRound: boolean;
+  committed: boolean;
+  commitHash: string;
+  revealedValue: bigint;
   cards: number[];
   cardType: CardType;
 }
@@ -205,14 +200,10 @@ export const getPlayerStateName = (state: number) => {
       return "COMMITTED";
     case PlayerState.REVEALED:
       return "REVEALED";
-    case PlayerState.FIRST_FOLDED:
+    case PlayerState.ACTIVE:
+      return "ACTIVE";
+    case PlayerState.FOLDED:
       return "FOLDED";
-    case PlayerState.FIRST_CONTINUED:
-      return "RAISED";
-    case PlayerState.SECOND_FOLDED:
-      return "FOLDED";
-    case PlayerState.SECOND_CONTINUED:
-      return "RAISED";
     default:
       return "UNKNOWN";
   }

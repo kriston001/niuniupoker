@@ -2,16 +2,18 @@
 pragma solidity ^0.8.28;
 
 import "./BBTypes.sol";
-import "./BBVersion.sol";
 
 struct BBPlayer {
     address addr;
     PlayerState state;
 
-    // 下注信息
-    uint256 initialBet;
-    uint256 additionalBet1;
-    uint256 additionalBet2;
+    uint256 totalBet;
+
+    bool hasActedThisRound;   // 本轮是否已操作
+    
+    bool committed;            // 是否提交随机种子哈希
+    bytes32 commitHash;        // 提交的随机值哈希
+    uint256 revealedValue;     // 揭晓的随机数
 
     uint8[5] cards;
     CardType cardType;
@@ -20,10 +22,21 @@ struct BBPlayer {
 }
 
 library BBPlayerLib {
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
+    function computeCommitment(
+        address _playerAddress,
+        uint256 _randomValue,
+        bytes32 _salt
+    ) internal pure returns (bytes32) {
+        return keccak256(
+            bytes.concat(
+                bytes32(_randomValue),
+                bytes20(_playerAddress),
+                _salt
+            )
+        );
     }
+
+
     /**
      * @dev 玩家准备
      */
@@ -48,39 +61,46 @@ library BBPlayerLib {
     /**
      * @dev 玩家提交随机数
      */
-    function playerCommit(BBPlayer storage self) internal {
+    function playerCommit(BBPlayer storage self, bytes32 commitment) internal {
+        self.committed = true;
+        self.commitHash = commitment;
         self.state = PlayerState.COMMITTED;
+        self.hasActedThisRound = true;
     }
 
     /**
      * @dev 玩家揭示随机数
      */
-    function playerReveal(BBPlayer storage self) internal {
-        self.state = PlayerState.REVEALED;
+    function playerReveal(BBPlayer storage self, uint256 randomValue, bytes32 salt) internal returns(bool) {
+        if(!self.committed){
+            return false;
+        }
+        bytes32 commitment = computeCommitment(self.addr, randomValue, salt);
+        if(commitment != self.commitHash){
+            self.revealedValue = randomValue;
+            self.state = PlayerState.REVEALED;
+            self.hasActedThisRound = true;
+            return true;
+        }else{
+            return false;
+        }   
     }
 
     /**
      * @dev 玩家弃牌
      */
     function playerFold(BBPlayer storage self) internal {
-        if(self.state == PlayerState.REVEALED){
-            self.state = PlayerState.FIRST_FOLDED;
-        }else{
-            self.state = PlayerState.SECOND_FOLDED;
-        }
+        self.state = PlayerState.FOLDED;
+        self.hasActedThisRound = true;
     }
 
     /**
      * @dev 玩家继续游戏
      */
     function playerContinue(BBPlayer storage self, uint256 additionalBet) internal {
-        if(self.state == PlayerState.REVEALED){
-            self.additionalBet1 = additionalBet;
-            self.state = PlayerState.FIRST_CONTINUED;
-        }else{
-            self.additionalBet2 = additionalBet;
-            self.state = PlayerState.SECOND_CONTINUED;
-        }
+        self.totalBet += additionalBet;
+        self.state = PlayerState.ACTIVE;
+        self.hasActedThisRound = true;
     }
 
     /**
@@ -94,19 +114,13 @@ library BBPlayerLib {
      * @dev 重置玩家数据
      */
     function playerReset(BBPlayer storage self) internal {
-        self.addr = address(0);
         self.state = PlayerState.JOINED;
-        self.initialBet = 0;
-        self.additionalBet1 = 0;
-        self.additionalBet2 = 0;
+        self.hasActedThisRound = false;
+        self.committed = false;
+        self.commitHash = 0;
+        self.revealedValue = 0;
+        self.totalBet = 0;
         self.cards = [0, 0, 0, 0, 0];
         self.cardType = CardType.NONE;
-    }
-
-    /**
-     * @dev 获取玩家总下注
-     */
-    function totalBet(BBPlayer storage self) internal view returns (uint256) {
-        return self.initialBet + self.additionalBet1 + self.additionalBet2;
     }
 }

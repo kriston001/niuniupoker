@@ -20,7 +20,7 @@ const hardhatWithMulticall = {
   contracts: {
     ...chains.hardhat.contracts,
     multicall3: {
-      address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0", // 替换为您部署的 Multicall3 合约地址
+      address: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788", // 替换为您部署的 Multicall3 合约地址
     },
   },
 };

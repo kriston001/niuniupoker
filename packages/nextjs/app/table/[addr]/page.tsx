@@ -17,6 +17,7 @@ import { PlayerControlsPanel } from "~~/components/niuniu/table/player-controls-
 import { PlayerInfo } from "~~/components/niuniu/table/player-info";
 import {
   commitRandom,
+  computeCommitment,
   nextStep,
   playerContinue,
   playerFold,
@@ -27,7 +28,6 @@ import {
   revealRandom,
   startGame,
 } from "~~/contracts/abis/BBGameTableABI";
-import { computeCommitment } from "~~/contracts/abis/BBRandomnessManagerABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
 import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
 import { useGlobalState } from "~~/services/store/store";
@@ -157,15 +157,15 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
 
     // 调用合约的computeCommitment函数生成哈希
     const commitment = await readContract(wagmiConfig, {
-      address: gameConfig.randomnessManagerAddress,
+      address: tableAddr as `0x${string}`,
       abi: [computeCommitment],
       functionName: "computeCommitment",
-      args: [connectedAddress as `0x${string}`, randomValue, saltHex],
+      args: [randomValue, saltHex],
     });
 
     // 将随机值和盐值保存到localStorage，以便后续reveal时使用
     localStorage.setItem(`${tableAddr}_randomValue`, randomValue.toString());
-    localStorage.setItem(`${tableAddr}_salt`, bytesToHex(salt));
+    localStorage.setItem(`${tableAddr}_salt`, saltHex);
 
     // 调用合约的commitRandom函数
     writeContractWithCallback({
@@ -194,16 +194,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       return;
     }
 
-    // 在reveal时
-    console.log("Reveal values:", {
-      randomValue,
-      connectedAddress,
-      salt,
-      calculatedCommitment: keccak256(
-        concat([toBytes(BigInt(randomValue)), toBytes(connectedAddress as `0x${string}`), hexToBytes(salt as string)]),
-      ),
-    });
-
     // 调用合约的revealRandom函数
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
@@ -211,7 +201,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       functionName: "revealRandom",
       args: [BigInt(randomValue), salt as `0x${string}`],
       account: connectedAddress as `0x${string}`,
-      gas: 1000000n,
       onSuccess: async () => {
         console.log("✅ Reveal Random 成功");
         // 清除localStorage中的数据
@@ -242,12 +231,13 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   };
 
   const handlePlayerContinue = () => {
+    const raiseX = tableInfo?.state == GameState.FIRST_BETTING ? tableInfo.firstBetX : tableInfo?.secondBetX;
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [playerContinue],
       functionName: "playerContinue",
       account: connectedAddress as `0x${string}`,
-      value: tableInfo?.betAmount,
+      value: tableInfo?.betAmount ? tableInfo.betAmount * BigInt(raiseX || 1) : 0n,
       gas: 1000000n,
       onSuccess: async () => {
         console.log("✅ Player Continue 成功");

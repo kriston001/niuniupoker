@@ -61,8 +61,6 @@ contract BBGameMain is
     // 游戏桌工厂相关
     address public gameTableFactoryAddress; // 游戏桌工厂合约地址
 
-    // 随机数管理器相关
-    address public randomnessManagerAddress; // 随机数管理器合约地址
 
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
     uint256[50] private __gap;
@@ -151,13 +149,9 @@ contract BBGameMain is
             }
         }
 
-        
-
         // 检查游戏桌工厂地址是否设置
         require(gameTableFactoryAddress != address(0), "Invalid game table factory address");
 
-        // 检查随机数管理器地址是否设置
-        require(randomnessManagerAddress != address(0), "Invalid randomness manager address");
 
         // 使用工厂合约创建游戏桌
         IGameTableFactory factory = IGameTableFactory(gameTableFactoryAddress);
@@ -179,10 +173,6 @@ contract BBGameMain is
         gameTables[tableAddr] = tableAddr;
         // 添加到用户的游戏桌列表
         userTables[msg.sender].push(tableAddr);
-
-        //创建session
-        IRandomnessManager randomnessManager = IRandomnessManager(randomnessManagerAddress);
-        randomnessManager.createSession(tableAddr);
 
         // 触发事件
         emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, bankerFeePercent);
@@ -217,7 +207,6 @@ contract BBGameMain is
             tableInactiveTimeout: tableInactiveTimeout,
             liquidatorFeePercent: liquidatorFeePercent,
             rewardPoolAddress: rewardPoolAddress,
-            randomnessManagerAddress: randomnessManagerAddress,
             roomCardAddress: roomCardAddress,
             roomLevelAddress: roomLevelAddress,
             gameTableFactoryAddress: gameTableFactoryAddress
@@ -379,15 +368,6 @@ contract BBGameMain is
     function setGameTableFactoryAddress(address _gameTableFactoryAddress) external onlyOwner nonReentrant {
         require(_gameTableFactoryAddress != address(0), "Invalid game table factory address");
         gameTableFactoryAddress = _gameTableFactoryAddress;
-    }
-
-    /**
-     * @dev 设置随机数管理器地址
-     * @param _randomnessManagerAddress 随机数管理器地址
-     */
-    function setRandomnessManagerAddress(address _randomnessManagerAddress) external onlyOwner nonReentrant {
-        require(_randomnessManagerAddress != address(0), "Invalid randomness manager address");
-        randomnessManagerAddress = _randomnessManagerAddress;
     }
 
 

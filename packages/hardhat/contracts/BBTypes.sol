@@ -15,6 +15,7 @@ enum GameState {
     FIRST_BETTING,
     SECOND_BETTING,
     ENDED,
+    SETTLED,
     LIQUIDATED
 }
 
@@ -25,10 +26,8 @@ enum PlayerState {
     READY,
     COMMITTED,
     REVEALED,
-    FIRST_FOLDED,
-    FIRST_CONTINUED,
-    SECOND_FOLDED,
-    SECOND_CONTINUED
+    ACTIVE,       // 当前参与游戏中，未弃牌
+    FOLDED        // 弃牌
 }
 
 // 牌型

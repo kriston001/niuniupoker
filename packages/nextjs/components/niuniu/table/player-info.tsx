@@ -31,7 +31,7 @@ export function PlayerInfo({
       <div
         className={`
                           relative rounded-lg p-2 text-center
-                          ${player.state === PlayerState.FIRST_FOLDED || player.state === PlayerState.SECOND_FOLDED ? "opacity-50" : ""}
+                          ${player.state === PlayerState.FOLDED ? "opacity-50" : ""}
                           ${isSelf ? "bg-zinc-800/80 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : "bg-zinc-800/50"}
                           backdrop-blur-sm transition-all duration-300
                         `}
@@ -65,8 +65,7 @@ export function PlayerInfo({
           </div>
         ) : (
           <div className="flex justify-center relative h-20">
-            {player.state !== PlayerState.FIRST_FOLDED &&
-              player.state !== PlayerState.SECOND_FOLDED &&
+            {player.state !== PlayerState.FOLDED &&
               Array(5)
                 .fill(0)
                 .map((_, cardIndex) => (
@@ -95,7 +94,7 @@ export function PlayerInfo({
         )}
 
         {/* Folded indicator */}
-        {(player.state === PlayerState.FIRST_FOLDED || player.state === PlayerState.SECOND_FOLDED) && (
+        {player.state === PlayerState.FOLDED && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
             <span className="text-red-400 font-medium">Folded</span>
           </div>

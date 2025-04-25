@@ -1,4 +1,4 @@
-import { GameState, GameTable, PlayerCard, PlayerState, getCardTypeName } from "@/types/game-types";
+import { GameState, GameTable, PlayerState, getCardTypeName } from "@/types/game-types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { formatEther } from "viem";
@@ -14,32 +14,8 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function getPlayerCards(playerAddr: string, cardsData: PlayerCard[]): number[] {
-  const playerCardData = cardsData.find(
-    (card: PlayerCard) => card.playerAddr.toLowerCase() === playerAddr.toLowerCase(),
-  );
-
-  if (playerCardData && playerCardData.cards && playerCardData.cards.length > 0) {
-    return playerCardData.cards;
-  } else {
-    return Array(5).fill(0);
-  }
-}
-
-export function getPlayerCardTypeName(playerAddr: string, cardsData: PlayerCard[]): string {
-  const playerCardData = cardsData.find(
-    (card: PlayerCard) => card.playerAddr.toLowerCase() === playerAddr.toLowerCase(),
-  );
-
-  if (playerCardData) {
-    return getCardTypeName(playerCardData.cardType);
-  } else {
-    return "";
-  }
-}
-
 export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
-  if (player.state == PlayerState.FIRST_FOLDED || player.state == PlayerState.SECOND_FOLDED) {
+  if (player.state == PlayerState.FOLDED) {
     return "Folded";
   }
   switch (tableInfo.state) {
@@ -50,57 +26,63 @@ export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
     case GameState.REVEALING:
       return player.state == PlayerState.REVEALED ? "Revealed" : "";
     case GameState.FIRST_BETTING:
-      return player.state == PlayerState.FIRST_CONTINUED ? "Raised" : "";
+      return player.hasActedThisRound ? "Raised" : "";
     case GameState.SECOND_BETTING:
-      return player.state == PlayerState.SECOND_CONTINUED ? "Raised" : "";
+      return player.hasActedThisRound ? "Raised" : "";
     default:
       return "";
   }
 }
 
 export function checkNext(tableInfo: GameTable): { b: boolean; name: string; desc: string } {
-  if (tableInfo.state == GameState.LIQUIDATED) {
-    return { b: false, name: "Game has been liquidated", desc: "" };
+  const now = Date.now();
+  const isDeadlinePassed = Number(tableInfo.currentRoundDeadline) * 1000 < now;
+  const allPlayersCommitted = tableInfo.committedCount === tableInfo.playerCount;
+  const allPlayersRevealed = tableInfo.revealedCount === tableInfo.playerCount;
+  const allPlayersActed = tableInfo.playerContinuedCount + tableInfo.playerFoldCount === tableInfo.playerCount;
+  
+  const totalActed = tableInfo.playerContinuedCount + tableInfo.playerFoldCount;
+  const everyoneFoldedButOne = tableInfo.playerFoldCount === tableInfo.playerCount - 1 && totalActed > 0;
+  const onlyOneLeft = tableInfo.playerContinuedCount === 1 && totalActed > 0;
+  const noOneLeft = tableInfo.playerContinuedCount === 0 && totalActed > 0;
+
+  const result = (b: boolean, name: string, desc = "") => ({ b, name, desc });
+
+  if (tableInfo.state === GameState.LIQUIDATED) {
+    return result(false, "Game has been liquidated");
   }
 
-  if (
-    tableInfo.state == GameState.COMMITTING &&
-    (tableInfo.committedCount == tableInfo.playerCount || Number(tableInfo.currentRoundDeadline) * 1000 < Date.now())
-  ) {
-    return { b: true, name: "Enter Reveal", desc: "" };
-  }
+  switch (tableInfo.state) {
+    case GameState.COMMITTING:
+      if (allPlayersCommitted || isDeadlinePassed) {
+        return result(true, "Enter Reveal");
+      }
+      return result(false, "Enter Reveal", "Wait for all players to commit");
 
-  if (tableInfo.state == GameState.REVEALING) {
-    if (
-      tableInfo.revealedCount == tableInfo.playerCount ||
-      Number(tableInfo.currentRoundDeadline) * 1000 < Date.now()
-    ) {
-      return { b: true, name: "Enter First Betting", desc: "" };
-    } else {
-      return { b: false, name: "Enter First Betting", desc: "Wait for all players to reveal" };
-    }
-  }
+    case GameState.REVEALING:
+      if (allPlayersRevealed || isDeadlinePassed) {
+        return result(true, "Enter First Betting");
+      }
+      return result(false, "Enter First Betting", "Wait for all players to reveal");
 
-  if (tableInfo.state == GameState.FIRST_BETTING || tableInfo.state == GameState.SECOND_BETTING) {
-    if (tableInfo.playerFoldCount >= tableInfo.playerCount - 1) {
-      // 去结算，只有一个玩家继续或者全部弃牌
-      return { b: true, name: "Settle Game", desc: "" };
-    }
-    if (Number(tableInfo.currentRoundDeadline) * 1000 < Date.now() && tableInfo.playerContinuedCount == 0) {
-      // 超时，并且没有玩家继续
-      return { b: true, name: "Settle Game", desc: "" };
-    }
+    case GameState.FIRST_BETTING:
+    case GameState.SECOND_BETTING:
+      debugger;
+      if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft)) {
+        return result(true, "Settle Game");
+      }
+      if (allPlayersActed || isDeadlinePassed) {
+        return result(true, "Next Round");
+      }
+      return result(false, "Waiting for players to act");
 
-    //第一、二轮下注状态，所有玩家都已行动或者超时，则可以进入下一轮
-    if (tableInfo.playerContinuedCount + tableInfo.playerFoldCount == tableInfo.playerCount) {
-      return { b: true, name: "Next Round", desc: "" };
-    } else if (Number(tableInfo.currentRoundDeadline) * 1000 < Date.now()) {
-      return { b: true, name: "Next Round", desc: "" };
-    } else {
-      return { b: false, name: "Waiting for players to act", desc: "" };
-    }
-  } else {
-    return { b: true, name: "Play Again", desc: "" };
+    case GameState.ENDED:
+      return result(true, "Settle Game");
+
+    case GameState.SETTLED:
+      return result(true, "Play Again");
+    default:
+      return result(false, "Unknown state");
   }
 }
 

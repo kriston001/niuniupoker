@@ -17,7 +17,6 @@ struct GameConfig {
     uint256 tableInactiveTimeout;
     uint8 liquidatorFeePercent;
     address rewardPoolAddress;
-    address randomnessManagerAddress;
     address roomCardAddress;
     address roomLevelAddress;
     address gameTableFactoryAddress;
@@ -105,9 +104,11 @@ struct GameTableView {
     uint256 rewardPoolId;
     RewardPoolInfo rewardPoolInfo; // 奖励池信息，如果没有奖励池，则返回空结构体
     uint256 implementationVersion; // 添加实现版本号
-    bool bankerIsGaming; //庄家是否参与游戏
     uint8 committedCount;
     uint8 revealedCount;
+    uint8 firstBetX;
+    uint8 secondBetX;
+    uint256 bankerStakeAmount;
 }
 
 // 随机数会话结构

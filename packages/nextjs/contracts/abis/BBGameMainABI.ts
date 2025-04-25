@@ -492,11 +492,6 @@ const abi =  [
             "type": "uint256"
           },
           {
-            "internalType": "bool",
-            "name": "bankerIsGaming",
-            "type": "bool"
-          },
-          {
             "internalType": "uint8",
             "name": "committedCount",
             "type": "uint8"
@@ -554,11 +549,6 @@ const abi =  [
           {
             "internalType": "address",
             "name": "rewardPoolAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "randomnessManagerAddress",
             "type": "address"
           },
           {
@@ -770,11 +760,6 @@ const abi =  [
             "type": "uint256"
           },
           {
-            "internalType": "bool",
-            "name": "bankerIsGaming",
-            "type": "bool"
-          },
-          {
             "internalType": "uint8",
             "name": "committedCount",
             "type": "uint8"
@@ -970,11 +955,6 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "bankerIsGaming",
-            "type": "bool"
           },
           {
             "internalType": "uint8",
@@ -1178,11 +1158,6 @@ const abi =  [
             "internalType": "uint256",
             "name": "implementationVersion",
             "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "bankerIsGaming",
-            "type": "bool"
           },
           {
             "internalType": "uint8",
@@ -1436,19 +1411,6 @@ const abi =  [
   },
   {
     "inputs": [],
-    "name": "randomnessManagerAddress",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -1526,19 +1488,6 @@ const abi =  [
       }
     ],
     "name": "setGameTableFactoryAddress",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_randomnessManagerAddress",
-        "type": "address"
-      }
-    ],
-    "name": "setRandomnessManagerAddress",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
