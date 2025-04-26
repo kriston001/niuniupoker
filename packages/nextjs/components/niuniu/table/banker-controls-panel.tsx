@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight, MessageSquare, MinusCircle, PlayCircle, RefreshCw, Send, Trophy } from "lucide-react";
-import { checkNext } from "~~/lib/utils";
+import { formatEther } from "viem";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { GameState, GameTable } from "~~/types/game-types";
 
-export function BankerControlsPanel({
+export const BankerControlsPanel = memo(function BankerControlsPanel({
   tableInfo,
   myRoomCardNfts,
   onStartGameClick,
@@ -20,8 +22,8 @@ export function BankerControlsPanel({
   onNextClick?: () => void;
 }) {
   const [selectedRoomCardTypeId, setSelectedRoomCardTypeId] = useState<string | undefined>(undefined);
-  const [startMsg, setStartMsg] = useState<string | undefined>(undefined);
-  const [tableReady, setTableReady] = useState(false);
+  const { targetNetwork } = useTargetNetwork();
+  const symbol = targetNetwork.nativeCurrency.symbol;
 
   const getQuality = useCallback(
     (typeId: string) => {
@@ -31,27 +33,25 @@ export function BankerControlsPanel({
     [myRoomCardNfts],
   );
 
-  useEffect(() => {
-    // 检查桌子是否准备好
-    if (
-      tableInfo.state == GameState.WAITING &&
-      (tableInfo.playerReadyCount < tableInfo.playerCount || tableInfo.playerCount < 2)
-    ) {
-      setStartMsg("Waiting for more players to be ready...");
-      setTableReady(false);
-      return;
-    } else if (selectedRoomCardTypeId === undefined) {
-      setStartMsg("Please select a room card");
-      setTableReady(false);
-      return;
-    } else if (selectedRoomCardTypeId && getQuality(selectedRoomCardTypeId) <= 0) {
-      setStartMsg("You don't have enough room cards");
-      setTableReady(false);
-      return;
+  // 4. 使用 useMemo 优化复杂计算，使用这个不会导致一直重新渲染
+  const { tableReady, startMsg } = useMemo(() => {
+    if (tableInfo.state !== GameState.WAITING) {
+      return { tableReady: false, startMsg: undefined };
     }
-    setStartMsg(undefined);
-    setTableReady(true);
-  }, [selectedRoomCardTypeId, tableInfo, myRoomCardNfts, getQuality]); // 添加所有依赖项
+    if (tableInfo.playerReadyCount < tableInfo.playerCount) {
+      return { tableReady: false, startMsg: "Waiting for more players to be ready..." };
+    }
+    if (tableInfo.playerCount < 2) {
+      return { tableReady: false, startMsg: "Need at least 2 players..." };
+    }
+    if (!selectedRoomCardTypeId) {
+      return { tableReady: false, startMsg: "Please select a room card" };
+    }
+    if (getQuality(selectedRoomCardTypeId) <= 0) {
+      return { tableReady: false, startMsg: "You don't have enough room cards" };
+    }
+    return { tableReady: true, startMsg: undefined };
+  }, [tableInfo, selectedRoomCardTypeId, getQuality]);
 
   function handleStartGame() {
     const card = myRoomCardNfts.find(card => card.nftType.id === selectedRoomCardTypeId);
@@ -120,14 +120,23 @@ export function BankerControlsPanel({
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-medium shadow-md"
-              disabled={!tableReady}
-              onClick={handleStartGame}
-            >
-              <PlayCircle className="mr-2 h-5 w-5" />
-              Start Game
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-medium shadow-md"
+                    disabled={!tableReady}
+                    onClick={handleStartGame}
+                  >
+                    <PlayCircle className="mr-2 h-5 w-5" />
+                    Start Game – Stake {formatEther(tableInfo.betAmount)} {symbol}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>You’ll get the stake back after the game ends.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {startMsg && <p className="text-xs text-amber-500 mt-2">{startMsg}</p>}
         </div>
@@ -136,22 +145,25 @@ export function BankerControlsPanel({
       {tableInfo.state != GameState.WAITING && (
         <div>
           {(() => {
-            const { b, name, desc } = checkNext(tableInfo);
             return (
-              <Button
-                size="lg"
-                disabled={!b}
-                onClick={handleNext}
-                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
-              >
-                <ChevronRight className="mr-2 h-5 w-5" />
-                {name}
-                {desc && <span className="text-xs text-zinc-400">{desc}</span>}
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="lg"
+                  disabled={!tableInfo.canNext}
+                  onClick={handleNext}
+                  className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-semibold shadow-md border-0"
+                >
+                  <ChevronRight className="mr-2 h-5 w-5" />
+                  {tableInfo.nextTitle}
+                </Button>
+                {tableInfo.nextReason && (
+                  <div className="text-center text-amber-400 text-sm font-medium">{tableInfo.nextReason}</div>
+                )}
+              </div>
             );
           })()}
         </div>
       )}
     </div>
   );
-}
+});

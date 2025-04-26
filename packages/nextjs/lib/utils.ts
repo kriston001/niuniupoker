@@ -34,58 +34,6 @@ export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
   }
 }
 
-export function checkNext(tableInfo: GameTable): { b: boolean; name: string; desc: string } {
-  const now = Date.now();
-  const isDeadlinePassed = Number(tableInfo.currentRoundDeadline) * 1000 < now;
-  const allPlayersCommitted = tableInfo.committedCount === tableInfo.playerCount;
-  const allPlayersRevealed = tableInfo.revealedCount === tableInfo.playerCount;
-  const allPlayersActed = tableInfo.playerContinuedCount + tableInfo.playerFoldCount === tableInfo.playerCount;
-  
-  const totalActed = tableInfo.playerContinuedCount + tableInfo.playerFoldCount;
-  const everyoneFoldedButOne = tableInfo.playerFoldCount === tableInfo.playerCount - 1 && totalActed > 0;
-  const onlyOneLeft = tableInfo.playerContinuedCount === 1 && totalActed > 0;
-  const noOneLeft = tableInfo.playerContinuedCount === 0 && totalActed > 0;
-
-  const result = (b: boolean, name: string, desc = "") => ({ b, name, desc });
-
-  if (tableInfo.state === GameState.LIQUIDATED) {
-    return result(false, "Game has been liquidated");
-  }
-
-  switch (tableInfo.state) {
-    case GameState.COMMITTING:
-      if (allPlayersCommitted || isDeadlinePassed) {
-        return result(true, "Enter Reveal");
-      }
-      return result(false, "Enter Reveal", "Wait for all players to commit");
-
-    case GameState.REVEALING:
-      if (allPlayersRevealed || isDeadlinePassed) {
-        return result(true, "Enter First Betting");
-      }
-      return result(false, "Enter First Betting", "Wait for all players to reveal");
-
-    case GameState.FIRST_BETTING:
-    case GameState.SECOND_BETTING:
-      debugger;
-      if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft)) {
-        return result(true, "Settle Game");
-      }
-      if (allPlayersActed || isDeadlinePassed) {
-        return result(true, "Next Round");
-      }
-      return result(false, "Waiting for players to act");
-
-    case GameState.ENDED:
-      return result(true, "Settle Game");
-
-    case GameState.SETTLED:
-      return result(true, "Play Again");
-    default:
-      return result(false, "Unknown state");
-  }
-}
-
 export function getNftSympol(nft: RoomCardNftType | RoomLevelNftType): string {
   if ("maxPlayers" in nft) {
     return "RC";

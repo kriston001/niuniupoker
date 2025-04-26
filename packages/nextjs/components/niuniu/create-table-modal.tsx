@@ -34,7 +34,7 @@ import { useAccount } from "wagmi";
 import { z } from "zod";
 import { createGameTable } from "~~/contracts/abis/BBGameMainABI";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
+import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import scaffoldConfig from "~~/scaffold.config";
 import { useGlobalState } from "~~/services/store/store";
 
@@ -121,8 +121,6 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
       }
     }
   }, [createRewardOpen, dropdownOpen]);
-
-  const { writeContractWithCallback } = useWriteContractWithCallback();
 
   const handleCreateTable = async (data: FormData) => {
     // Here you would handle the actual creation of the reward

@@ -98,6 +98,9 @@ export interface GameTable {
   firstBetX: number;
   secondBetX: number;
   bankerStakeAmount: bigint;
+  canNext: boolean;
+  nextTitle: string;
+  nextReason: string;
 }
 
 // 玩家信息类型定义
@@ -226,6 +229,8 @@ export const getGameStateName = (state: number) => {
       return "Second Betting";
     case GameState.ENDED:
       return "Ended";
+    case GameState.SETTLED:
+      return "Settled";
     case GameState.LIQUIDATED:
       return "Liquidated";
     default:

@@ -43,17 +43,26 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
 
             <div className="flex items-center text-zinc-400">
               <Info className="h-4 w-4 mr-2 text-amber-500" />
-              <span className="text-sm">Bet Amount: </span>
+              <span className="text-sm">Base Bet: </span>
               <span className="text-sm text-zinc-300 ml-1">
                 {formatEther(tableInfo.betAmount)} {symbol}
               </span>
             </div>
 
+            {/* Add Banker Stake Amount here */}
             <div className="flex items-center text-zinc-400">
+              <Coins className="h-4 w-4 mr-2 text-amber-500" />
+              <span className="text-sm">Owner Staked: </span>
+              <span className="text-sm text-zinc-300 ml-1">
+                {formatEther(tableInfo.bankerStakeAmount)} {symbol}
+              </span>
+            </div>
+
+            {/* <div className="flex items-center text-zinc-400">
               <Clock className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Round: </span>
               <span className="text-sm text-zinc-300 ml-1">{tableInfo.gameRound}</span>
-            </div>
+            </div> */}
           </div>
 
           {/* Enhanced Reward Information Block */}

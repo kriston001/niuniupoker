@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs"
 import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useNFTData } from "~~/hooks/my-hooks/useNFTData";
-import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
+import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import { getNftSympol } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
@@ -62,7 +62,6 @@ export default function NFTPage() {
     setMyDetailModalOpen(true);
   };
 
-  const { writeContractWithCallback } = useWriteContractWithCallback();
   const handleMintConfirm = async (quantity: number, selectedNft: RoomCardNftType | RoomLevelNftType) => {
     if (!connectedAddress || !selectedNft || !gameConfig?.roomLevelAddress) {
       console.log("请先连接钱包");

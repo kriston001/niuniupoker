@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { use } from "react";
-import { useMemo } from "react";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { TableInfo } from "@/components/niuniu/table/table-info";
 import { Badge } from "@/components/ui/badge";
@@ -29,16 +28,18 @@ import {
   startGame,
 } from "~~/contracts/abis/BBGameTableABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
-import { useWriteContractWithCallback } from "~~/hooks/useWriteContractWithCallback";
+import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
-import { GameState, getGameStateName } from "~~/types/game-types";
+import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
   const tableAddr = resolvedParams.addr;
 
   const gameConfig = useGlobalState(state => state.gameConfig);
+
+  console.log("gameconfig: ", gameConfig);
 
   const { address: connectedAddress } = useAccount();
 
@@ -60,8 +61,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     console.log("Time's up!");
     // Here you would handle what happens when the timer runs out
   };
-
-  const { writeContractWithCallback } = useWriteContractWithCallback();
 
   const handleNext = () => {
     writeContractWithCallback({
@@ -128,24 +127,27 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     });
   };
 
-  const handleStartGame = (tokenId: string) => {
-    writeContractWithCallback({
-      address: tableAddr as `0x${string}`,
-      abi: [startGame],
-      functionName: "startGame",
-      args: [BigInt(tokenId)],
-      value: tableInfo?.betAmount,
-      account: connectedAddress as `0x${string}`,
-      gas: 1000000n,
-      onSuccess: async () => {
-        console.log("✅ Start Game 成功");
-        await refreshData();
-      },
-      onError: async err => {
-        console.error("❌ Start Game 失败:", err);
-      },
-    });
-  };
+  const handleStartGame = useCallback(
+    (tokenId: string) => {
+      writeContractWithCallback({
+        address: tableAddr as `0x${string}`,
+        abi: [startGame],
+        functionName: "startGame",
+        args: [BigInt(tokenId)],
+        value: tableInfo?.betAmount,
+        account: connectedAddress as `0x${string}`,
+        gas: 1000000n,
+        onSuccess: async () => {
+          console.log("✅ Start Game 成功");
+          await refreshData();
+        },
+        onError: async err => {
+          console.error("❌ Start Game 失败:", err);
+        },
+      });
+    },
+    [tableAddr, tableInfo?.betAmount, connectedAddress, refreshData],
+  );
 
   const handlePlayerCommit = async () => {
     // 生成随机值 (32位整数)
@@ -238,7 +240,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       functionName: "playerContinue",
       account: connectedAddress as `0x${string}`,
       value: tableInfo?.betAmount ? tableInfo.betAmount * BigInt(raiseX || 1) : 0n,
-      gas: 1000000n,
       onSuccess: async () => {
         console.log("✅ Player Continue 成功");
         await refreshData();
@@ -255,7 +256,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       abi: [playerQuit],
       functionName: "playerQuit",
       account: connectedAddress as `0x${string}`,
-      gas: 1000000n,
       onSuccess: async () => {
         console.log("✅ Player Quit 成功");
         await refreshData();
@@ -351,13 +351,16 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                       <div className="text-zinc-400 text-lg mt-2">{getGameStateName(tableInfo.state)} Round</div>
                       <div className="text-zinc-500 text-sm mt-1">
                         {tableInfo.state === GameState.WAITING &&
+                          playerData?.state === PlayerState.JOINED &&
                           'Click "Ready" to join the game and stake your entry deposit'}
                         {tableInfo.state === GameState.COMMITTING && "Please commit your random number"}
                         {tableInfo.state === GameState.REVEALING && "Please reveal your random number"}
                         {tableInfo.state === GameState.FIRST_BETTING && "First Betting Round: choose to Raise or Fold"}
                         {tableInfo.state === GameState.SECOND_BETTING &&
                           "Second Betting Round: choose to Raise or Fold"}
-                        {tableInfo.state === GameState.WAITING && "Waiting for players to be ready"}
+                        {tableInfo.state === GameState.WAITING &&
+                          playerData?.state === PlayerState.READY &&
+                          "Waiting for other players to be ready"}
                       </div>
 
                       {/* Countdown Timer - only show when game is active */}
@@ -433,7 +436,9 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                   </div>
                 )}
 
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-6">
+                <div
+                  className={`${tableInfo?.bankerAddr === connectedAddress ? "mt-4" : ""} bg-zinc-900/80 border border-zinc-800 rounded-lg p-6`}
+                >
                   <h3 className="text-lg font-semibold text-white mb-6">Game Controls</h3>
 
                   {/* Player actions */}
@@ -445,7 +450,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                         onJoinGameClick={handlePlayerJoin}
                         onReadyClick={handlePlayerReady}
                         onUnreadyClick={handlePlayerUnready}
-                        onLeaveClick={handlePlayerQuit}
+                        onQuitClick={handlePlayerQuit}
                         onCommitClick={handlePlayerCommit}
                         onRevealClick={handlePlayerReveal}
                         onContinueClick={handlePlayerContinue}

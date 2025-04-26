@@ -188,7 +188,7 @@ contract BBRoomCardNFT is
      * @return Returns the minted room card ID
      */
     function buy(uint256 nftTypeId) external payable returns (uint256) {
-        RoomCardNftType memory nftType = nftTypes[nftTypeId];
+        RoomCardNftType storage nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Card type does not exist");
         require(nftType.active, "Card type not active");
         require(msg.value >= nftType.price, "Insufficient payment");
@@ -215,7 +215,7 @@ contract BBRoomCardNFT is
      * @return Returns an array of minted room card IDs
      */
     function batchBuy(uint256 nftTypeId, uint256 amount) external payable returns (uint256[] memory) {
-        RoomCardNftType memory nftType = nftTypes[nftTypeId];
+        RoomCardNftType storage nftType = nftTypes[nftTypeId];
         require(nftType.id == nftTypeId, "Card type does not exist");
         require(nftType.active, "Card type not active");
         require(amount > 0, "Amount must be greater than 0");

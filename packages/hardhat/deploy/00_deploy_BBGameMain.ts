@@ -61,7 +61,11 @@ function colorLog(message: string, data: any = "", color: string = "green") {
  * @param addresses 部署地址对象
  */
 const saveDeployedAddresses = (hre: HardhatRuntimeEnvironment, addresses: Record<string, string>): void => {
-  const networkName = hre.network.name;
+  // 检查是否是本地网络（hardhat 或 localhost）
+  const isLocalNetwork = hre.network.name === "hardhat" || hre.network.name === "localhost";
+  // 如果是本地网络，统一使用 localhost
+  const networkName = isLocalNetwork ? "localhost" : hre.network.name;
+
   const deployDirPath = path.join(__dirname, `../deployments/${networkName}`);
   const deployAddressPath = path.join(deployDirPath, "addresses.json");
 

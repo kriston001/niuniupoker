@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import debounce from "lodash.debounce";
 import { Address } from "viem";
 import { useReadContracts, useWatchContractEvent } from "wagmi";
 import { GameTableChanged, getAllPlayerData, getPlayerData, getTableInfo } from "~~/contracts/abis/BBGameTableABI";
@@ -86,6 +87,13 @@ export function useGameTableData({
 
   const refetchDataRef = useRef(refetchData);
 
+  // 创建防抖函数的 ref
+  const debouncedRefetchRef = useRef(
+    debounce(() => {
+      refetchDataRef.current?.();
+    }, 2000),
+  );
+
   // 更新 refetch 函数的 ref
   useEffect(() => {
     refetchDataRef.current = refetchData;
@@ -94,7 +102,7 @@ export function useGameTableData({
   // 监听地址变化并刷新数据
   useEffect(() => {
     if (!tableAddress || tableAddress === "") return;
-    refetchDataRef.current?.();
+    debouncedRefetchRef.current?.();
   }, [tableAddress, playerAddress]); // 只在地址变化时刷新
 
   // 定时刷新
@@ -102,7 +110,7 @@ export function useGameTableData({
     if (refreshIntervalRef.current <= 0) return;
 
     const intervalId = setInterval(() => {
-      refetchDataRef.current?.();
+      debouncedRefetchRef.current?.();
     }, refreshIntervalRef.current);
 
     return () => clearInterval(intervalId);
@@ -121,6 +129,14 @@ export function useGameTableData({
     },
     enabled: Boolean(tableAddress && tableAddress !== ""),
   });
+
+  // 清理防抖函数
+  useEffect(() => {
+    const debouncedRefetch = debouncedRefetchRef.current;
+    return () => {
+      debouncedRefetch.cancel();
+    };
+  }, []);
 
   // 检查玩家数据是否有效
   const validPlayerData = playerData as Player | undefined;
@@ -141,3 +157,4 @@ export function useGameTableData({
     [validPlayerData, allPlayersData, tableInfo, refetchData],
   );
 }
+

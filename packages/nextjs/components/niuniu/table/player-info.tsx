@@ -22,7 +22,7 @@ export function PlayerInfo({
       )}
 
       {/* Ready indicator */}
-      {getPlayerGameStateName(tableInfo, player) !== "" && (
+      {getPlayerGameStateName(tableInfo, player) !== "" && getPlayerGameStateName(tableInfo, player) !== "Folded" && (
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-1.5 rounded-full backdrop-blur-sm font-bold text-lg transition-all duration-500 text-emerald-300 bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.5)] translate-y-[-3rem]">
           {getPlayerGameStateName(tableInfo, player)}
         </div>
@@ -31,7 +31,7 @@ export function PlayerInfo({
       <div
         className={`
                           relative rounded-lg p-2 text-center
-                          ${player.state === PlayerState.FOLDED ? "opacity-50" : ""}
+                          ${player.state === PlayerState.FOLDED ? "opacity-80" : ""}
                           ${isSelf ? "bg-zinc-800/80 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : "bg-zinc-800/50"}
                           backdrop-blur-sm transition-all duration-300
                         `}
@@ -95,11 +95,13 @@ export function PlayerInfo({
 
         {/* Folded indicator */}
         {player.state === PlayerState.FOLDED && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
-            <span className="text-red-400 font-medium">Folded</span>
-          </div>
+          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-400 font-bold text-2xl transform rotate-[-15deg] z-50 bg-black/50 px-4 py-2 rounded-lg shadow-lg">
+            FOLDED
+          </span>
         )}
       </div>
     </div>
   );
 }
+
+

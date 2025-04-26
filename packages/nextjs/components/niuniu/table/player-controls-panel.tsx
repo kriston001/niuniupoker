@@ -1,31 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  ArrowLeft,
-  Ban,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Coins,
-  Gift,
-  Info,
-  MessageSquare,
-  MinusCircle,
-  PhoneCall,
-  PlayCircle,
-  RefreshCw,
-  Send,
-  Shuffle,
-  TrendingUp,
-  Trophy,
-  Users,
-  Wallet,
-  X,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Gift, MinusCircle, PlayCircle, Shuffle, TrendingUp, X } from "lucide-react";
+import { formatEther } from "viem";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { GameState, GameTable, Player, PlayerState } from "~~/types/game-types";
 
 interface PlayerControlsPanelProps {
@@ -34,7 +10,7 @@ interface PlayerControlsPanelProps {
   onJoinGameClick?: () => void;
   onReadyClick?: () => void;
   onUnreadyClick?: () => void;
-  onLeaveClick?: () => void;
+  onQuitClick?: () => void;
   onCommitClick?: () => void;
   onRevealClick?: () => void;
   onContinueClick?: () => void;
@@ -47,13 +23,15 @@ export function PlayerControlsPanel({
   onJoinGameClick,
   onReadyClick,
   onUnreadyClick,
-  onLeaveClick,
+  onQuitClick,
   onCommitClick,
   onRevealClick,
   onContinueClick,
   onFoldClick,
 }: PlayerControlsPanelProps) {
   const { state: gameState } = tableInfo;
+  const { targetNetwork } = useTargetNetwork();
+  const symbol = targetNetwork.nativeCurrency.symbol;
 
   const isRoundOverdue = !!tableInfo.currentRoundDeadline && Date.now() > Number(tableInfo.currentRoundDeadline) * 1000;
 
@@ -63,6 +41,7 @@ export function PlayerControlsPanel({
   const showFirstBetting = gameState === GameState.FIRST_BETTING && playerInfo;
   const showSecondBetting =
     gameState === GameState.SECOND_BETTING && playerInfo && playerInfo.state !== PlayerState.FOLDED;
+  const showLeaveButtons = gameState === GameState.SETTLED && playerInfo;
 
   return (
     <div className="space-y-3">
@@ -71,7 +50,7 @@ export function PlayerControlsPanel({
         {showJoinButtons && (
           <>
             {!playerInfo && (
-              <Button size="lg" onClick={onJoinGameClick} className="w-full bg-zinc-700 hover:bg-zinc-600 text-white">
+              <Button size="lg" onClick={onJoinGameClick} className="w-full bg-green-600 hover:bg-green-500 text-white">
                 <CheckCircle2 className="mr-2 h-5 w-5" />
                 Join Game
               </Button>
@@ -80,26 +59,29 @@ export function PlayerControlsPanel({
             {playerInfo && (
               <>
                 {playerInfo.state === PlayerState.JOINED && (
-                  <Button size="lg" onClick={onReadyClick} className="w-full bg-zinc-700 hover:bg-zinc-600 text-white">
+                  <Button
+                    size="lg"
+                    onClick={onReadyClick}
+                    className="w-full bg-green-600 hover:bg-green-500 text-white"
+                  >
                     <CheckCircle2 className="mr-2 h-5 w-5" />
-                    Ready
+                    Ready – Deposit {formatEther(tableInfo.betAmount)} {symbol}
                   </Button>
                 )}
 
                 {playerInfo.state === PlayerState.READY && (
-                  <Button
-                    size="lg"
-                    onClick={onUnreadyClick}
-                    className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
-                  >
+                  <Button size="lg" onClick={onUnreadyClick} className="w-full bg-red-600 hover:bg-red-500 text-white">
                     <X className="mr-2 h-5 w-5" />
-                    Unready
+                    Cancel Ready - Refund {formatEther(tableInfo.betAmount)} {symbol}
                   </Button>
                 )}
 
-                <Button size="lg" onClick={onLeaveClick} className="w-full bg-zinc-700 hover:bg-zinc-600 text-white">
+                <Button size="lg" onClick={onQuitClick} className="w-full bg-red-600 hover:bg-red-500 text-white">
                   <ArrowLeft className="mr-2 h-5 w-5" />
                   Leave
+                  {playerInfo.state === PlayerState.READY
+                    ? ` - Refund ${formatEther(tableInfo.betAmount)} ${symbol}`
+                    : ""}
                 </Button>
               </>
             )}
@@ -111,7 +93,7 @@ export function PlayerControlsPanel({
             size="lg"
             disabled={playerInfo.state === PlayerState.COMMITTED || isRoundOverdue}
             onClick={onCommitClick}
-            className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white"
           >
             <Shuffle className="mr-2 h-5 w-5" />
             {playerInfo.state === PlayerState.COMMITTED ? "Committed" : "Commit Random"}
@@ -123,7 +105,7 @@ export function PlayerControlsPanel({
             size="lg"
             disabled={playerInfo.state === PlayerState.REVEALED || isRoundOverdue}
             onClick={onRevealClick}
-            className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+            className="w-full bg-yellow-500 hover:bg-yellow-400 text-white"
           >
             <Gift className="mr-2 h-5 w-5" />
             {playerInfo.state === PlayerState.REVEALED ? "Revealed" : "Reveal Random"}
@@ -136,16 +118,16 @@ export function PlayerControlsPanel({
               size="lg"
               disabled={playerInfo.hasActedThisRound || isRoundOverdue}
               onClick={onContinueClick}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white"
             >
               <TrendingUp className="mr-2 h-5 w-5" />
-              Raise
+              Raise – Deposit {formatEther(tableInfo.betAmount * BigInt(tableInfo.firstBetX))} {symbol}
             </Button>
             <Button
               size="lg"
               disabled={playerInfo.hasActedThisRound || isRoundOverdue}
               onClick={onFoldClick}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              className="w-full bg-red-600 hover:bg-red-500 text-white"
             >
               <MinusCircle className="mr-2 h-5 w-5" />
               Fold
@@ -159,21 +141,28 @@ export function PlayerControlsPanel({
               size="lg"
               disabled={playerInfo.hasActedThisRound || isRoundOverdue}
               onClick={onContinueClick}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white"
             >
               <PlayCircle className="mr-2 h-5 w-5" />
-              Call
+              Raise – Deposit {formatEther(tableInfo.betAmount * BigInt(tableInfo.secondBetX))} {symbol}
             </Button>
             <Button
               size="lg"
               disabled={playerInfo.hasActedThisRound || isRoundOverdue}
               onClick={onFoldClick}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+              className="w-full bg-red-600 hover:bg-red-500 text-white"
             >
               <MinusCircle className="mr-2 h-5 w-5" />
               Fold
             </Button>
           </>
+        )}
+
+        {showLeaveButtons && (
+          <Button size="lg" onClick={onQuitClick} className="w-full bg-red-600 hover:bg-red-500 text-white">
+            <ArrowLeft className="mr-2 h-5 w-5" />
+            Leave
+          </Button>
         )}
       </div>
     </div>

@@ -264,6 +264,11 @@ const abi = [
       },
       {
         "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
         "name": "reason",
         "type": "string"
       }
@@ -776,6 +781,21 @@ const abi = [
             "internalType": "uint256",
             "name": "bankerStakeAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "canNext",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "nextTitle",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nextReason",
+            "type": "string"
           }
         ],
         "internalType": "struct GameTableView",
@@ -1001,6 +1021,13 @@ const abi = [
   {
     "inputs": [],
     "name": "playerJoin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "playerLeave",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1283,6 +1310,19 @@ const abi = [
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalIncome",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

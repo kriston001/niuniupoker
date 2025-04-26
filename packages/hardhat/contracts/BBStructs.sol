@@ -109,6 +109,9 @@ struct GameTableView {
     uint8 firstBetX;
     uint8 secondBetX;
     uint256 bankerStakeAmount;
+    bool canNext;
+    string nextTitle;
+    string nextReason;
 }
 
 // 随机数会话结构

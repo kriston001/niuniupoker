@@ -20,6 +20,7 @@ export function useGameTablesData({ refreshInterval = 0, limit = 10 }: { refresh
     functionName: "getNewestGameTables",
   });
 
+
   // refetchGameTables 保存在 ref 中，防止依赖变化引发副作用
   const refetchRef = useRef(refetchGameTables);
   refetchRef.current = refetchGameTables;
