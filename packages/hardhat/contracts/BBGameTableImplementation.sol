@@ -46,7 +46,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     uint256 public gameStartTimestamp;
     uint256 public gameEndTimestamp;
     uint8 public playerContinuedCount;
-    uint8 public playerFoldCount;
     uint8 public playerReadyCount;
     uint256 public totalPrizePool;  //奖池金额
     uint8 public bankerFeePercent; // 庄家费用百分比
@@ -244,6 +243,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             state: PlayerState.JOINED,
             totalBet: 0,
             hasActedThisRound: false,
+            isWinner: false,
             cards: [0, 0, 0, 0, 0],
             cardType: CardType.NONE,
             __gap: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
@@ -278,6 +278,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         players[index].addr = address(0);
         players[index].state = PlayerState.NONE;
         players[index].totalBet = 0;
+        players[index].hasActedThisRound = false;
+        players[index].isWinner = false;
         players[index].cards = [0, 0, 0, 0, 0];
         players[index].cardType = CardType.NONE;
 
@@ -471,7 +473,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
     function _resetGame() internal {
         playerContinuedCount = 0;
-        playerFoldCount = 0;
         gameStartTimestamp = 0;
         gameEndTimestamp = 0;
         currentRoundDeadline = 0;
@@ -495,10 +496,12 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         if(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING){
-            bool onlyOneLeft = playerContinuedCount <= 1;
-            bool everyoneFoldedButOne = playerFoldCount >= playerCount - 1;
+            (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
+
+            bool onlyOneLeft = playerContinuedCount == 1;
+            bool everyoneFoldedButOne = foldedCount == playerCount - 1 && totalActed == 1;
             bool isDeadlinePassed = _isTimeOut();
-            bool noOneActed = playerContinuedCount + playerFoldCount == 0;
+            bool noOneActed = totalActed == 0;
 
             if (everyoneFoldedButOne || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
                 // 可以结算
@@ -597,6 +600,24 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         setState(GameState.FIRST_BETTING);
     }
 
+    function _getPlayerActionCounts() internal view returns (uint8, uint8){
+        uint8 foldedCount = 0;
+        uint8 actedCount = 0;
+        for(uint i = 0; i < players.length; i++){
+            BBPlayer storage player = players[i];
+            if(player.isValid()){
+                if(player.state == PlayerState.FOLDED){
+                    foldedCount++;
+                }
+                if(player.hasActedThisRound){
+                    actedCount++;
+                }
+            }
+        }
+
+        return (foldedCount, actedCount);
+    }
+
     
 
     function _startSecondBetting() internal {
@@ -610,7 +631,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         _dealCardsByRound(2);
         setState(GameState.SECOND_BETTING);
         playerContinuedCount = 0;
-        playerFoldCount = 0;
     }
 
     function _endGame() internal {
@@ -640,18 +660,18 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             return (false, "", "No players in game");
         }
 
-        bool isDeadlinePassed = currentRoundDeadline > 0 && block.timestamp >= currentRoundDeadline;
-        bool allPlayersActed = playerContinuedCount + playerFoldCount == playerCount;
+        (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
 
-        uint8 totalActed = playerContinuedCount + playerFoldCount;
-        bool onlyOneLeft = playerContinuedCount == 1 && totalActed > 0;
-        bool everyoneFoldedButOne = playerFoldCount == playerCount - 1 && totalActed > 0;
-        bool noOneLeft = playerContinuedCount == 0 && totalActed > 0;
+        bool isDeadlinePassed = currentRoundDeadline > 0 && block.timestamp >= currentRoundDeadline;
+        bool allPlayersActed = totalActed + foldedCount == playerCount;
+
+        bool onlyOneLeft = playerContinuedCount == 1 && foldedCount == playerCount - 1;
+        bool noOneLeft = foldedCount == playerCount;
         bool noOneActed = totalActed == 0;
 
 
         if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
-            if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
+            if (onlyOneLeft || noOneLeft) {
                 return (true, "Settle Game", "");
             } else if (allPlayersActed || isDeadlinePassed) {
                 return (true, "Next Round", "");
@@ -692,8 +712,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         _updateLastActivity();
         player.playerFold();
-
-        playerFoldCount++;
 
         _updateFinalSeed(randomValue);
 
@@ -756,8 +774,16 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         gameEndTimestamp = block.timestamp;
 
+        (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
+
+        bool allFoldedOrNoActed = foldedCount == playerCount || totalActed == 0;
+
         // 计算费用
         uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100;
+        if(allFoldedOrNoActed){
+            // 如果所有玩家都弃牌或者没有人行动，庄家不收取费用
+            bankerFee = 0;
+        }
         uint256 remainingPrizePool = totalPrizePool - bankerFee;
 
         uint256 bankerTotal = bankerFee + bankerStakeAmount;
@@ -768,7 +794,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             _settleOneContinuedPlayer(remainingPrizePool);
         }
         // 如果所有玩家都弃牌或者没有人行动，则每个人拿回自己的钱
-        else if (playerFoldCount == playerCount || playerContinuedCount + playerFoldCount == 0) {
+        else if (allFoldedOrNoActed) {
             _settleAllFolded();
         }
         // 正常比牌
@@ -819,6 +845,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
                     player.hasActedThisRound) {
                     continuedPlayer = player.addr;
                     winnerAddrs[winnerCount] = player.addr;
+                    player.isWinner = true;
                     winnerCount++;
                 }
 
@@ -926,6 +953,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
                     // 如果是获胜者，添加到获胜者数组
                     if (player.cardType == _maxCardType) {
                         winnerAddrs[winnerCount] = player.addr;
+                        player.isWinner = true;
                         winnerCount++;
                     }
                 }
@@ -1103,7 +1131,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         playerCount = 0;
         playerReadyCount = 0;
         playerContinuedCount = 0;
-        playerFoldCount = 0;
         totalPrizePool = 0;
         gameLiquidatedCount++;
 
@@ -1187,7 +1214,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             state: state,
             liquidatorFeePercent: liquidatorFeePercent,
             playerContinuedCount: playerContinuedCount,
-            playerFoldCount: playerFoldCount,
             playerReadyCount: playerReadyCount,
             playerAddresses: getPlayerAddresses(),
             currentRoundDeadline: currentRoundDeadline,

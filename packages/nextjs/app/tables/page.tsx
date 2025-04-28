@@ -1,18 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,21 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { truncateAddress } from "@/lib/utils";
 import {
   ArrowUpDown,
-  Clock,
-  Coins,
   Filter,
-  Gift,
   PlusCircle,
   Search,
-  TrendingUp,
-  Trophy,
-  Users,
-  Wallet,
 } from "lucide-react";
 import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
 import { TableCard } from "~~/components/niuniu/table-card";

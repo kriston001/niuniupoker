@@ -11,6 +11,8 @@ struct BBPlayer {
 
     bool hasActedThisRound;   // 本轮是否已操作
 
+    bool isWinner;   // 是否为赢家
+
     uint8[5] cards;
     CardType cardType;
 
@@ -70,6 +72,7 @@ library BBPlayerLib {
         self.state = PlayerState.JOINED;
         self.hasActedThisRound = false;
         self.totalBet = 0;
+        self.isWinner = false;
         self.cards = [0, 0, 0, 0, 0];
         self.cardType = CardType.NONE;
     }

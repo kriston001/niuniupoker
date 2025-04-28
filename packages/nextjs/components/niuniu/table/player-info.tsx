@@ -21,6 +21,48 @@ export function PlayerInfo({
         <HandResultDisplay result={player.cardType} className="translate-y-[-3rem]" />
       )}
 
+      {/* Winner animation */}
+      {player.isWinner && (
+        <div className="absolute inset-0 z-40 pointer-events-none">
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-yellow-300/30 to-amber-500/30 rounded-lg"></div>
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full z-50">
+            <div className="animate-bounce flex flex-col items-center">
+              <div className="text-yellow-300 text-2xl font-bold drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]">
+                WINNER!
+              </div>
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="animate-spin-slow text-2xl"
+                    style={{ 
+                      animationDelay: `${i * 0.2}s`,
+                      animationDuration: `${1.5 + i * 0.2}s`
+                    }}
+                  >
+                    ✨
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-firework"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  animationDuration: `${1 + Math.random() * 2}s`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Ready indicator */}
       {getPlayerGameStateName(tableInfo, player) !== "" && getPlayerGameStateName(tableInfo, player) !== "Folded" && (
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-1.5 rounded-full backdrop-blur-sm font-bold text-lg transition-all duration-500 text-emerald-300 bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.5)] translate-y-[-3rem]">
@@ -41,7 +83,7 @@ export function PlayerInfo({
 
         {/* Player cards */}
         {player.cards ? (
-          <div className="mt-1 h-20 relative">
+          <div className="mt-1 h-20 relative pl-2.5">
             <div className="flex justify-center relative h-full">
               {player.cards.map((cardValue, cardIndex) => {
                 const card = convertCardNumber(cardValue);
@@ -103,5 +145,3 @@ export function PlayerInfo({
     </div>
   );
 }
-
-

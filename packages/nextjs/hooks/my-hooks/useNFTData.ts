@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Address, Log } from "viem";
-import { useReadContract, useWatchContractEvent } from "wagmi";
+import { useWatchContractEvent, useReadContracts } from "wagmi";
 import { RoomCardPurchased, getActiveCardTypes, getUserRoomCards } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { RoomLevelPurchased, getActiveLevelTypes, getUserLevelDetails } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftDetail, RoomCardNftType, RoomLevelNftDetail, RoomLevelNftType } from "~~/types/game-types";
 import { convertToMyRoomCardNft, convertToMyRoomLevelNft } from "~~/lib/utils";
+import debounce from "lodash.debounce";
 
 /**
  * 获取NFT信息的钩子
@@ -21,74 +22,134 @@ import { convertToMyRoomCardNft, convertToMyRoomLevelNft } from "~~/lib/utils";
 export function useNFTData({ playerAddress }: { playerAddress: Address | undefined }) {
   const gameConfig = useGlobalState(state => state.gameConfig);
 
-  const { data: roomCardTypesRaw, refetch: refetchRoomCardTypes } = useReadContract({
-    address: gameConfig?.roomCardAddress,
-    abi: [getActiveCardTypes],
-    functionName: "getActiveTypes",
-  });
-  // 解析合约返回的数组
-  const roomCardTypes = Array.isArray(roomCardTypesRaw) ? (roomCardTypesRaw[1] as RoomCardNftType[]) : [];
+  // const { data: roomCardTypesRaw, refetch: refetchRoomCardTypes } = useReadContract({
+  //   address: gameConfig?.roomCardAddress,
+  //   abi: [getActiveCardTypes],
+  //   functionName: "getActiveTypes",
+  // });
+  // // 解析合约返回的数组
+  // const roomCardTypes = Array.isArray(roomCardTypesRaw) ? (roomCardTypesRaw[1] as RoomCardNftType[]) : [];
 
-  const myNfts: any[] = [];
+  // const myNfts: any[] = [];
 
-  const { data: myRoomCardNftsRaw, refetch: refetchMyRoomCardNfts } = useReadContract({
-    address: gameConfig?.roomCardAddress,
-    abi: [getUserRoomCards],
-    functionName: "getUserNfts",
-    args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
-    query: {
-      enabled: Boolean(playerAddress),
-    },
-  });
-  // 解析合约返回的数组
-  const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? (myRoomCardNftsRaw[1] as RoomCardNftDetail[]) : [];
-  myNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
+  // const { data: myRoomCardNftsRaw, refetch: refetchMyRoomCardNfts } = useReadContract({
+  //   address: gameConfig?.roomCardAddress,
+  //   abi: [getUserRoomCards],
+  //   functionName: "getUserNfts",
+  //   args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+  //   query: {
+  //     enabled: Boolean(playerAddress),
+  //   },
+  // });
+  // // 解析合约返回的数组
+  // const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? (myRoomCardNftsRaw[1] as RoomCardNftDetail[]) : [];
+  // myNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
 
-  const { data: roomLevelTypesRaw, refetch: refetchRoomLevelTypes } = useReadContract({
-    address: gameConfig?.roomLevelAddress,
-    abi: [getActiveLevelTypes],
-    functionName: "getActiveTypes",
-  });
+  // const { data: roomLevelTypesRaw, refetch: refetchRoomLevelTypes } = useReadContract({
+  //   address: gameConfig?.roomLevelAddress,
+  //   abi: [getActiveLevelTypes],
+  //   functionName: "getActiveTypes",
+  // });
 
-  // 解析合约返回的数组
-  const roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? (roomLevelTypesRaw[1] as RoomLevelNftType[]) : [];
+  // // 解析合约返回的数组
+  // const roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? (roomLevelTypesRaw[1] as RoomLevelNftType[]) : [];
 
-  const { data: myRoomLevelNftsRaw, refetch: refetchMyRoomLevelNfts } = useReadContract({
-    address: gameConfig?.roomLevelAddress,
-    abi: [getUserLevelDetails],
-    functionName: "getUserNfts",
-    args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
-    query: {
-      enabled: Boolean(playerAddress),
-    },
-  });
-  // 解析合约返回的数组
-  const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? (myRoomLevelNftsRaw[1] as RoomLevelNftDetail[]) : [];
-  myNfts.push(...convertToMyRoomLevelNft(myRoomLevelNfts));
+  // const { data: myRoomLevelNftsRaw, refetch: refetchMyRoomLevelNfts } = useReadContract({
+  //   address: gameConfig?.roomLevelAddress,
+  //   abi: [getUserLevelDetails],
+  //   functionName: "getUserNfts",
+  //   args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+  //   query: {
+  //     enabled: Boolean(playerAddress),
+  //   },
+  // });
+  // // 解析合约返回的数组
+  // const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? (myRoomLevelNftsRaw[1] as RoomLevelNftDetail[]) : [];
+  // myNfts.push(...convertToMyRoomLevelNft(myRoomLevelNfts));
 
   // 刷新所有数据
-  const refreshData = async () => {
-    try {
-      console.log("刷新NFT数据");
-      await Promise.all([
-        refetchRoomCardTypes(),
-        refetchRoomLevelTypes(),
-        refetchMyRoomCardNfts(),
-        refetchMyRoomLevelNfts(),
-      ]);
-    } catch (err) {
-      console.error("刷新NFT数据失败:", err);
-    }
-  };
+  // const refreshData = async () => {
+  //   try {
+  //     console.log("刷新NFT数据");
+  //     await Promise.all([
+  //       refetchRoomCardTypes(),
+  //       refetchRoomLevelTypes(),
+  //       refetchMyRoomCardNfts(),
+  //       refetchMyRoomLevelNfts(),
+  //     ]);
+  //   } catch (err) {
+  //     console.error("刷新NFT数据失败:", err);
+  //   }
+  // };
 
-  // 将 refreshData 保存到 ref 中
-  const refreshDataRef = useRef(refreshData);
-  refreshDataRef.current = refreshData;
+  let roomCardTypes: any[] = [];
+  let roomLevelTypes: any[] = [];
+  const myNfts: any[] = [];
+  const contracts = [
+    {
+      address: gameConfig?.roomCardAddress,
+      abi: [getActiveCardTypes],
+      functionName: "getActiveTypes",
+    },
+    {
+      address: gameConfig?.roomCardAddress,
+      abi: [getUserRoomCards],
+      functionName: "getUserNfts",
+      args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+    },
+    {
+      address: gameConfig?.roomLevelAddress,
+      abi: [getActiveLevelTypes],
+      functionName: "getActiveTypes",
+    },
+    {
+      address: gameConfig?.roomLevelAddress,
+      abi: [getUserLevelDetails],
+      functionName: "getUserNfts",
+      args: playerAddress ? [playerAddress] : undefined, // 如果需要传参
+    },
+  ] as const;
 
-  // 初始加载时刷新一次
+  const { data, refetch: refetchData } = useReadContracts({
+    contracts: contracts
+  });
+
+  if (data) {
+    console.log("useNFTData：", data);
+    const roomCardTypesRaw = data[0].status === "success" ? data[0].result : undefined;
+    roomCardTypes = Array.isArray(roomCardTypesRaw) ? (roomCardTypesRaw[1] as RoomCardNftType[]) : [];
+
+    const myRoomCardNftsRaw = data[1].status === "success" ? data[1].result : undefined;
+    const myRoomCardNfts = Array.isArray(myRoomCardNftsRaw) ? (myRoomCardNftsRaw[1] as RoomCardNftDetail[]) : [];
+    myNfts.push(...convertToMyRoomCardNft(myRoomCardNfts));
+
+
+    const roomLevelTypesRaw = data[2].status === "success" ? data[2].result : undefined;
+    roomLevelTypes = Array.isArray(roomLevelTypesRaw) ? (roomLevelTypesRaw[1] as RoomLevelNftType[]) : [];
+
+    const myRoomLevelNftsRaw = data[3].status === "success" ? data[3].result : undefined;
+    const myRoomLevelNfts = Array.isArray(myRoomLevelNftsRaw) ? (myRoomLevelNftsRaw[1] as RoomLevelNftDetail[]) : [];
+    myNfts.push(...convertToMyRoomLevelNft(myRoomLevelNfts));
+  }
+
+  const refetchDataRef = useRef(refetchData);
+  
+  // 创建防抖函数的 ref
+  const debouncedRefetchRef = useRef(
+    debounce(() => {
+      refetchDataRef.current?.();
+    }, 2000),
+  );
+
+  // 更新 refetch 函数的 ref
   useEffect(() => {
-    refreshDataRef.current();
-  }, []);
+    refetchDataRef.current = refetchData;
+  }, [refetchData]);
+
+  // 监听地址变化并刷新数据
+  useEffect(() => {
+    debouncedRefetchRef.current?.();
+  }, [playerAddress]); // 只在地址变化时刷新
 
   // 监听房卡购买事件
   useWatchContractEvent({
@@ -97,10 +158,7 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
     eventName: "RoomCardPurchased",
     onLogs: (logs: Log[]) => {
       console.log("收到 RoomCardPurchased 事件:", logs);
-      // @ts-ignore - 忽略类型错误，因为我们知道事件参数的结构
-      if (logs.some(log => log.args?.buyer === playerAddress)) {
-        refetchMyRoomCardNfts();
-      }
+      refetchDataRef.current?.();
     },
     onError: e => console.error("监听 RoomCardPurchased 出错:", e),
     enabled: Boolean(playerAddress),
@@ -113,10 +171,7 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
     eventName: "RoomLevelPurchased",
     onLogs: (logs: Log[]) => {
       console.log("收到 RoomLevelPurchased 事件:", logs);
-      // @ts-ignore - 忽略类型错误，因为我们知道事件参数的结构
-      if (logs.some(log => log.args?.buyer === playerAddress)) {
-        refetchMyRoomLevelNfts();
-      }
+      refetchDataRef.current?.();
     },
     onError: e => console.error("监听 RoomLevelPurchased 出错:", e),
     enabled: Boolean(playerAddress),
@@ -127,6 +182,6 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
     roomLevelTypes: roomLevelTypes as RoomLevelNftType[] | [],
     myNfts: myNfts as [] | [],
     // 刷新函数
-    refreshData,
+    refetchData,
   };
 }

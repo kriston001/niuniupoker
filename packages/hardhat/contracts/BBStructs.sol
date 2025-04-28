@@ -94,7 +94,6 @@ struct GameTableView {
     GameState state;
     uint8 liquidatorFeePercent;
     uint8 playerContinuedCount;
-    uint8 playerFoldCount;
     uint8 playerReadyCount;
     address[] playerAddresses;
     uint256 currentRoundDeadline;

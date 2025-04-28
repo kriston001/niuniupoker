@@ -138,7 +138,6 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
         functionName: "createGameTable",
         args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent],
         account: connectedAddress as `0x${string}`,
-        // gas: 1000000n,
         onSuccess: async () => {
           toast.success("Table created successfully");
           reset();

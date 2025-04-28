@@ -18,22 +18,40 @@ import { Label } from "~~/components/ui/label";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { getNftDescription, getNftTokenID, getNftFullName } from "~~/lib/utils";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
+import { parseEther } from "viem";
+import { useAccount, useBalance } from "wagmi";
+import { getNftSympol } from "~~/lib/utils";
+import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
+import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
+import { useGlobalState } from "~~/services/store/store";
+import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
+import toast from "react-hot-toast";
 
 export function NftMintModal({
   selectedNft,
   open,
   onOpenChange,
-  onMintConfirm,
+  onNftMinted,
 }: {
   selectedNft: RoomCardNftType | RoomLevelNftType;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onMintConfirm: (quantity: number, selectedNft: RoomCardNftType | RoomLevelNftType) => void;
+  onNftMinted?: () => void;
 }) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
 
+  const gameConfig = useGlobalState(state => state.gameConfig);
+
   const [mintQuantity, setMintQuantity] = useState(1);
+
+  const { address: connectedAddress } = useAccount();
+  const { data: balance } = useBalance({
+    address: connectedAddress,
+    query: {
+      enabled: connectedAddress !== undefined,
+    },
+  });
 
   // 监听 open 状态，当弹窗关闭时重置 mintQuantity
   useEffect(() => {
@@ -53,6 +71,52 @@ export function NftMintModal({
       setMintQuantity(mintQuantity - 1);
     }
   };
+
+  async function handleMintClick(){
+    if (!connectedAddress) {
+      console.log("请先连接钱包");
+      return;
+    }
+
+    const totalPrice = Number(formatEther(selectedNft.price)) * mintQuantity;
+
+    if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
+      alert("余额不足，无法购买房卡");
+      return;
+    }
+
+    try {
+      const parsedPrice = parseEther(totalPrice.toString());
+
+      const nftSympol = getNftSympol(selectedNft);
+
+      const contractAddress =
+        nftSympol == "RC"
+          ? (gameConfig?.roomCardAddress as `0x${string}`)
+          : (gameConfig?.roomLevelAddress as `0x${string}`);
+      const abi = nftSympol == "RC" ? [batchBuyRoomCard] : [batchBuyRoomLevel];
+
+      await writeContractWithCallback({
+        address: contractAddress,
+        abi: abi,
+        functionName: "batchBuy",
+        args: [selectedNft.id, mintQuantity],
+        value: parsedPrice,
+        account: connectedAddress as `0x${string}`,
+        onSuccess: async () => {
+          toast.success("Nft Mint successfully");
+          console.log("✅ Mint Nft 成功");
+          onOpenChange?.(false);
+          onNftMinted && onNftMinted();
+        },
+        onError: async err => {
+          console.error("❌ Mint Nft 失败:", err.message);
+        },
+      });
+    } catch (error) {
+      console.error("Mint失败:", error);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -155,7 +219,7 @@ export function NftMintModal({
           </Button>
           <Button
             className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-medium"
-            onClick={() => onMintConfirm(mintQuantity, selectedNft)}
+            onClick={async () => await handleMintClick()}
           >
             Confirm Mint
           </Button>

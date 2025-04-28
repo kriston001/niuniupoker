@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { bytesToHex, concat, formatEther, hexToBytes, keccak256, toBytes } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
 import { readContract } from "wagmi/actions";
 import { BankerControlsPanel } from "~~/components/niuniu/table/banker-controls-panel";
 import { ChatPanel } from "~~/components/niuniu/table/chat-panel";
@@ -29,6 +29,7 @@ import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
+import { createPushChat } from "~~/lib/push-chat";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
@@ -39,6 +40,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   console.log("gameconfig: ", gameConfig);
 
   const { address: connectedAddress } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
   const { playerData, allPlayers, tableInfo, myRoomCardNfts, refreshData } = useGameTableData({
     refreshInterval: 0,
@@ -52,6 +54,12 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     const deadline = Number(tableInfo.currentRoundDeadline);
     return deadline > now ? deadline - now : 0;
   }, [tableInfo]);
+
+  // 创建PushChat实例
+  const pushChat = createPushChat(
+    connectedAddress as string,
+    walletClient
+  );
 
   // Handle timer completion
   const handleTimerComplete = () => {
@@ -202,6 +210,20 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       onSuccess: async () => {
         console.log("✅ Player Quit 成功");
         await refreshData();
+        if (tableInfo?.chatGroupId && walletClient) {
+          try {
+            // 加入群组
+            const success = await pushChat.leaveChatGroup(tableInfo.chatGroupId);
+            if (success) {
+              console.log("✅ 成功离开聊天群组");
+            } else {
+              console.log("⚠️ 离开聊天群组失败");
+            }
+          } catch (error) {
+            console.error("❌ 离开聊天群组出错:", error);
+          }
+        }
+        
       },
       onError: async err => {
         console.error("❌ Player Quit 失败:", err);

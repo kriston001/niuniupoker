@@ -247,6 +247,19 @@ const abi = [
   },
   {
     "inputs": [],
+    "name": "chatGroupId",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "creationTimestamp",
     "outputs": [
       {
@@ -389,6 +402,11 @@ const abi = [
             "type": "bool"
           },
           {
+            "internalType": "bool",
+            "name": "isWinner",
+            "type": "bool"
+          },
+          {
             "internalType": "uint8[5]",
             "name": "cards",
             "type": "uint8[5]"
@@ -455,6 +473,11 @@ const abi = [
           {
             "internalType": "bool",
             "name": "hasActedThisRound",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isWinner",
             "type": "bool"
           },
           {
@@ -687,6 +710,11 @@ const abi = [
           {
             "internalType": "string",
             "name": "nextReason",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "chatGroupId",
             "type": "string"
           }
         ],
@@ -1026,6 +1054,11 @@ const abi = [
         "type": "bool"
       },
       {
+        "internalType": "bool",
+        "name": "isWinner",
+        "type": "bool"
+      },
+      {
         "internalType": "enum CardType",
         "name": "cardType",
         "type": "uint8"
@@ -1223,6 +1256,19 @@ const abi = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_chatGroupId",
+        "type": "string"
+      }
+    ],
+    "name": "updateChatGroupId",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "stateMutability": "payable",
     "type": "receive"
   }
@@ -1248,3 +1294,4 @@ export const getPlayerData = abi.find(x => "name" in x && x.name === "getPlayerD
 export const getTableInfo = abi.find(x => "name" in x && x.name === "getTableInfo");
 export const GameTableChanged = abi.find(x => "name" in x && x.name === "GameTableChanged");
 export const startGame = abi.find(x => "name" in x && x.name === "startGame");
+export const updateChatGroupId = abi.find(x => "name" in x && x.name === "updateChatGroupId");

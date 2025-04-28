@@ -104,6 +104,7 @@ export interface Player {
   state: PlayerState;
   totalBet: bigint;
   hasActedThisRound: boolean;
+  isWinner: boolean;
   cards: number[];
   cardType: CardType;
 }

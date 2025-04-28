@@ -4,33 +4,19 @@ import { useState } from "react";
 import { MyNftCardDetail } from "@/components/niuniu/my-nft-card-detail";
 import { NftRoomCard, NftRoomLevel } from "@/components/niuniu/nft-card";
 import { CreditCard, Layers, Search, SlidersHorizontal, User } from "lucide-react";
-import { formatEther, parseEther } from "viem";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount } from "wagmi";
 import { MyNftCard } from "~~/components/niuniu/my-nft-card";
 import { NftCardDetail } from "~~/components/niuniu/nft-card-detail";
 import { NftMintModal } from "~~/components/niuniu/nft-mint-modal";
 import { Button } from "~~/components/ui/button";
 import { Input } from "~~/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs";
-import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
-import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
 import { useNFTData } from "~~/hooks/my-hooks/useNFTData";
-import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
-import { getNftSympol } from "~~/lib/utils";
-import { useGlobalState } from "~~/services/store/store";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
 export default function NFTPage() {
-  const gameConfig = useGlobalState(state => state.gameConfig);
   const { address: connectedAddress } = useAccount();
-  const { data: balance } = useBalance({
-    address: connectedAddress,
-    query: {
-      enabled: connectedAddress !== undefined,
-    },
-  });
-
-  const { roomCardTypes, roomLevelTypes, myNfts, refreshData } = useNFTData({
+  const { roomCardTypes, roomLevelTypes, myNfts, refetchData } = useNFTData({
     playerAddress: connectedAddress,
   });
 
@@ -39,7 +25,6 @@ export default function NFTPage() {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [myDetailModalOpen, setMyDetailModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("room-cards");
 
   const [selectedMyNft, setSelectedMyNft] = useState<any | undefined>(undefined);
 
@@ -62,49 +47,8 @@ export default function NFTPage() {
     setMyDetailModalOpen(true);
   };
 
-  const handleMintConfirm = async (quantity: number, selectedNft: RoomCardNftType | RoomLevelNftType) => {
-    if (!connectedAddress || !selectedNft || !gameConfig?.roomLevelAddress) {
-      console.log("请先连接钱包");
-      return;
-    }
-
-    const totalPrice = Number(formatEther(selectedNft.price)) * quantity;
-
-    if (!balance?.value || balance.value < parseEther(totalPrice.toString())) {
-      alert("余额不足，无法购买房卡");
-      return;
-    }
-
-    try {
-      const parsedPrice = parseEther(totalPrice.toString());
-
-      const nftSympol = getNftSympol(selectedNft);
-
-      const contractAddress =
-        nftSympol == "RC"
-          ? (gameConfig?.roomCardAddress as `0x${string}`)
-          : (gameConfig?.roomLevelAddress as `0x${string}`);
-      const abi = nftSympol == "RC" ? [batchBuyRoomCard] : [batchBuyRoomLevel];
-
-      await writeContractWithCallback({
-        address: contractAddress,
-        abi: abi,
-        functionName: "batchBuy",
-        args: [selectedNft.id, quantity],
-        value: parsedPrice,
-        account: connectedAddress as `0x${string}`,
-        onSuccess: async () => {
-          console.log("✅ Mint Nft 成功");
-          setMintModalOpen(false);
-          await refreshData();
-        },
-        onError: async err => {
-          console.error("❌ Mint Nft 失败:", err.message);
-        },
-      });
-    } catch (error) {
-      console.error("Mint失败:", error);
-    }
+  const onNftMinted = () => {
+    refetchData();
   };
 
   const filterNfts = (nfts: any[]) => {
@@ -141,7 +85,7 @@ export default function NFTPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="room-cards" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="room-cards" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-zinc-800 rounded-lg p-1 mb-8">
           <TabsTrigger value="room-cards" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
             <CreditCard className="h-4 w-4 mr-2" />
@@ -257,7 +201,7 @@ export default function NFTPage() {
           selectedNft={selectedNft}
           open={mintModalOpen}
           onOpenChange={setMintModalOpen}
-          onMintConfirm={handleMintConfirm}
+          onNftMinted={onNftMinted}
         />
       )}
 
