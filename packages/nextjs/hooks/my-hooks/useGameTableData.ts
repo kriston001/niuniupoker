@@ -127,7 +127,7 @@ export function useGameTableData({
     onError: error => {
       console.error("Error watching GameTableChanged event:", error);
     },
-    enabled: Boolean(tableAddress && tableAddress !== ""),
+    enabled: !!tableAddress,
   });
 
   // 清理防抖函数

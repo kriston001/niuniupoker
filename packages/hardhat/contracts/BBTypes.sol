@@ -10,8 +10,6 @@ pragma solidity ^0.8.28;
 enum GameState {
     NONE,
     WAITING,
-    COMMITTING,   // 提交随机数阶段
-    REVEALING,    // 揭示随机数阶段
     FIRST_BETTING,
     SECOND_BETTING,
     ENDED,
@@ -24,8 +22,6 @@ enum PlayerState {
     NONE,
     JOINED,
     READY,
-    COMMITTED,
-    REVEALED,
     ACTIVE,       // 当前参与游戏中，未弃牌
     FOLDED        // 弃牌
 }
@@ -47,11 +43,4 @@ enum CardType {
     FIVE_BOMB,
     FIVE_SMALL,
     FIVE_FLOWERS
-}
-
-
-enum SessionState {
-    READY,
-    COMMITING,
-    REVEALING
 }

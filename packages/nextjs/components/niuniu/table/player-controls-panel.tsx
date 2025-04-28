@@ -24,8 +24,6 @@ export function PlayerControlsPanel({
   onReadyClick,
   onUnreadyClick,
   onQuitClick,
-  onCommitClick,
-  onRevealClick,
   onContinueClick,
   onFoldClick,
 }: PlayerControlsPanelProps) {
@@ -36,8 +34,6 @@ export function PlayerControlsPanel({
   const isRoundOverdue = !!tableInfo.currentRoundDeadline && Date.now() > Number(tableInfo.currentRoundDeadline) * 1000;
 
   const showJoinButtons = gameState === GameState.WAITING;
-  const showCommitButton = gameState === GameState.COMMITTING && playerInfo;
-  const showRevealButton = gameState === GameState.REVEALING && playerInfo;
   const showFirstBetting = gameState === GameState.FIRST_BETTING && playerInfo;
   const showSecondBetting =
     gameState === GameState.SECOND_BETTING && playerInfo && playerInfo.state !== PlayerState.FOLDED;
@@ -86,30 +82,6 @@ export function PlayerControlsPanel({
               </>
             )}
           </>
-        )}
-
-        {showCommitButton && (
-          <Button
-            size="lg"
-            disabled={playerInfo.state === PlayerState.COMMITTED || isRoundOverdue}
-            onClick={onCommitClick}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white"
-          >
-            <Shuffle className="mr-2 h-5 w-5" />
-            {playerInfo.state === PlayerState.COMMITTED ? "Committed" : "Commit Random"}
-          </Button>
-        )}
-
-        {showRevealButton && (
-          <Button
-            size="lg"
-            disabled={playerInfo.state === PlayerState.REVEALED || isRoundOverdue}
-            onClick={onRevealClick}
-            className="w-full bg-yellow-500 hover:bg-yellow-400 text-white"
-          >
-            <Gift className="mr-2 h-5 w-5" />
-            {playerInfo.state === PlayerState.REVEALED ? "Revealed" : "Reveal Random"}
-          </Button>
         )}
 
         {showFirstBetting && (

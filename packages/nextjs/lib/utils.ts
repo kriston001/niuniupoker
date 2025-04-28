@@ -21,10 +21,6 @@ export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
   switch (tableInfo.state) {
     case GameState.WAITING:
       return player.state == PlayerState.READY ? "Ready" : "";
-    case GameState.COMMITTING:
-      return player.state == PlayerState.COMMITTED ? "Committed" : "";
-    case GameState.REVEALING:
-      return player.state == PlayerState.REVEALED ? "Revealed" : "";
     case GameState.FIRST_BETTING:
       return player.hasActedThisRound ? "Raised" : "";
     case GameState.SECOND_BETTING:

@@ -104,34 +104,11 @@ struct GameTableView {
     uint256 rewardPoolId;
     RewardPoolInfo rewardPoolInfo; // 奖励池信息，如果没有奖励池，则返回空结构体
     uint256 implementationVersion; // 添加实现版本号
-    uint8 committedCount;
-    uint8 revealedCount;
     uint8 firstBetX;
     uint8 secondBetX;
     uint256 bankerStakeAmount;
     bool canNext;
     string nextTitle;
     string nextReason;
-}
-
-// 随机数会话结构
-struct RandomSession {
-    address tableAddress;      // 游戏桌地址
-    uint256 timeout;           // 超时时间（秒）
-    uint256 deadline;          // 截止时间
-    SessionState state;        // 会话状态
-    address[] participants;    // 参与者列表
-    mapping(address => RandomCommitment) commitments; // 参与者的提交
-
-    uint256[10] __gap;
-}
-
-// 随机数提交结构
-struct RandomCommitment {
-    bytes32 commitment;        // 提交的哈希值
-    bool hasCommitted;         // 是否已提交
-    bool hasRevealed;          // 是否已揭示
-    uint256 revealedValue;     // 揭示的随机值
-
-    uint256[10] __gap;
+    string chatGroupId;
 }

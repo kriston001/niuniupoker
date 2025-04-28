@@ -3,23 +3,19 @@ export enum PlayerState {
   NONE = 0,
   JOINED = 1,
   READY = 2,
-  COMMITTED = 3,
-  REVEALED = 4,
-  ACTIVE = 5,
-  FOLDED = 6,
+  ACTIVE = 3,
+  FOLDED = 4,
 }
 
 // 游戏状态枚举
 export enum GameState {
   NONE = 0,
   WAITING = 1,
-  COMMITTING = 2,
-  REVEALING = 3,
-  FIRST_BETTING = 4,
-  SECOND_BETTING = 5,
-  ENDED = 6,
-  SETTLED = 7,
-  LIQUIDATED = 8,
+  FIRST_BETTING = 2,
+  SECOND_BETTING = 3,
+  ENDED = 4,
+  SETTLED = 5,
+  LIQUIDATED = 6,
 }
 
 // 牌型枚举
@@ -93,14 +89,13 @@ export interface GameTable {
   rewardPoolId: bigint; // 奖励池ID
   rewardPoolInfo: RewardPoolInfo; // 奖励池信息
   implementationVersion: bigint; // 实现版本号
-  committedCount: number; // 已提交的参与者数量
-  revealedCount: number; // 已揭示的参与者数量
   firstBetX: number;
   secondBetX: number;
   bankerStakeAmount: bigint;
   canNext: boolean;
   nextTitle: string;
   nextReason: string;
+  chatGroupId: string;
 }
 
 // 玩家信息类型定义
@@ -109,9 +104,6 @@ export interface Player {
   state: PlayerState;
   totalBet: bigint;
   hasActedThisRound: boolean;
-  committed: boolean;
-  commitHash: string;
-  revealedValue: bigint;
   cards: number[];
   cardType: CardType;
 }
@@ -199,10 +191,6 @@ export const getPlayerStateName = (state: number) => {
       return "JOINED";
     case PlayerState.READY:
       return "READY";
-    case PlayerState.COMMITTED:
-      return "COMMITTED";
-    case PlayerState.REVEALED:
-      return "REVEALED";
     case PlayerState.ACTIVE:
       return "ACTIVE";
     case PlayerState.FOLDED:
@@ -219,10 +207,6 @@ export const getGameStateName = (state: number) => {
       return "NONE";
     case GameState.WAITING:
       return "Waiting";
-    case GameState.COMMITTING:
-      return "Committing";
-    case GameState.REVEALING:
-      return "Revealing";
     case GameState.FIRST_BETTING:
       return "First Betting";
     case GameState.SECOND_BETTING:

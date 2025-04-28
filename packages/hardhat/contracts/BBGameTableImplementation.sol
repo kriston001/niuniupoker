@@ -41,13 +41,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     uint256 public gameRound; //游戏场次
     uint256 public gameLiquidatedCount; //被清算的游戏场数
 
+    uint256 public finalSeed; // 最后一次使用的种子
+
     uint256 public gameStartTimestamp;
     uint256 public gameEndTimestamp;
     uint8 public playerContinuedCount;
     uint8 public playerFoldCount;
     uint8 public playerReadyCount;
-    uint8 public committedCount;
-    uint8 public revealedCount;
     uint256 public totalPrizePool;  //奖池金额
     uint8 public bankerFeePercent; // 庄家费用百分比
     uint8 public liquidatorFeePercent; // 清算人费用百分比
@@ -76,7 +76,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     uint256 public tableInactiveTimeout; // 游戏桌不活跃超时时间，单位为秒
     uint256 public lastActivityTimestamp; // 最后活动时间戳
 
-    
+    string public chatGroupId; // 聊天组ID
+
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
     uint256[50] private __gap;
 
@@ -138,7 +139,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     function refreshConfig() internal {
         IGameMain gameMain = IGameMain(gameMainAddr);
         GameConfig memory config = gameMain.getGameConfig();
-        playerTimeout = config.playerTimeout;
+        playerTimeout = config.playerTimeout * playerCount;
         liquidatorFeePercent = config.liquidatorFeePercent;
         tableInactiveTimeout = config.tableInactiveTimeout;
         roomCardAddr = config.roomCardAddress;
@@ -202,6 +203,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         _;
     }
 
+
     /**
      * @dev 庄家为游戏桌设置奖励池
      * @param poolId 奖励池ID
@@ -242,9 +244,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             state: PlayerState.JOINED,
             totalBet: 0,
             hasActedThisRound: false,
-            committed: false,
-            commitHash: 0,
-            revealedValue: 0,
             cards: [0, 0, 0, 0, 0],
             cardType: CardType.NONE,
             __gap: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
@@ -279,9 +278,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         players[index].addr = address(0);
         players[index].state = PlayerState.NONE;
         players[index].totalBet = 0;
-        players[index].committed = false;
-        players[index].commitHash = 0;
-        players[index].revealedValue = 0;
         players[index].cards = [0, 0, 0, 0, 0];
         players[index].cardType = CardType.NONE;
 
@@ -295,6 +291,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             }
         }
         return false;
+    }
+
+    // 更新聊天群组ID
+    function updateChatGroupId(string memory _chatGroupId) external onlyBanker {
+        chatGroupId = _chatGroupId;
     }
 
 
@@ -317,7 +318,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     /**
      * @dev 玩家准备
      */
-    function playerReady() external payable onlyPlayers nonReentrant {
+    function playerReady(bytes32 randomValue) external payable onlyPlayers nonReentrant {
+        require(randomValue != bytes32(0), "Invalid random value");
         require(state == GameState.WAITING, "Game not in waiting state");
         address playerAddr = msg.sender;
         (, BBPlayer storage player) = _getPlayer(playerAddr);
@@ -331,6 +333,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         player.playerReady();
 
         _updateLastActivity();
+
+        _updateFinalSeed(randomValue);
 
         emit GameTableChanged(address(this));
     }
@@ -426,7 +430,18 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         emit GameTableChanged(address(this));
     }
 
-    function startGame(uint256 roomCardId) external payable onlyBanker nonReentrant {
+    function _updateFinalSeed(bytes32 randomValue) internal {
+        finalSeed = uint256(keccak256(abi.encodePacked(
+            finalSeed,
+            block.prevrandao,
+            block.timestamp,
+            msg.sender,
+            randomValue
+        )));
+    }
+
+    function startGame(uint256 roomCardId, bytes32 randomValue) external payable onlyBanker nonReentrant {
+        require(randomValue!= bytes32(0), "Invalid random value");
         // 刷新游戏数据
         refreshConfig();
 
@@ -448,8 +463,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         roomCard.consume(msg.sender, roomCardId);
         
         gameRound++;
-        //进入提交随机数阶段
-        setState(GameState.COMMITTING);
+
+        _updateFinalSeed(randomValue);
+
+        _startFirstBetting();
     }
 
     function _resetGame() internal {
@@ -460,8 +477,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         currentRoundDeadline = 0;
         playerReadyCount = 0;
         totalPrizePool = 0;
-        committedCount = 0;
-        revealedCount = 0;
         dealerState.reset();
         for(uint i = 0; i < players.length; i++){
             if(players[i].isValid()){
@@ -472,7 +487,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function _canSettleGame() internal view returns (bool) {
-        if(state == GameState.WAITING || state == GameState.COMMITTING || state == GameState.REVEALING || state == GameState.SETTLED){
+        if(state == GameState.WAITING || state == GameState.SETTLED){
             return false;
         }
         if(state == GameState.ENDED){
@@ -483,8 +498,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             bool onlyOneLeft = playerContinuedCount <= 1;
             bool everyoneFoldedButOne = playerFoldCount >= playerCount - 1;
             bool isDeadlinePassed = _isTimeOut();
+            bool noOneActed = playerContinuedCount + playerFoldCount == 0;
 
-            if (everyoneFoldedButOne || (isDeadlinePassed && onlyOneLeft)) {
+            if (everyoneFoldedButOne || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
                 // 可以结算
                 return true;
             } else {
@@ -498,22 +514,20 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     /**
      * @dev 下一步
      */
-    function nextStep() external onlyBanker nonReentrant {
+    function nextStep(bytes32 randomValue) external onlyBanker nonReentrant {
+        require(randomValue != bytes32(0), "Invalid random value");
         if(_canSettleGame()){
             _settleGame();
+
+            _updateFinalSeed(randomValue);
+            _updateLastActivity();
+            emit GameTableChanged(address(this));
             return;
         }
         
         (bool canMove, , string memory reason) = canMoveToNextStep();
         require(canMove, reason);
-
-        if(state == GameState.COMMITTING) {
-            _startReveal();
-        }
-        else if(state == GameState.REVEALING) {
-            _startFirstBetting();
-        }
-        else if(state == GameState.FIRST_BETTING) {
+        if(state == GameState.FIRST_BETTING) {
             _startSecondBetting();
         }
         else if(state == GameState.SECOND_BETTING) {
@@ -530,55 +544,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             }
         }
         
+        _updateFinalSeed(randomValue);
         _updateLastActivity();
         emit GameTableChanged(address(this));
-    }
-
-    /**
-     * @dev 玩家提交随机数
-     * @param commitment 提交的哈希值
-     */
-    function commitRandom(bytes32 commitment) external onlyParticipant nonReentrant {
-        require(state == GameState.COMMITTING, "Game not in committing state");
-        require(block.timestamp <= currentRoundDeadline, "Action time out");
-
-        (, BBPlayer storage player) = _getPlayer(msg.sender);
-        player.playerCommit(commitment);
-        committedCount++;
-
-        _updateLastActivity();
-        emit GameTableChanged(address(this));
-    }
-
-    /**
-     * @dev 玩家揭示随机数
-     * @param randomValue 随机值
-     * @param salt 盐值
-     */
-    function revealRandom(uint256 randomValue, bytes32 salt) external onlyParticipant nonReentrant {
-        require(state == GameState.REVEALING, "Game not in revealing state");
-        require(block.timestamp <= currentRoundDeadline, "Action time out");
-
-        (, BBPlayer storage player) = _getPlayer(msg.sender);
-        bool success = player.playerReveal(randomValue, salt);
-
-        require(success, "Invalid random value");
-
-        revealedCount++;
-
-        _updateLastActivity();
-        emit GameTableChanged(address(this));
-    }
-
-    /**
-     * @dev 检查提交阶段状态，如果所有玩家都已提交或超时，进入揭示阶段
-     */
-    function _startReveal() internal {
-        // 进入揭示阶段
-        setState(GameState.REVEALING);
     }
 
     function _dealCardsByRound(uint8 round) internal {
+        dealerState.initialize(finalSeed);
         if(round == 1){
             // 第一轮发牌，每个玩家发3张牌
             for(uint i = 0; i < players.length; i++){
@@ -607,17 +579,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 检查揭示阶段状态，如果所有玩家都已揭示或超时，完成会话并进入下注阶段
      */
     function _startFirstBetting() internal {
-        // 完成随机数会话并获取最终随机种子
-        uint256 finalSeed = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
-        for (uint256 i = 0; i < players.length; i++) {
-            BBPlayer storage player = players[i];
-            if(player.isValid()){
-                if(player.state == PlayerState.REVEALED){
-                    finalSeed ^= player.revealedValue;
-                }
-            } 
-        }
-
         // 将所有玩家设置成active状态
         for (uint256 i = 0; i < players.length; i++) {
             BBPlayer storage player = players[i];
@@ -627,9 +588,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         // 初始化发牌状态
-        dealerState.initialize(finalSeed);
         dealerState.reset();
-
 
         // 第一轮发牌
         _dealCardsByRound(1);
@@ -668,10 +627,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function canMoveToNextStep() public view returns (bool canMove, string memory title, string memory reason) {
-        if(state == GameState.WAITING) {
-            return (false, "Start Game", "");
-        }
-
         if (state == GameState.LIQUIDATED) {
             return (false, "", "Game has been liquidated");
         }
@@ -686,33 +641,17 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         bool isDeadlinePassed = currentRoundDeadline > 0 && block.timestamp >= currentRoundDeadline;
-        bool allPlayersCommitted = committedCount == playerCount;
-        bool allPlayersRevealed = revealedCount == playerCount;
         bool allPlayersActed = playerContinuedCount + playerFoldCount == playerCount;
 
         uint8 totalActed = playerContinuedCount + playerFoldCount;
         bool onlyOneLeft = playerContinuedCount == 1 && totalActed > 0;
         bool everyoneFoldedButOne = playerFoldCount == playerCount - 1 && totalActed > 0;
         bool noOneLeft = playerContinuedCount == 0 && totalActed > 0;
+        bool noOneActed = totalActed == 0;
 
-        if (state == GameState.COMMITTING) {
-            if (allPlayersCommitted || isDeadlinePassed) {
-                return (true, "Enter Reveal", "");
-            } else {
-                return (false, "Enter Reveal", "Wait for all players to commit");
-            }
-        }
-
-        if (state == GameState.REVEALING) {
-            if (allPlayersRevealed || isDeadlinePassed) {
-                return (true, "Enter First Betting", "");
-            } else {
-                return (false, "Enter First Betting", "Wait for all players to reveal");
-            }
-        }
 
         if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
-            if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft)) {
+            if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
                 return (true, "Settle Game", "");
             } else if (allPlayersActed || isDeadlinePassed) {
                 return (true, "Next Round", "");
@@ -734,13 +673,14 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
 
     function _isTimeOut() internal view returns (bool) {
-        return block.timestamp > currentRoundDeadline;
+        return currentRoundDeadline > 0 && block.timestamp > currentRoundDeadline;
     }
 
     /**
      * @dev 玩家弃牌
      */
-    function playerFold() external onlyPlayers nonReentrant{
+    function playerFold(bytes32 randomValue) external onlyPlayers nonReentrant{
+        require(randomValue!= bytes32(0), "Invalid random value");
         require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state");
         address playerAddr = msg.sender;
 
@@ -755,13 +695,16 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         playerFoldCount++;
 
+        _updateFinalSeed(randomValue);
+
         emit GameTableChanged(address(this));
     }
 
     /**
      * @dev 玩家继续游戏
      */
-    function playerContinue() external payable onlyPlayers nonReentrant{
+    function playerContinue(bytes32 randomValue) external payable onlyPlayers nonReentrant{
+        require(randomValue!= bytes32(0), "Invalid random value");
         require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state");
         address playerAddr = msg.sender;
 
@@ -787,11 +730,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         _updateLastActivity();
 
+        _updateFinalSeed(randomValue);
+
         emit GameTableChanged(address(this));
     }
 
     function _gameTimeout() internal view returns (bool)  {
-        require(state == GameState.COMMITTING || state == GameState.REVEALING || state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state"); 
+        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Game not in playing state"); 
 
         // 检查是否超时
         return block.timestamp > lastActivityTimestamp + tableInactiveTimeout;
@@ -812,17 +757,18 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         gameEndTimestamp = block.timestamp;
 
         // 计算费用
-        uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100 + bankerStakeAmount;
+        uint256 bankerFee = (totalPrizePool * bankerFeePercent) / 100;
         uint256 remainingPrizePool = totalPrizePool - bankerFee;
 
+        uint256 bankerTotal = bankerFee + bankerStakeAmount;
         bankerStakeAmount = 0;
 
         // 如果只有一个玩家继续，则该玩家获胜
         if (playerContinuedCount == 1) {
             _settleOneContinuedPlayer(remainingPrizePool);
         }
-        // 如果所有玩家都弃牌，则每个人拿回自己的钱
-        else if (playerFoldCount == playerCount) {
+        // 如果所有玩家都弃牌或者没有人行动，则每个人拿回自己的钱
+        else if (playerFoldCount == playerCount || playerContinuedCount + playerFoldCount == 0) {
             _settleAllFolded();
         }
         // 正常比牌
@@ -831,9 +777,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         // 统一处理庄家费用转账，庄家抽成+庄家押金
-        if (bankerFee > 0) {
+        if (bankerTotal > 0) {
             totalIncome += bankerFee;
-            (bool success, ) = payable(bankerAddr).call{value: bankerFee}("");
+            (bool success, ) = payable(bankerAddr).call{value: bankerTotal}("");
             require(success, "transfer to banker failed");
         }
 
@@ -1084,7 +1030,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 检查游戏桌是否超时
         require(block.timestamp > lastActivityTimestamp + tableInactiveTimeout, "Table not inactive");
         require(msg.sender != bankerAddr, "Banker cannot liquidate");
-        require(state == GameState.COMMITTING || state == GameState.REVEALING || state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Table not in gaming");
+        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Table not in gaming");
 
         // 清算人的奖励 (从庄家押金中收取)
         uint256 liquidatorReward = bankerStakeAmount * liquidatorFeePercent / 100;
@@ -1154,8 +1100,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             }
         }
 
-        committedCount = 0;
-        revealedCount = 0;
         playerCount = 0;
         playerReadyCount = 0;
         playerContinuedCount = 0;
@@ -1187,7 +1131,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         state = _state;
 
         // 如果进入下注阶段，为所有玩家设置操作截止时间
-        if (_state == GameState.COMMITTING || _state == GameState.REVEALING || _state == GameState.FIRST_BETTING || _state == GameState.SECOND_BETTING) {
+        if (_state == GameState.FIRST_BETTING || _state == GameState.SECOND_BETTING) {
             currentRoundDeadline = block.timestamp + playerTimeout;
         }
 
@@ -1209,22 +1153,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         return playerData;
-    }
-
-    /**
-     * @dev 计算承诺的辅助函数
-     * @param _randomValue 随机值
-     * @param _salt 盐值
-     * @return 计算出的哈希承诺
-     */
-    function computeCommitment(uint256 _randomValue, bytes32 _salt) public view returns (bytes32) {
-        return keccak256(
-            bytes.concat(
-                bytes32(_randomValue),
-                bytes20(msg.sender),
-                _salt
-            )
-        );
     }
 
 
@@ -1271,14 +1199,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, [uint256(0), uint256(0), uint256(0), 
             uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]), // 奖励池信息，如果没有奖励池，则返回空结构体
             implementationVersion: implementationVersion,
-            committedCount: committedCount,
-            revealedCount: revealedCount,
             firstBetX: firstBetX,
             secondBetX: secondBetX,
             bankerStakeAmount: bankerStakeAmount,
             canNext: canNext,
             nextTitle: nextTitle,
-            nextReason: nextReason
+            nextReason: nextReason,
+            chatGroupId: chatGroupId
         });
     }
 

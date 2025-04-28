@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 import "./BBCardUtils.sol";
-import "./BBVersion.sol";
 import "./BBTypes.sol";
 
 /**
@@ -20,16 +19,6 @@ import "./BBTypes.sol";
 library BBCardDealer {
     // 牌组常量
     uint8 internal constant TOTAL_CARDS = 52; // 标准52张扑克牌(无大小王)
-    
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
-
-    // 事件声明
-    event CardsDealt(address indexed player, uint8 count, uint8[] cards);
-    event CardTypeCalculated(address indexed player, CardType cardType);
-    event DealerReset();
 
     /**
      * @dev 发牌管理器状态
@@ -42,10 +31,15 @@ library BBCardDealer {
     /**
      * @dev 初始化发牌状态(使用默认的5张牌)
      * @param self 发牌状态
-     * @param seed 初始随机种子
+     * @param newSeed 初始随机种子
      */
-    function initialize(DealerState storage self, uint256 seed) internal {
-        self.lastSeed = seed;
+    function initialize(DealerState storage self, uint256 newSeed) internal {
+        self.lastSeed = uint256(keccak256(abi.encodePacked(
+            self.lastSeed,
+            block.prevrandao,
+            block.timestamp,
+            newSeed
+        )));
     }
 
     /**
@@ -58,7 +52,8 @@ library BBCardDealer {
             self.usedCards[i] = false;
         }
 
-        emit DealerReset();
+        // 重置随机种子
+        self.lastSeed = block.timestamp;
     }
 
     /**
@@ -113,7 +108,6 @@ library BBCardDealer {
             newCards[i] = generateCard(self, player, count);
         }
 
-        emit CardsDealt(player, count, newCards);
         return newCards;
     }
 

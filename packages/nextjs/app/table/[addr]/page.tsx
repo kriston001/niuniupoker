@@ -15,8 +15,6 @@ import { ChatPanel } from "~~/components/niuniu/table/chat-panel";
 import { PlayerControlsPanel } from "~~/components/niuniu/table/player-controls-panel";
 import { PlayerInfo } from "~~/components/niuniu/table/player-info";
 import {
-  commitRandom,
-  computeCommitment,
   nextStep,
   playerContinue,
   playerFold,
@@ -24,7 +22,6 @@ import {
   playerQuit,
   playerReady,
   playerUnready,
-  revealRandom,
   startGame,
 } from "~~/contracts/abis/BBGameTableABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
@@ -62,12 +59,19 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     // Here you would handle what happens when the timer runs out
   };
 
+  function getRandomValue(){
+    const randomValue = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
+    return randomValue;
+  }
+
   const handleNext = () => {
+    const randomValue = getRandomValue();
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [nextStep],
       functionName: "nextStep",
       account: connectedAddress as `0x${string}`,
+      args: [randomValue],
       onSuccess: async () => {
         console.log("✅ Next Step 成功");
         await refreshData();
@@ -95,11 +99,13 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   };
 
   const handlePlayerReady = () => {
+    const randomValue = getRandomValue();
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [playerReady],
       functionName: "playerReady",
       account: connectedAddress as `0x${string}`,
+      args: [randomValue],
       value: tableInfo?.betAmount,
       onSuccess: async () => {
         console.log("✅ Player Ready 成功");
@@ -129,14 +135,14 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
 
   const handleStartGame = useCallback(
     (tokenId: string) => {
+      const randomValue = getRandomValue();
       writeContractWithCallback({
         address: tableAddr as `0x${string}`,
         abi: [startGame],
         functionName: "startGame",
-        args: [BigInt(tokenId)],
+        args: [BigInt(tokenId), randomValue],
         value: tableInfo?.betAmount,
         account: connectedAddress as `0x${string}`,
-        gas: 1000000n,
         onSuccess: async () => {
           console.log("✅ Start Game 成功");
           await refreshData();
@@ -149,78 +155,13 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     [tableAddr, tableInfo?.betAmount, connectedAddress, refreshData],
   );
 
-  const handlePlayerCommit = async () => {
-    // 生成随机值 (32位整数)
-    const randomValue = BigInt(Math.floor(Math.random() * 2 ** 32));
-
-    // 生成随机盐值
-    const salt = crypto.getRandomValues(new Uint8Array(32));
-    const saltHex = bytesToHex(salt);
-
-    // 调用合约的computeCommitment函数生成哈希
-    const commitment = await readContract(wagmiConfig, {
-      address: tableAddr as `0x${string}`,
-      abi: [computeCommitment],
-      functionName: "computeCommitment",
-      args: [randomValue, saltHex],
-    });
-
-    // 将随机值和盐值保存到localStorage，以便后续reveal时使用
-    localStorage.setItem(`${tableAddr}_randomValue`, randomValue.toString());
-    localStorage.setItem(`${tableAddr}_salt`, saltHex);
-
-    // 调用合约的commitRandom函数
-    writeContractWithCallback({
-      address: tableAddr as `0x${string}`,
-      abi: [commitRandom],
-      functionName: "commitRandom",
-      args: [commitment],
-      account: connectedAddress as `0x${string}`,
-      onSuccess: async () => {
-        console.log("✅ Commit Random 成功");
-        await refreshData();
-      },
-      onError: async err => {
-        console.error("❌ Commit Random 失败:", err);
-      },
-    });
-  };
-
-  const handlePlayerReveal = () => {
-    // 从localStorage获取之前保存的随机值和盐值
-    const randomValue = localStorage.getItem(`${tableAddr}_randomValue`);
-    const salt = localStorage.getItem(`${tableAddr}_salt`);
-
-    if (!randomValue || !salt) {
-      console.error("❌ No random value or salt found in localStorage");
-      return;
-    }
-
-    // 调用合约的revealRandom函数
-    writeContractWithCallback({
-      address: tableAddr as `0x${string}`,
-      abi: [revealRandom],
-      functionName: "revealRandom",
-      args: [BigInt(randomValue), salt as `0x${string}`],
-      account: connectedAddress as `0x${string}`,
-      onSuccess: async () => {
-        console.log("✅ Reveal Random 成功");
-        // 清除localStorage中的数据
-        localStorage.removeItem(`${tableAddr}_randomValue`);
-        localStorage.removeItem(`${tableAddr}_salt`);
-        await refreshData();
-      },
-      onError: async err => {
-        console.error("❌ Reveal Random 失败:", err);
-      },
-    });
-  };
-
   const handlePlayerFold = () => {
+    const randomValue = getRandomValue();
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [playerFold],
       functionName: "playerFold",
+      args: [randomValue],
       account: connectedAddress as `0x${string}`,
       onSuccess: async () => {
         console.log("✅ Player Fold 成功");
@@ -234,11 +175,13 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
 
   const handlePlayerContinue = () => {
     const raiseX = tableInfo?.state == GameState.FIRST_BETTING ? tableInfo.firstBetX : tableInfo?.secondBetX;
+    const randomValue = getRandomValue();
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [playerContinue],
       functionName: "playerContinue",
       account: connectedAddress as `0x${string}`,
+      args: [randomValue],
       value: tableInfo?.betAmount ? tableInfo.betAmount * BigInt(raiseX || 1) : 0n,
       onSuccess: async () => {
         console.log("✅ Player Continue 成功");
@@ -326,7 +269,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
               {/* Left sidebar - Table info and action log */}
               <div className="w-full lg:w-1/5">
                 {tableInfo && <TableInfo tableInfo={tableInfo} />}
-                <ChatPanel />
+                <ChatPanel tableInfo={tableInfo} />
               </div>
 
               {/* Middle - Poker table */}
@@ -353,8 +296,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                         {tableInfo.state === GameState.WAITING &&
                           playerData?.state === PlayerState.JOINED &&
                           'Click "Ready" to join the game and stake your entry deposit'}
-                        {tableInfo.state === GameState.COMMITTING && "Please commit your random number"}
-                        {tableInfo.state === GameState.REVEALING && "Please reveal your random number"}
                         {tableInfo.state === GameState.FIRST_BETTING && "First Betting Round: choose to Raise or Fold"}
                         {tableInfo.state === GameState.SECOND_BETTING &&
                           "Second Betting Round: choose to Raise or Fold"}
@@ -451,8 +392,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                         onReadyClick={handlePlayerReady}
                         onUnreadyClick={handlePlayerUnready}
                         onQuitClick={handlePlayerQuit}
-                        onCommitClick={handlePlayerCommit}
-                        onRevealClick={handlePlayerReveal}
                         onContinueClick={handlePlayerContinue}
                         onFoldClick={handlePlayerFold}
                       />
