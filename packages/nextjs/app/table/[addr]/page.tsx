@@ -30,6 +30,7 @@ import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
 import { createPushChat } from "~~/lib/push-chat";
+import { delay } from "~~/lib/utils";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
@@ -62,8 +63,10 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   );
 
   // Handle timer completion
-  const handleTimerComplete = () => {
+  const handleTimerComplete = async () => {
     console.log("Time's up!");
+    await delay(3000);
+    refreshData();
     // Here you would handle what happens when the timer runs out
   };
 

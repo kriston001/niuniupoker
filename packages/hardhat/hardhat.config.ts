@@ -83,7 +83,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true, // 添加这一行，移除合约大小限制
       mining: {
         auto: true, // 自动挖矿
-        interval: 0, // 即时挖矿，不等待
+        interval: 2000, // 间隔2秒挖矿
         mempool: {
           order: "fifo", // 交易按先进先出的顺序处理
         },

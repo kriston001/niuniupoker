@@ -8,13 +8,10 @@ import { MessageSquare, Send, Plus, UserPlus, Loader2 } from "lucide-react";
 import { createPushChat, ChatMessage, PushChat } from "~~/lib/push-chat";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {GameTable} from "@/types/game-types"
-
-// interface GameTable {
-//   id: string;
-//   chatGroupId?: string;
-//   bankerAddr?: string;
-//   playerAddresses?: string[];
-// }
+import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
+import {
+  updateChatGroupId
+} from "~~/contracts/abis/BBGameTableABI";
 
 interface ChatPanelProps {
   tableInfo: GameTable;
@@ -68,7 +65,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     setError(null);
     
     try {
-      console.log("Initializing chat for group:", tableInfo.chatGroupId);
+      // console.log("Initializing chat for group:", tableInfo.chatGroupId);
       
       // 获取Push用户实例
       const userInstance = await pushChatRef.current.getUserInstance();
@@ -120,9 +117,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsCheckingMembership(true);
     
     try {
-      console.log("Checking if user is a member of group:", tableInfo.chatGroupId);
+      // console.log("Checking if user is a member of group:", tableInfo.chatGroupId);
       const isMember = await pushChatRef.current.isGroupMember(tableInfo.chatGroupId);
-      console.log("Is member:", isMember);
+      // console.log("Is member:", isMember);
       
       if (isMember) {
         // 如果是成员，初始化聊天
@@ -142,6 +139,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  const handleUpdateGroupId = async(groupId: string) => {
+    await writeContractWithCallback({
+      address: tableInfo.tableAddr,
+      abi: [updateChatGroupId],
+      functionName: "updateChatGroupId",
+      args: [groupId],
+      account: address as `0x${string}`,
+      onSuccess: async () => {
+        tableInfo.chatGroupId = groupId;
+        // console.log("UpdateGroupId success");
+      },
+      onError: async err => {
+        // 用户取消交易不显示错误提示
+        if (err.message.includes("User rejected") || err.message.includes("user rejected")) {
+          console.log("User rejected UpdateGroupId");
+          return;
+        }
+
+        console.log("UpdateGroupId failed");
+      },
+    });
+  }
+
   // 创建聊天群组
   const createChatGroup = async () => {
     if (!pushChatRef.current) return;
@@ -154,14 +174,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       const groupName = tableInfo.tableName;
       const groupDescription = `Chat group for game table ${tableInfo.tableName}`;
       
-      console.log("Creating chat group:", groupName);
+      // console.log("Creating chat group:", groupName);
       const chatGroupId = await pushChatRef.current.createChatGroup(groupName, groupDescription);
       
       if (chatGroupId) {
-        console.log("Created chat group:", chatGroupId);
+        // console.log("Created chat group:", chatGroupId);
         
         // TODO: 更新游戏桌信息，保存chatGroupId
-        console.log("TODO: Update table info with chatGroupId:", chatGroupId);
+        // console.log("TODO: Update table info with chatGroupId:", chatGroupId);
+        await handleUpdateGroupId(chatGroupId);
+
         
         // 初始化聊天
         await initializeChat();
@@ -188,7 +210,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       const success = await pushChatRef.current.joinChatGroup(tableInfo.chatGroupId);
       
       if (success) {
-        console.log("Successfully joined chat group");
+        // console.log("Successfully joined chat group");
         await initializeChat();
       } else {
         setError("加入群组失败，请稍后再试");

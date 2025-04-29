@@ -248,32 +248,34 @@ contract BBGameMain is
 
     /**
      * @dev 获取最新的游戏桌
-     * @return 获取最新的游戏桌
+     * @param _count 要获取的游戏桌数量
+     * @return 最新的游戏桌数组
      */
     function getNewestGameTables(uint8 _count) external view returns(GameTableView[] memory) {
+        require(_count > 0, "Count must be greater than 0");
+        
         uint256 tableCount = tableAddresses.length;
-        
-        // 如果请求的数量大于现有游戏桌数量，则使用现有数量
-        uint256 resultCount = _count;
-        if(tableCount < resultCount){
-            resultCount = tableCount;
-        }
-        
-        // 防止空数组情况
-        if (resultCount == 0) {
+        if (tableCount == 0) {
             return new GameTableView[](0);
         }
         
-        GameTableView[] memory tables = new GameTableView[](resultCount);
-
-        // 获取tableAddresses中最新的几个游戏桌
-        for (uint256 i = 0; i < resultCount; i++) {
-            address tableAddr = tableAddresses[tableCount - i - 1];
-            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
-            // 直接从合约实例获取信息
-            tables[i] = gameTable.getTableInfo();
+        // 如果请求的数量大于现有游戏桌数量，则使用现有数量
+        uint256 resultCount = _count;
+        if (tableCount < resultCount) {
+            resultCount = tableCount;
         }
-
+        
+        GameTableView[] memory tables = new GameTableView[](resultCount);
+        
+        // 使用安全的索引计算方式
+        uint256 startIndex = tableCount > resultCount ? tableCount - resultCount : 0;
+        
+        for (uint256 i = 0; i < resultCount; i++) {
+            address tableAddr = tableAddresses[startIndex + i];
+            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
+            tables[resultCount - 1 - i] = gameTable.getTableInfo(); // 反向填充保持最新的在前
+        }
+        
         return tables;
     }
 

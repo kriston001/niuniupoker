@@ -125,10 +125,10 @@ export function TableCard({
       <CardFooter className="p-0 mt-auto">
         <Button
           className="w-full rounded-none py-4 bg-zinc-800 hover:bg-zinc-700 text-white border-t border-zinc-700 group-hover:bg-gradient-to-r group-hover:from-amber-500 group-hover:to-amber-600 group-hover:text-black transition-all duration-300"
-          disabled={!table.active || table.playerCount == table.maxPlayers}
+          // disabled={!table.active || table.playerCount == table.maxPlayers}
           onClick={() => (window.location.href = `/table/${table.tableAddr}`)}
         >
-          {table.playerCount === table.maxPlayers ? "Table Full" : "Join Table"}
+          {"Join Table"}
         </Button>
       </CardFooter>
     </Card>

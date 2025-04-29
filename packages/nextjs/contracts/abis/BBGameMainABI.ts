@@ -401,11 +401,6 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "playerFoldCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
             "name": "playerReadyCount",
             "type": "uint8"
           },
@@ -493,13 +488,48 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "committedCount",
+            "name": "firstBetX",
             "type": "uint8"
           },
           {
             "internalType": "uint8",
-            "name": "revealedCount",
+            "name": "secondBetX",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bankerStakeAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "canNext",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "nextTitle",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nextReason",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "chatGroupId",
+            "type": "string"
           }
         ],
         "internalType": "struct GameTableView[]",
@@ -669,11 +699,6 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "playerFoldCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
             "name": "playerReadyCount",
             "type": "uint8"
           },
@@ -761,13 +786,48 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "committedCount",
+            "name": "firstBetX",
             "type": "uint8"
           },
           {
             "internalType": "uint8",
-            "name": "revealedCount",
+            "name": "secondBetX",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bankerStakeAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "canNext",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "nextTitle",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nextReason",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "chatGroupId",
+            "type": "string"
           }
         ],
         "internalType": "struct GameTableView",
@@ -866,11 +926,6 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "playerFoldCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
             "name": "playerReadyCount",
             "type": "uint8"
           },
@@ -958,13 +1013,48 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "committedCount",
+            "name": "firstBetX",
             "type": "uint8"
           },
           {
             "internalType": "uint8",
-            "name": "revealedCount",
+            "name": "secondBetX",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bankerStakeAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "canNext",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "nextTitle",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nextReason",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "chatGroupId",
+            "type": "string"
           }
         ],
         "internalType": "struct GameTableView[]",
@@ -1069,11 +1159,6 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "playerFoldCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
             "name": "playerReadyCount",
             "type": "uint8"
           },
@@ -1161,13 +1246,48 @@ const abi =  [
           },
           {
             "internalType": "uint8",
-            "name": "committedCount",
+            "name": "firstBetX",
             "type": "uint8"
           },
           {
             "internalType": "uint8",
-            "name": "revealedCount",
+            "name": "secondBetX",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bankerStakeAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "canNext",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "nextTitle",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "nextReason",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "chatGroupId",
+            "type": "string"
           }
         ],
         "internalType": "struct GameTableView[]",

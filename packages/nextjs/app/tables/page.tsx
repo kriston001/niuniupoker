@@ -28,10 +28,12 @@ export default function TablesPage() {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  const { gameTables, refreshData } = useGameTablesData({
+  const { gameTables, refetchData } = useGameTablesData({
     refreshInterval: 0,
     limit: 9,
   });
+
+  console.log(gameTables);
 
   const filterTables = () => {
     let filtered = gameTables ? [...gameTables] : [];
@@ -132,7 +134,7 @@ export default function TablesPage() {
             open={open}
             onOpenChange={setOpen}
             onCreatedTable={() => {
-              refreshData();
+              refetchData();
             }}
             trigger={
               <Button

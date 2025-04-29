@@ -42,10 +42,26 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
             </div>
 
             <div className="flex items-center text-zinc-400">
-              <Info className="h-4 w-4 mr-2 text-amber-500" />
+              <Coins className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Base Bet: </span>
               <span className="text-sm text-zinc-300 ml-1">
                 {formatEther(tableInfo.betAmount)} {symbol}
+              </span>
+            </div>
+
+            <div className="flex items-center text-zinc-400">
+              <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
+              <span className="text-sm">First Raise: </span>
+              <span className="text-sm text-zinc-300 ml-1">
+                {formatEther(tableInfo.betAmount * BigInt(tableInfo.firstBetX))} {symbol}
+              </span>
+            </div>
+
+            <div className="flex items-center text-zinc-400">
+              <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
+              <span className="text-sm">Second Raise: </span>
+              <span className="text-sm text-zinc-300 ml-1">
+                {formatEther(tableInfo.betAmount * BigInt(tableInfo.secondBetX))} {symbol}
               </span>
             </div>
 

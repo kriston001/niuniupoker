@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface CountdownTimerProps {
   initialSeconds: number;
-  onComplete?: () => void;
+  onComplete?: () => Promise<void>;
   className?: string;
 }
 
@@ -18,8 +18,8 @@ export function CountdownTimer({ initialSeconds, onComplete, className }: Countd
   }, [initialSeconds]);
 
   useEffect(() => {
-    if (seconds <= 0) {
-      onComplete?.();
+    if (seconds <= 0 && onComplete) {
+      onComplete().catch(console.error);
       return;
     }
 

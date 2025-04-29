@@ -14,6 +14,10 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export const delay = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
   if (player.state == PlayerState.FOLDED) {
     return "Folded";

@@ -592,11 +592,6 @@ const abi = [
           },
           {
             "internalType": "uint8",
-            "name": "playerFoldCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
             "name": "playerReadyCount",
             "type": "uint8"
           },
@@ -711,6 +706,16 @@ const abi = [
             "internalType": "string",
             "name": "nextReason",
             "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardAmount",
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -945,19 +950,6 @@ const abi = [
   },
   {
     "inputs": [],
-    "name": "playerFoldCount",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "playerJoin",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -1079,6 +1071,32 @@ const abi = [
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rewardAddr",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rewardAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
