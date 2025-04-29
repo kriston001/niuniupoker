@@ -75,6 +75,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     uint256 public tableInactiveTimeout; // 游戏桌不活跃超时时间，单位为秒
     uint256 public lastActivityTimestamp; // 最后活动时间戳
 
+    //庄家奖励
+    address public rewardAddr; // 奖励地址
+    uint256 public rewardAmount; // 奖励金额
+
     string public chatGroupId; // 聊天组ID
 
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
@@ -478,6 +482,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         currentRoundDeadline = 0;
         playerReadyCount = 0;
         totalPrizePool = 0;
+        rewardAddr = address(0);
+        rewardAmount = 0;
         dealerState.reset();
         for(uint i = 0; i < players.length; i++){
             if(players[i].isValid()){
@@ -488,22 +494,24 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function _canSettleGame() internal view returns (bool) {
-        if(state == GameState.WAITING || state == GameState.SETTLED){
+        if(state == GameState.WAITING || state == GameState.SETTLED || state == GameState.LIQUIDATED){
             return false;
         }
         if(state == GameState.ENDED){
             return true;
         }
 
+
         if(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING){
             (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
 
             bool onlyOneLeft = playerContinuedCount == 1;
+            bool noOneLeft = foldedCount == playerCount;
             bool everyoneFoldedButOne = foldedCount == playerCount - 1 && totalActed == 1;
             bool isDeadlinePassed = _isTimeOut();
             bool noOneActed = totalActed == 0;
 
-            if (everyoneFoldedButOne || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
+            if (everyoneFoldedButOne || noOneLeft || (isDeadlinePassed && onlyOneLeft) || (isDeadlinePassed && noOneActed)) {
                 // 可以结算
                 return true;
             } else {
@@ -647,45 +655,32 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function canMoveToNextStep() public view returns (bool canMove, string memory title, string memory reason) {
-        if (state == GameState.LIQUIDATED) {
-            return (false, "", "Game has been liquidated");
-        }
-
-        if(state == GameState.SETTLED){
-            return (true, "Play Again", "");
-        }
-
-        // 如果没有玩家，直接返回
         if (playerCount == 0) {
+            // 如果没有玩家，直接返回
             return (false, "", "No players in game");
         }
 
-        (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
+        if (state == GameState.LIQUIDATED) {
+            return (false, "", "Game has been liquidated");
+        }else if(state == GameState.SETTLED){
+            return (true, "Play Again", "");
+        }else if (state == GameState.ENDED) {
+            return (true, "Settle Game", "");
+        }else if(state == GameState.SETTLED){
+            return (true, "Play Again", "");
+        }else if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
+            (uint8 foldedCount, uint8 totalActed) = _getPlayerActionCounts();
 
-        bool isDeadlinePassed = currentRoundDeadline > 0 && block.timestamp >= currentRoundDeadline;
-        bool allPlayersActed = totalActed + foldedCount == playerCount;
+            bool isDeadlinePassed = _isTimeOut();
+            bool allPlayersActed = totalActed + foldedCount == playerCount;
 
-        bool onlyOneLeft = playerContinuedCount == 1 && foldedCount == playerCount - 1;
-        bool noOneLeft = foldedCount == playerCount;
-        bool noOneActed = totalActed == 0;
-
-
-        if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
-            if (onlyOneLeft || noOneLeft) {
+            if (_canSettleGame()) {
                 return (true, "Settle Game", "");
             } else if (allPlayersActed || isDeadlinePassed) {
                 return (true, "Next Round", "");
             } else {
                 return (false, "Next Round", "Waiting for players to act");
             }
-        }
-
-        if (state == GameState.ENDED) {
-            return (true, "Settle Game", "");
-        }
-
-        if(state == GameState.SETTLED){
-            return (true, "Play Again", "");
         }
 
         return (false, "", "Unknown state");
@@ -810,13 +805,16 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         // 如果设置了奖励池，尝试分配奖励
-        if (rewardPoolAddr != address(0)) {
+        if (rewardPoolAddr != address(0) && rewardPoolId != 0) {
             address[] memory playerAddresses = getPlayerAddresses();
             IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
-            try rewardPool.tryDistributeReward(address(this), playerAddresses) {
-                // 奖励分配成功或失败都继续游戏
+            try rewardPool.tryDistributeReward(rewardPoolId, playerAddresses, finalSeed) returns (address winAddr, uint256 winAmount){
+                if(winAddr != address(0)){
+                    // 有人获奖，设置获奖的人信息
+                    rewardAddr = winAddr;
+                    rewardAmount = winAmount;
+                }
             } catch {
-                // 奖励分配失败不影响游戏结算
             }
         }
 
@@ -1231,6 +1229,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             canNext: canNext,
             nextTitle: nextTitle,
             nextReason: nextReason,
+            rewardAddr: rewardAddr,
+            rewardAmount: rewardAmount,
             chatGroupId: chatGroupId
         });
     }

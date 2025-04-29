@@ -95,6 +95,8 @@ export interface GameTable {
   canNext: boolean;
   nextTitle: string;
   nextReason: string;
+  rewardAddr: `0x${string}`;
+  rewardAmount: bigint;
   chatGroupId: string;
 }
 

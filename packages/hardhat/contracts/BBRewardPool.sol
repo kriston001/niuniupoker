@@ -35,30 +35,9 @@ contract BBRewardPool is
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
     uint256[50] private __gap;
 
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
-    }
-
-    /**
-     * @dev 修饰器：只允许游戏桌合约调用
-     */
-    modifier onlyGameTable() {
-        bool isValidTable = false;
-        if (gameMainAddr != address(0)) {
-            if(IGameMain(gameMainAddr).isValidGameTable(msg.sender)){
-                isValidTable = true;
-            }else{
-                isValidTable = false;
-            }
-        }
-        require(isValidTable, "Only game table can call");
-        _;
     }
 
     /**
@@ -160,22 +139,24 @@ contract BBRewardPool is
 
     /**
      * @dev 游戏结束时尝试分配奖励
-     * @param _bankerAddr 庄家地址
      * @param _poolId 游戏桌地址
      * @param _players 参与游戏的玩家地址数组
      * @param finalSeed 最终种子
      * @return 是否分配了奖励
      */
-    function tryDistributeReward(address _bankerAddr, uint256 _poolId, address[] calldata _players, uint256 finalSeed) external onlyGameTable nonReentrant returns (bool) {
+    function tryDistributeReward(uint256 _poolId, address[] calldata _players, uint256 finalSeed) external nonReentrant returns (address, uint256) {
         address tableAddr = msg.sender;
-        RewardPoolInfo storage pool = bankerPools[_bankerAddr][_poolId];
-        if (pool.poolId == 0) return false;
+        address bankerAddr = IGameTableImplementation(tableAddr).bankerAddr();
+        require(bankerAddr != address(0), "invalid banker address");
+
+        RewardPoolInfo storage pool = bankerPools[bankerAddr][_poolId];
+        if (pool.poolId == 0) return (address(0), 0);
 
         // 验证有足够的资金
-        if (pool.remainingAmount < pool.rewardPerGame) return false;
+        if (pool.remainingAmount < pool.rewardPerGame) return (address(0), 0);
 
         // 验证有玩家参与
-        if (_players.length == 0) return false;
+        if (_players.length == 0) return (address(0), 0);
 
         // 生成随机数决定是否发放奖励
         uint256 randomValue = _generateRandomNumber(finalSeed, _poolId, tableAddr) % MAX_PROBABILITY;
@@ -194,10 +175,11 @@ contract BBRewardPool is
             require(success, "Transfer failed");
 
             emit RewardDistributed(_poolId, tableAddr, winner, pool.rewardPerGame);
-            return true;
+            return (winner, pool.rewardPerGame);
         }
 
-        return false;
+        return (address(0), 0);
+
     }
 
     /**

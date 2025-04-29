@@ -4,20 +4,6 @@ pragma solidity ^0.8.28;
 import "./BBTypes.sol";
 import "./BBStructs.sol";
 
-interface IRandomnessManager {
-    function createSession(address) external returns (bool);
-    function startCommit(address[] calldata, uint256) external returns (uint256);
-    function commitRandom(address, bytes32) external;
-    function startReveal() external returns (uint256);
-    function revealRandom(address _playerAddress, uint256 _randomValue, bytes32 _salt) external;
-    function completeSession() external returns (uint256);
-    function hasCommitted(address, address) external view returns (bool);
-    function hasRevealed(address, address) external view returns (bool);
-    function getSessionDeadline(address) external view returns (uint256);
-    function getCommittedCount(address) external view returns (uint8);
-    function getRevealedCount(address) external view returns (uint8);
-}
-
 interface IGameTableFactory {
     function createGameTable(
         uint256 tableId,
@@ -31,6 +17,7 @@ interface IGameTableFactory {
 }
 
 interface IGameTableImplementation {
+    function bankerAddr() external view returns (address);
     function getTableInfo() external view returns (GameTableView memory);
     function lastActivityTimestamp() external view returns (uint256);
     function state() external view returns (GameState);
@@ -52,7 +39,7 @@ interface IGameMain {
 }
 
 interface IRewardPool{
-    function tryDistributeReward(address, address[] calldata) external returns (bool);
+    function tryDistributeReward(uint256 _poolId, address[] calldata _players, uint256 finalSeed) external  returns (address, uint256);
     function isBankerPool(address, uint256) external view returns (bool);
     function getRewardPoolInfo(address, uint256) external view returns (RewardPoolInfo memory);
 }

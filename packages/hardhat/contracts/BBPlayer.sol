@@ -10,7 +10,6 @@ struct BBPlayer {
     uint256 totalBet;
 
     bool hasActedThisRound;   // 本轮是否已操作
-
     bool isWinner;   // 是否为赢家
 
     uint8[5] cards;

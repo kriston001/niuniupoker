@@ -109,5 +109,7 @@ struct GameTableView {
     bool canNext;
     string nextTitle;
     string nextReason;
+    address rewardAddr;
+    uint256 rewardAmount;
     string chatGroupId;
 }
