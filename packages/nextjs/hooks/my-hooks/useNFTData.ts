@@ -120,7 +120,7 @@ export function useNFTData({ playerAddress }: { playerAddress: Address | undefin
   return {
     roomCardTypes: roomCardTypes as RoomCardNftType[] | [],
     roomLevelTypes: roomLevelTypes as RoomLevelNftType[] | [],
-    myNfts: myNfts as [] | [],
+    myNfts: myNfts as any[] | [],
     // 刷新函数
     refetchData,
   };

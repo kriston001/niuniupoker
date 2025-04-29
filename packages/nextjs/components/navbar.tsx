@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronDown, Droplet, Home, Layers, LayoutGrid, Menu, User, X } from "lucide-react";
@@ -132,7 +133,13 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600"></div>
+            <Image
+              src="/images/logo2_60x60.png"
+              alt="NiuNiu Logo"
+              width={60}
+              height={60}
+              className="rounded-full object-cover"
+            />
             <h1 className="text-xl font-bold text-white hidden sm:block">NiuNiu Poker</h1>
           </div>
 
