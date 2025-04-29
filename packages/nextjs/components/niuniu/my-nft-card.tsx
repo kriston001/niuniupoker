@@ -3,7 +3,7 @@ import { formatEther } from "viem";
 import { Badge } from "~~/components/ui/badge";
 import { Button } from "~~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~~/components/ui/card";
-import { getNftDescription, getNftFullName, getNftSympol } from "~~/lib/utils";
+import { getNftDescription, getNftFullName, getNftImageUrl, getNftSympol } from "~~/lib/utils";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
 export function MyNftCard({
@@ -20,7 +20,7 @@ export function MyNftCard({
   return (
     <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
       <div className="relative aspect-square cursor-pointer" onClick={onDetailClick}>
-        <Image src={nft.uriSuffix || "/placeholder.svg"} alt={getNftFullName(nft)} fill className="object-cover" />
+        <Image src={getNftImageUrl(nft)} alt={getNftFullName(nft)} fill className="object-cover" />
         <div className="absolute top-2 right-2">
           <Badge className="bg-amber-500/90 text-black hover:bg-amber-500/90">x{quantity}</Badge>
         </div>

@@ -192,7 +192,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     [
       "Room Card", // NFT名称
       "NNRC", // NFT符号
-      "https://api.niuniu.game/metadata/roomcard/", // 基础URI
+      "http://localhost:3000/nft/metadata/tablecard/", // 基础URI
     ],
     deployer,
   );
@@ -205,7 +205,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     [
       "Room Level", // NFT名称
       "NNRL", // NFT符号
-      "https://api.niuniu.game/metadata/roomlevel/", // 基础URI
+      "http://localhost:3000/nft/metadata/tablelevel/", // 基础URI
     ],
     deployer,
   );

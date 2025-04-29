@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Minus, Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import { formatEther } from "viem";
+import { parseEther } from "viem";
+import { useAccount, useBalance } from "wagmi";
 import { Badge } from "~~/components/ui/badge";
 import { Button } from "~~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~~/components/ui/card";
@@ -15,17 +18,14 @@ import {
 } from "~~/components/ui/dialog";
 import { Input } from "~~/components/ui/input";
 import { Label } from "~~/components/ui/label";
-import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { getNftDescription, getNftTokenID, getNftFullName } from "~~/lib/utils";
-import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
-import { parseEther } from "viem";
-import { useAccount, useBalance } from "wagmi";
-import { getNftSympol } from "~~/lib/utils";
 import { batchBuyRoomCard } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { batchBuyRoomLevel } from "~~/contracts/abis/BBRoomLevelNFTABI";
-import { useGlobalState } from "~~/services/store/store";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
-import toast from "react-hot-toast";
+import { getNftDescription, getNftFullName, getNftTokenID } from "~~/lib/utils";
+import { getNftImageUrl, getNftSympol } from "~~/lib/utils";
+import { useGlobalState } from "~~/services/store/store";
+import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
 export function NftMintModal({
   selectedNft,
@@ -72,7 +72,7 @@ export function NftMintModal({
     }
   };
 
-  async function handleMintClick(){
+  async function handleMintClick() {
     if (!connectedAddress) {
       console.log("请先连接钱包");
       return;
@@ -128,12 +128,7 @@ export function NftMintModal({
 
         <div className="flex items-center space-x-4 py-4">
           <div className="relative h-24 w-24 rounded-md overflow-hidden border border-zinc-700">
-            <Image
-              src={selectedNft.uriSuffix + "/qq.png" || "/placeholder.svg"}
-              alt={selectedNft.name}
-              fill
-              className="object-cover"
-            />
+            <Image src={getNftImageUrl(selectedNft)} alt={selectedNft.name} fill className="object-cover" />
           </div>
           <div>
             <h4 className="text-lg font-medium text-white">{getNftFullName(selectedNft)}</h4>

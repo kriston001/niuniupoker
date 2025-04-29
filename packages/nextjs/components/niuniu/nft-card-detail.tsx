@@ -15,9 +15,9 @@ import {
 } from "~~/components/ui/dialog";
 import { Input } from "~~/components/ui/input";
 import { Label } from "~~/components/ui/label";
-import { getNftDescription, getNftSympol, getNftFullName } from "~~/lib/utils";
-import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { getNftDescription, getNftFullName, getNftImageUrl, getNftSympol } from "~~/lib/utils";
+import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
 export function NftCardDetail({
   selectedNft,
@@ -32,7 +32,7 @@ export function NftCardDetail({
 }) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] bg-zinc-900 border-zinc-800">
@@ -43,12 +43,7 @@ export function NftCardDetail({
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="relative aspect-square rounded-md overflow-hidden border border-zinc-700">
-            <Image
-              src={selectedNft.uriSuffix || "/placeholder.svg"}
-              alt={selectedNft.name}
-              fill
-              className="object-cover"
-            />
+            <Image src={getNftImageUrl(selectedNft)} alt={selectedNft.name} fill className="object-cover" />
           </div>
           <div className="space-y-4">
             <div>
@@ -99,7 +94,9 @@ export function NftCardDetail({
 
             <div>
               <h4 className="text-sm font-medium text-zinc-300 mb-1">Price</h4>
-              <p className="text-lg font-bold text-amber-500">{formatEther(selectedNft.price)} {symbol}</p>
+              <p className="text-lg font-bold text-amber-500">
+                {formatEther(selectedNft.price)} {symbol}
+              </p>
             </div>
           </div>
         </div>

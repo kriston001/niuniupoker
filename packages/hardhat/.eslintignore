@@ -4,5 +4,7 @@ cache
 contracts
 node_modules/
 typechain-types
+deploy
+scripts
 # files
 **/*.json

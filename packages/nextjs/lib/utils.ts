@@ -67,10 +67,17 @@ export function getNftTokenID(nft: RoomCardNftType | RoomLevelNftType): string {
 }
 
 export function getNftImageUrl(nft: RoomCardNftType | RoomLevelNftType): string {
+  // 获取当前域名，如果是开发环境则使用 localhost:3000
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+  console.log(`${baseUrl}/images/nfts/rc_${nft.uriSuffix}.png`);
   if ("maxPlayers" in nft) {
-    return nft.uriSuffix + "/card/" + nft.id.toString();
+    return `${baseUrl}/images/nfts/rc_${nft.uriSuffix}.png`;
   } else {
-    return nft.uriSuffix + "/level/" + nft.id.toString();
+    return `${baseUrl}/images/nfts/rl_${nft.uriSuffix}.png`;
   }
 }
 

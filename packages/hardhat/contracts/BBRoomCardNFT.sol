@@ -287,8 +287,10 @@ contract BBRoomCardNFT is
         string memory suffix = nftTypes[nftTypeId].uriSuffix;
 
         return bytes(baseURI).length > 0 ?
-            string(abi.encodePacked(baseURI, suffix, "/", tokenId.toString())) : "";
+            string(abi.encodePacked(baseURI, suffix)) : "";
     }
+
+
 
     /**
      * @dev Withdraw ETH from the contract

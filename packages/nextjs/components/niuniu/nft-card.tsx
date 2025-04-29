@@ -4,7 +4,7 @@ import { Badge } from "~~/components/ui/badge";
 import { Button } from "~~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~~/components/ui/card";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { getNftFullName } from "~~/lib/utils";
+import { getNftFullName, getNftImageUrl } from "~~/lib/utils";
 import { RoomCardNftType, RoomLevelNftType } from "~~/types/game-types";
 
 export function NftRoomCard({
@@ -22,7 +22,7 @@ export function NftRoomCard({
   return (
     <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
       <div className="relative aspect-square cursor-pointer" onClick={onDetailClick}>
-        <Image src={nft.uriSuffix || "/placeholder.svg"} alt={getNftFullName(nft)} fill className="object-cover" />
+        <Image src={getNftImageUrl(nft)} alt={getNftFullName(nft)} fill className="object-cover" />
         {nft.rarity && (
           <div className="absolute top-2 right-2">
             <Badge
