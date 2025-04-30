@@ -40,7 +40,8 @@ export function CreateRewardModal({ open, onOpenChange, onCreatedReward }: Creat
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[380px] bg-zinc-900 border-zinc-800 p-0">
+      <SheetContent side="right" 
+      className="w-[380px] bg-zinc-900 border-zinc-800 p-0">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <SheetHeader className="p-0">

@@ -1,13 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils";
-import { Clock, Coins, Gift, Info, TrendingUp, Trophy, Users, Wallet } from "lucide-react";
+import { Clock, Coins, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet, Copy, Check } from "lucide-react";
 import { formatEther, parseEther } from "viem";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { GameTable } from "~~/types/game-types";
+import { useState, useEffect } from "react";
 
 export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
+  const [currentUrl, setCurrentUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // 在客户端渲染时获取当前URL
+    if (typeof window !== "undefined") {
+      setCurrentUrl(window.location.href);
+    }
+  }, []);
+
+  const copyToClipboard = () => {
+    if (navigator.clipboard && currentUrl) {
+      navigator.clipboard.writeText(currentUrl)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(err => {
+          console.error("Failed to copy: ", err);
+        });
+    }
+  };
 
   return (
     <div>
@@ -74,11 +97,26 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
               </span>
             </div>
 
-            {/* <div className="flex items-center text-zinc-400">
-              <Clock className="h-4 w-4 mr-2 text-amber-500" />
-              <span className="text-sm">Round: </span>
-              <span className="text-sm text-zinc-300 ml-1">{tableInfo.gameRound}</span>
-            </div> */}
+            {/* 显示当前网址和复制按钮 */}
+            <div className="flex items-center text-zinc-400">
+              <Link className="h-4 w-4 mr-2 text-amber-500" />
+              <span className="text-sm">Invite: </span>
+              <div className="flex-1 flex items-center justify-between ml-1">
+                <span className="text-sm text-zinc-300 truncate max-w-[180px]">{currentUrl}</span>
+                <button 
+                  onClick={copyToClipboard}
+                  className="ml-2 p-1 rounded-md hover:bg-zinc-700 transition-colors"
+                  title="Copy URL"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-zinc-300" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
           </div>
 
           {/* Enhanced Reward Information Block */}

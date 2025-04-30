@@ -133,7 +133,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
       const parsedBetAmount = parseEther(data.betAmount);
 
       await writeContractWithCallback({
-        address: scaffoldConfig.contracts.BBGameMain,
+        address: gameConfig.gameMainAddress,
         abi: [createGameTable],
         functionName: "createGameTable",
         args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent],

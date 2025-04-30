@@ -3,18 +3,20 @@ import { useReadContract, useWatchContractEvent } from "wagmi";
 import { GameTableCreated, GameTableRemoved, getNewestGameTables } from "~~/contracts/abis/BBGameMainABI";
 import scaffoldConfig from "~~/scaffold.config";
 import { GameTable } from "~~/types/game-types";
+import { useGlobalState } from "~~/services/store/store";
 
 export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?: number }) {
   const refreshLockRef = useRef(false);
   // const lastRefreshTimeRef = useRef<number>(0);
   const refreshIntervalRef = useRef(refreshInterval);
+  const gameConfig = useGlobalState(state => state.gameConfig);
 
   const {
     data: gameTables,
     isLoading: isLoadingTables,
     refetch: refetchGameTables,
   } = useReadContract({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: gameConfig?.gameMainAddress,
     abi: [getNewestGameTables],
     functionName: "getNewestGameTables",
   });
@@ -70,7 +72,7 @@ export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?
 
   // ✅ 事件监听（创建）
   useWatchContractEvent({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: gameConfig?.gameMainAddress,
     abi: [GameTableCreated],
     eventName: "GameTableCreated",
     onLogs: logs => {
@@ -83,7 +85,7 @@ export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?
 
   // ✅ 事件监听（移除）
   useWatchContractEvent({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: gameConfig?.gameMainAddress,
     abi: [GameTableRemoved],
     eventName: "GameTableRemoved",
     onLogs: logs => {

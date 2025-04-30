@@ -1,15 +1,18 @@
 import { useEffect } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useAccount } from "wagmi";
 import { getGameConfig } from "~~/contracts/abis/BBGameMainABI";
-import scaffoldConfig from "~~/scaffold.config";
 import { useGlobalState } from "~~/services/store/store";
 import { GameConfig } from "~~/types/game-types";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
 export function useGameConfig() {
   const setGameConfig = useGlobalState(state => state.setGameConfig);
+  const { targetNetwork } = useTargetNetwork();
 
   const { data: gameConfig } = useReadContract({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: targetNetwork.contracts?.BBGameMain && 'address' in targetNetwork.contracts.BBGameMain 
+      ? targetNetwork.contracts.BBGameMain.address as `0x${string}` 
+      : undefined,
     abi: [getGameConfig],
     functionName: "getGameConfig",
   });

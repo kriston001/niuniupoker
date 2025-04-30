@@ -105,7 +105,6 @@ export function NftMintModal({
         account: connectedAddress as `0x${string}`,
         onSuccess: async () => {
           toast.success("Nft Mint successfully");
-          console.log("✅ Mint Nft 成功");
           onOpenChange?.(false);
           onNftMinted && onNftMinted();
         },

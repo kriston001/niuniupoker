@@ -16,6 +16,7 @@ struct GameConfig {
     uint256 playerTimeout;
     uint256 tableInactiveTimeout;
     uint8 liquidatorFeePercent;
+    address gameMainAddress;
     address rewardPoolAddress;
     address roomCardAddress;
     address roomLevelAddress;

@@ -4,21 +4,22 @@ import { GameTableCreated, getNewestGameTables } from "~~/contracts/abis/BBGameM
 import scaffoldConfig from "~~/scaffold.config";
 import { GameTable } from "~~/types/game-types";
 import debounce from "lodash.debounce";
+import { useGlobalState } from "~~/services/store/store";
 
 export function useGameTablesData({ refreshInterval = 0, limit = 10 }: { refreshInterval?: number; limit?: number }) {
   const refreshIntervalRef = useRef(refreshInterval);
+  const gameConfig = useGlobalState(state => state.gameConfig);
 
   const {
     data: gameTables,
     isLoading: isLoadingTables,
     refetch: refetchData
   } = useReadContract({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: gameConfig?.gameMainAddress,
     abi: [getNewestGameTables],
     args: [limit],
     functionName: "getNewestGameTables",
   });
-
 
   // refetchGameTables 保存在 ref 中，防止依赖变化引发副作用
   const refetchDataRef = useRef(refetchData);
@@ -57,7 +58,7 @@ export function useGameTablesData({ refreshInterval = 0, limit = 10 }: { refresh
 
   // ✅ 事件监听（创建）
   useWatchContractEvent({
-    address: scaffoldConfig.contracts.BBGameMain,
+    address: gameConfig?.gameMainAddress,
     abi: [GameTableCreated],
     eventName: "GameTableCreated",
     onLogs: logs => {

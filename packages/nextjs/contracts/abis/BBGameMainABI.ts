@@ -578,6 +578,11 @@ const abi =  [
           },
           {
             "internalType": "address",
+            "name": "gameMainAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
             "name": "rewardPoolAddress",
             "type": "address"
           },

@@ -206,6 +206,7 @@ contract BBGameMain is
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
             liquidatorFeePercent: liquidatorFeePercent,
+            gameMainAddress: address(this),
             rewardPoolAddress: rewardPoolAddress,
             roomCardAddress: roomCardAddress,
             roomLevelAddress: roomLevelAddress,

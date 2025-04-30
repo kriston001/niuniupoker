@@ -47,6 +47,7 @@ export const useGlobalState = create<GlobalState>(set => ({
     playerTimeout: 120n,
     tableInactiveTimeout: 1200n,
     liquidatorFeePercent: 20,
+    gameMainAddress: "0x0000000000000000000000000000000000000000",
     rewardPoolAddress: "0x0000000000000000000000000000000000000000",
     roomCardAddress: "0x0000000000000000000000000000000000000000",
     roomLevelAddress: "0x0000000000000000000000000000000000000000",

@@ -44,6 +44,7 @@ export interface GameConfig {
   playerTimeout: bigint;
   tableInactiveTimeout: bigint;
   liquidatorFeePercent: number;
+  gameMainAddress: `0x${string}`;
   rewardPoolAddress: `0x${string}`;
   roomCardAddress: `0x${string}`;
   roomLevelAddress: `0x${string}`;

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronDown, Droplet, Home, Layers, LayoutGrid, Menu, User, X } from "lucide-react";
 import { useAccount } from "wagmi";
+import { CustomNetworkSelector } from "~~/components/CustomNetworkSelector";
 import { CustomWalletConnection } from "~~/components/CustomWalletConnection";
 import { FaucetButton } from "~~/components/scaffold-eth";
 import { Balance } from "~~/components/scaffold-eth/Balance";
@@ -16,71 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~~/components/ui/dropdown-menu";
-
-// Network Selector component
-function NetworkSelector() {
-  const networks = [
-    { id: "ethereum", name: "Ethereum", color: "#627eea" },
-    { id: "polygon", name: "Polygon", color: "#8247e5" },
-    { id: "bnb", name: "BNB Chain", color: "#f3ba2f" },
-    { id: "arbitrum", name: "Arbitrum", color: "#28a0f0" },
-  ];
-
-  const [selectedNetwork, setSelectedNetwork] = useState(networks[0]);
-  const [open, setOpen] = useState(false);
-
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className="border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:text-white hover:border-amber-500/50 hover:bg-zinc-800/80 transition-all duration-200 flex items-center gap-2 h-9 pr-3 pl-2"
-        >
-          <div
-            className="w-4 h-4 rounded-full"
-            style={{
-              background: `${selectedNetwork.color}`,
-              boxShadow: `0 0 8px ${selectedNetwork.color}`,
-            }}
-          />
-          <span className="text-sm font-medium">{selectedNetwork.name}</span>
-          <ChevronDown className="h-4 w-4 text-zinc-500" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-48 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/80 p-1 shadow-lg shadow-black/40"
-      >
-        {networks.map(network => (
-          <DropdownMenuItem
-            key={network.id}
-            className={`flex items-center justify-between px-2 py-1.5 text-sm rounded-sm cursor-pointer transition-colors ${
-              selectedNetwork.id === network.id
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/70"
-            }`}
-            onClick={() => {
-              setSelectedNetwork(network);
-              setOpen(false);
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{
-                  background: network.color,
-                  boxShadow: `0 0 6px ${network.color}`,
-                }}
-              />
-              <span>{network.name}</span>
-            </div>
-            {selectedNetwork.id === network.id && <Check className="h-4 w-4 text-amber-500" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 // Navbar component
 export function Navbar() {
@@ -176,7 +112,7 @@ export function Navbar() {
           {/* Connect Wallet Button and Network Selector */}
           <div className="flex items-center gap-2">
             <div className="hidden sm:block">
-              <NetworkSelector />
+              <CustomNetworkSelector />
             </div>
             {/* Balance Display */}
             <div className="hidden sm:block">
@@ -229,7 +165,7 @@ export function Navbar() {
                 );
               })}
               <div className="pt-2 pb-1">
-                <NetworkSelector />
+                <CustomNetworkSelector />
               </div>
               <div className="pt-1 pb-1">
                 <CustomWalletConnection className="w-full" />
