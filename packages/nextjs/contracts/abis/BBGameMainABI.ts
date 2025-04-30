@@ -274,6 +274,16 @@ const abi =  [
         "internalType": "uint8",
         "name": "bankerFeePercent",
         "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "firstRaise",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "secondRaise",
+        "type": "uint8"
       }
     ],
     "name": "createGameTable",
@@ -365,11 +375,6 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "totalPrizePool",
-            "type": "uint256"
-          },
-          {
             "internalType": "uint8",
             "name": "playerCount",
             "type": "uint8"
@@ -380,49 +385,9 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "creationTimestamp",
-            "type": "uint256"
-          },
-          {
             "internalType": "enum GameState",
             "name": "state",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "liquidatorFeePercent",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerContinuedCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerReadyCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address[]",
-            "name": "playerAddresses",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "currentRoundDeadline",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "playerTimeout",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tableInactiveTimeout",
-            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -480,59 +445,9 @@ const abi =  [
             "internalType": "struct RewardPoolInfo",
             "name": "rewardPoolInfo",
             "type": "tuple"
-          },
-          {
-            "internalType": "uint256",
-            "name": "implementationVersion",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "firstBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "secondBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "bankerStakeAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "canNext",
-            "type": "bool"
-          },
-          {
-            "internalType": "string",
-            "name": "nextTitle",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "nextReason",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "rewardAddr",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "rewardAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "chatGroupId",
-            "type": "string"
           }
         ],
-        "internalType": "struct GameTableView[]",
+        "internalType": "struct GameTableInfoShort[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -668,11 +583,6 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "totalPrizePool",
-            "type": "uint256"
-          },
-          {
             "internalType": "uint8",
             "name": "playerCount",
             "type": "uint8"
@@ -683,49 +593,9 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "creationTimestamp",
-            "type": "uint256"
-          },
-          {
             "internalType": "enum GameState",
             "name": "state",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "liquidatorFeePercent",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerContinuedCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerReadyCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address[]",
-            "name": "playerAddresses",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "currentRoundDeadline",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "playerTimeout",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tableInactiveTimeout",
-            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -783,59 +653,9 @@ const abi =  [
             "internalType": "struct RewardPoolInfo",
             "name": "rewardPoolInfo",
             "type": "tuple"
-          },
-          {
-            "internalType": "uint256",
-            "name": "implementationVersion",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "firstBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "secondBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "bankerStakeAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "canNext",
-            "type": "bool"
-          },
-          {
-            "internalType": "string",
-            "name": "nextTitle",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "nextReason",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "rewardAddr",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "rewardAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "chatGroupId",
-            "type": "string"
           }
         ],
-        "internalType": "struct GameTableView",
+        "internalType": "struct GameTableInfoShort",
         "name": "",
         "type": "tuple"
       }
@@ -895,11 +715,6 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "totalPrizePool",
-            "type": "uint256"
-          },
-          {
             "internalType": "uint8",
             "name": "playerCount",
             "type": "uint8"
@@ -910,49 +725,9 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "creationTimestamp",
-            "type": "uint256"
-          },
-          {
             "internalType": "enum GameState",
             "name": "state",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "liquidatorFeePercent",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerContinuedCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerReadyCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address[]",
-            "name": "playerAddresses",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "currentRoundDeadline",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "playerTimeout",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tableInactiveTimeout",
-            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -1010,59 +785,9 @@ const abi =  [
             "internalType": "struct RewardPoolInfo",
             "name": "rewardPoolInfo",
             "type": "tuple"
-          },
-          {
-            "internalType": "uint256",
-            "name": "implementationVersion",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "firstBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "secondBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "bankerStakeAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "canNext",
-            "type": "bool"
-          },
-          {
-            "internalType": "string",
-            "name": "nextTitle",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "nextReason",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "rewardAddr",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "rewardAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "chatGroupId",
-            "type": "string"
           }
         ],
-        "internalType": "struct GameTableView[]",
+        "internalType": "struct GameTableInfoShort[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -1128,11 +853,6 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "totalPrizePool",
-            "type": "uint256"
-          },
-          {
             "internalType": "uint8",
             "name": "playerCount",
             "type": "uint8"
@@ -1143,49 +863,9 @@ const abi =  [
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "creationTimestamp",
-            "type": "uint256"
-          },
-          {
             "internalType": "enum GameState",
             "name": "state",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "liquidatorFeePercent",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerContinuedCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "playerReadyCount",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address[]",
-            "name": "playerAddresses",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "currentRoundDeadline",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "playerTimeout",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tableInactiveTimeout",
-            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -1243,59 +923,9 @@ const abi =  [
             "internalType": "struct RewardPoolInfo",
             "name": "rewardPoolInfo",
             "type": "tuple"
-          },
-          {
-            "internalType": "uint256",
-            "name": "implementationVersion",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "firstBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint8",
-            "name": "secondBetX",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "bankerStakeAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "canNext",
-            "type": "bool"
-          },
-          {
-            "internalType": "string",
-            "name": "nextTitle",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "nextReason",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "rewardAddr",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "rewardAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "chatGroupId",
-            "type": "string"
           }
         ],
-        "internalType": "struct GameTableView[]",
+        "internalType": "struct GameTableInfoShort[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -1336,16 +966,22 @@ const abi =  [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getVersion",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
+        "internalType": "address",
+        "name": "userAddress",
+        "type": "address"
       }
     ],
-    "stateMutability": "pure",
+    "name": "getUserJoinedTables",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1773,6 +1409,30 @@ const abi =  [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userJoinedTables",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

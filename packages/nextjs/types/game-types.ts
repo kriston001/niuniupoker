@@ -101,6 +101,26 @@ export interface GameTable {
   chatGroupId: string;
 }
 
+export interface GameTableInfoShort {
+  active: boolean;
+  gameRound: bigint; // 游戏场次
+  gameLiquidatedCount: bigint; // 被清算的游戏场数
+  tableAddr: `0x${string}`; // 游戏桌合约地址
+  tableId: bigint;
+  tableName: string; // 游戏桌名称
+  bankerAddr: `0x${string}`; // 庄家地址
+  betAmount: bigint; // 下注金额
+  bankerFeePercent: number; // 庄家费用百分比
+  playerCount: number; // 当前玩家数量
+  maxPlayers: number; // 最大玩家数量
+  state: number; // 游戏状态
+  lastActivityTimestamp: bigint; // 最后活动时间戳
+  rewardPoolId: bigint; // 奖励池ID
+  rewardPoolInfo: RewardPoolInfo; // 奖励池信息
+}
+
+
+
 // 玩家信息类型定义
 export interface Player {
   addr: `0x${string}`;

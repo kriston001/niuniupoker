@@ -114,3 +114,22 @@ struct GameTableView {
     uint256 rewardAmount;
     string chatGroupId;
 }
+
+// 添加一个新的结构体用于返回游戏桌信息
+struct GameTableInfoShort {
+    bool active;
+    uint256 gameRound;
+    uint256 gameLiquidatedCount;
+    address tableAddr; // 游戏桌合约地址
+    uint256 tableId;
+    string tableName;
+    address bankerAddr;
+    uint256 betAmount;
+    uint8 bankerFeePercent;
+    uint8 playerCount;
+    uint8 maxPlayers;
+    GameState state;
+    uint256 lastActivityTimestamp;
+    uint256 rewardPoolId;
+    RewardPoolInfo rewardPoolInfo; // 奖励池信息，如果没有奖励池，则返回空结构体
+}

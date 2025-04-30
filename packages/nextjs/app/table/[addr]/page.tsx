@@ -36,10 +36,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   const resolvedParams = use(params);
   const tableAddr = resolvedParams.addr;
 
-  const gameConfig = useGlobalState(state => state.gameConfig);
-
-  console.log("gameconfig: ", gameConfig);
-
   const { address: connectedAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
 
@@ -215,12 +211,14 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
         await refreshData();
         if (tableInfo?.chatGroupId && walletClient) {
           try {
-            // 加入群组
-            const success = await pushChat.leaveChatGroup(tableInfo.chatGroupId);
-            if (success) {
-              console.log("✅ 成功离开聊天群组");
-            } else {
-              console.log("⚠️ 离开聊天群组失败");
+            // 离开群组
+            if(playerData?.addr != tableInfo?.bankerAddr) {
+              const success = await pushChat.leaveChatGroup(tableInfo.chatGroupId);
+              if (success) {
+                console.log("✅ 成功离开聊天群组");
+              } else {
+                console.log("⚠️ 离开聊天群组失败");
+              }
             }
           } catch (error) {
             console.error("❌ 离开聊天群组出错:", error);
@@ -293,7 +291,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
             <div className="flex flex-col lg:flex-row gap-6 max-w-[1920px] mx-auto">
               {/* Left sidebar - Table info and action log */}
               <div className="w-full lg:w-1/5">
-                {tableInfo && <TableInfo tableInfo={tableInfo} />}
+                {tableInfo && <TableInfo tableInfo={tableInfo} tableUpdated={refreshData} />}
                 <ChatPanel tableInfo={tableInfo} />
               </div>
 

@@ -6,10 +6,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
-
 import "./BBTypes.sol";
-import "./BBVersion.sol";
 import "./BBRoomCardNFT.sol";
 import "./BBRewardPool.sol";
 import "./BBRoomLevelNFT.sol";
@@ -45,6 +42,8 @@ contract BBGameMain is
     mapping(address => address) public gameTables;
     // 用户创建的游戏桌映射
     mapping(address => address[]) public userTables;
+    // 用户加入的游戏桌映射
+    mapping(address => address[]) public userJoinedTables;
 
     // 记录每个用户创建的房间数量
     mapping(address => uint256) public userCreatedRoomsCount;
@@ -64,11 +63,6 @@ contract BBGameMain is
 
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
     uint256[50] private __gap;
-
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -117,14 +111,17 @@ contract BBGameMain is
         string memory tableName,
         uint256 betAmount,
         uint8 tableMaxPlayers,
-        uint8 bankerFeePercent
-
+        uint8 bankerFeePercent,
+        uint8 firstRaise,
+        uint8 secondRaise
     ) external payable nonReentrant {
         require(!paused(), "Contract paused");
         require(betAmount != 0, "Bet amount too small");
         require(tableMaxPlayers > 1 && tableMaxPlayers <= maxPlayers, "Invalid max players");
         require(bankerFeePercent <= maxBankerFeePercent, "Invalid banker fee percent");
         require(bytes(tableName).length > 0 && bytes(tableName).length <= 20, "Invalid table name");
+        require(firstRaise >= 1 && firstRaise <= 4, "Invalid first raise");
+        require(secondRaise >= 1 && secondRaise <= 4, "Invalid second raise");
 
         // 将玩家的房间数量加1
         userCreatedRoomsCount[msg.sender]++;
@@ -162,7 +159,9 @@ contract BBGameMain is
             betAmount,
             tableMaxPlayers,
             address(this),
-            bankerFeePercent
+            bankerFeePercent,
+            firstRaise,
+            secondRaise
         );
 
         nextTableId++;
@@ -181,6 +180,18 @@ contract BBGameMain is
     // 获取tableAddresses列表
     function getTableAddresses() external view returns (address[] memory) {
         return tableAddresses;
+    }
+
+    // 用户加入新的游戏桌
+    function userJoinTable(address tableAddr, address userAddr) external returns(bool){
+        address[] storage tables = userJoinedTables[userAddr];
+        
+
+    }
+
+    // 获取用户加入的游戏桌列表
+    function getUserJoinedTables(address userAddress) external view returns (address[] memory) {
+        return userJoinedTables[userAddress];
     }
 
 
@@ -252,12 +263,12 @@ contract BBGameMain is
      * @param _count 要获取的游戏桌数量
      * @return 最新的游戏桌数组
      */
-    function getNewestGameTables(uint8 _count) external view returns(GameTableView[] memory) {
+    function getNewestGameTables(uint8 _count) external view returns(GameTableInfoShort[] memory) {
         require(_count > 0, "Count must be greater than 0");
         
         uint256 tableCount = tableAddresses.length;
         if (tableCount == 0) {
-            return new GameTableView[](0);
+            return new GameTableInfoShort[](0);
         }
         
         // 如果请求的数量大于现有游戏桌数量，则使用现有数量
@@ -266,7 +277,7 @@ contract BBGameMain is
             resultCount = tableCount;
         }
         
-        GameTableView[] memory tables = new GameTableView[](resultCount);
+        GameTableInfoShort[] memory tables = new GameTableInfoShort[](resultCount);
         
         // 使用安全的索引计算方式
         uint256 startIndex = tableCount > resultCount ? tableCount - resultCount : 0;
@@ -274,7 +285,7 @@ contract BBGameMain is
         for (uint256 i = 0; i < resultCount; i++) {
             address tableAddr = tableAddresses[startIndex + i];
             IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
-            tables[resultCount - 1 - i] = gameTable.getTableInfo(); // 反向填充保持最新的在前
+            tables[resultCount - 1 - i] = gameTable.getTableInfoShort(); // 反向填充保持最新的在前
         }
         
         return tables;
@@ -284,9 +295,9 @@ contract BBGameMain is
      * @dev 获取所有非活跃可被清算的游戏桌信息
      * @return 返回游戏桌信息数组
      */
-    function getAllGameTablesInactive() external view returns(GameTableView[] memory) {
+    function getAllGameTablesInactive() external view returns(GameTableInfoShort[] memory) {
         uint256 tableCount = tableAddresses.length;
-        GameTableView[] memory tempTables = new GameTableView[](tableCount);
+        GameTableInfoShort[] memory tempTables = new GameTableInfoShort[](tableCount);
         uint256 validCount = 0;
 
         for (uint256 i = 0; i < tableCount; i++) {
@@ -295,13 +306,13 @@ contract BBGameMain is
             //超过清算时间并且游戏在进行中的table可以被清算
             if(gameTable.lastActivityTimestamp() + tableInactiveTimeout < block.timestamp &&
             (gameTable.state() == GameState.FIRST_BETTING || gameTable.state() == GameState.SECOND_BETTING)){
-                tempTables[validCount] = gameTable.getTableInfo();
+                tempTables[validCount] = gameTable.getTableInfoShort();
                 validCount++;
             }
         }
 
         // 创建一个新的数组来存储有效元素
-        GameTableView[] memory tables = new GameTableView[](validCount);
+        GameTableInfoShort[] memory tables = new GameTableInfoShort[](validCount);
         for (uint256 i = 0; i < validCount; i++) {
             tables[i] = tempTables[i];
         }
@@ -314,7 +325,7 @@ contract BBGameMain is
      * @param tableAddr 游戏桌合约地址
      * @return 返回游戏桌信息
      */
-    function getGameTableInfo(address tableAddr) external view returns (GameTableView memory) {
+    function getGameTableInfo(address tableAddr) external view returns (GameTableInfoShort memory) {
         return _getTableInfo(tableAddr);
     }
 
@@ -322,9 +333,9 @@ contract BBGameMain is
      * @dev 获取我参与的赌桌
      * @return 返回游戏桌信息
      */
-    function getMyGameTables() external view returns (GameTableView[] memory) {
+    function getMyGameTables() external view returns (GameTableInfoShort[] memory) {
         uint256 tableCount = userTables[msg.sender].length;
-        GameTableView[] memory tables = new GameTableView[](tableCount);
+        GameTableInfoShort[] memory tables = new GameTableInfoShort[](tableCount);
 
         for (uint256 i = 0; i < tableCount; i++) {
             address tableAddr = userTables[msg.sender][i];
@@ -335,10 +346,10 @@ contract BBGameMain is
     }
 
     // 添加一个内部函数来获取游戏桌信息
-    function _getTableInfo(address tableAddr) internal view returns (GameTableView memory) {
+    function _getTableInfo(address tableAddr) internal view returns (GameTableInfoShort memory) {
         require(tableAddr != address(0) && gameTables[tableAddr] != address(0), "Table does not exist");
         IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
-        return gameTable.getTableInfo();
+        return gameTable.getTableInfoShort();
     }
 
     // 验证游戏桌是否合法

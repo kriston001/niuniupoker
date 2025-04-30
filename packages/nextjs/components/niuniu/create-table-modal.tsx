@@ -31,54 +31,67 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
-import { z } from "zod";
 import { createGameTable } from "~~/contracts/abis/BBGameMainABI";
+import { editGameTable } from "~~/contracts/abis/BBGameTableABI";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import scaffoldConfig from "~~/scaffold.config";
 import { useGlobalState } from "~~/services/store/store";
+import { z } from "zod";
 
 // Sample reward data
-const rewardOptions = [
-  {
-    id: "reward-1",
-    name: "High Roller",
-    totalPool: 5.0,
-    rewardPerRound: 0.5,
-    winRate: 10,
-  },
-  {
-    id: "reward-2",
-    name: "Lucky Streak",
-    totalPool: 3.0,
-    rewardPerRound: 0.3,
-    winRate: 15,
-  },
-  {
-    id: "reward-3",
-    name: "Jackpot",
-    totalPool: 10.0,
-    rewardPerRound: 1.0,
-    winRate: 5,
-  },
-];
+// const rewardOptions = [
+//   {
+//     id: "reward-1",
+//     name: "High Roller",
+//     totalPool: 5.0,
+//     rewardPerRound: 0.5,
+//     winRate: 10,
+//   },
+//   {
+//     id: "reward-2",
+//     name: "Lucky Streak",
+//     totalPool: 3.0,
+//     rewardPerRound: 0.3,
+//     winRate: 15,
+//   },
+//   {
+//     id: "reward-3",
+//     name: "Jackpot",
+//     totalPool: 10.0,
+//     rewardPerRound: 1.0,
+//     winRate: 5,
+//   },
+// ];
 
 interface CreateTableModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
   onCreatedTable?: () => void;
+  tableData?: {
+    address: string;
+    name: string;
+    betAmount: string;
+    maxPlayers: number;
+    bankerFeePercent: number;
+    firstRaise: number;
+    secondRaise: number;
+  };
 }
 
-export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }: CreateTableModalProps) {
+export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, tableData }: CreateTableModalProps) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
 
   const gameConfig = useGlobalState(state => state.gameConfig);
+  const isEditMode = !!tableData;
 
   const formSchema = z.object({
     name: z.string().min(1, "Name is required").max(20, "Name must be less than 20 characters"),
     betAmount: z.string().min(1, "Bet amount is required"),
+    firstRaise: z.number().min(1).max(4, "First Raise must be between 1 and 4"),
+    secondRaise: z.number().min(1).max(4, "Second Raise must be between 1 and 4"),
     maxPlayers: z
       .number()
       .min(2, "Max players must be at least 2")
@@ -98,11 +111,17 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      bankerFeePercent: 3,
+      bankerFeePercent: tableData?.bankerFeePercent || 3,
+      firstRaise: tableData?.firstRaise || 1,
+      secondRaise: tableData?.secondRaise || 1,
+      name: tableData?.name || "",
+      betAmount: tableData?.betAmount || "",
+      maxPlayers: tableData?.maxPlayers || 6,
     },
   });
 
@@ -122,6 +141,17 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
     }
   }, [createRewardOpen, dropdownOpen]);
 
+  useEffect(() => {
+    if (tableData) {
+      setValue("name", tableData.name);
+      setValue("betAmount", tableData.betAmount);
+      setValue("maxPlayers", tableData.maxPlayers);
+      setValue("bankerFeePercent", tableData.bankerFeePercent);
+      setValue("firstRaise", tableData.firstRaise);
+      setValue("secondRaise", tableData.secondRaise);
+    }
+  }, [tableData, setValue]);
+
   const handleCreateTable = async (data: FormData) => {
     // Here you would handle the actual creation of the reward
     if (!connectedAddress) {
@@ -132,28 +162,54 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
     try {
       const parsedBetAmount = parseEther(data.betAmount);
 
-      await writeContractWithCallback({
-        address: gameConfig.gameMainAddress,
-        abi: [createGameTable],
-        functionName: "createGameTable",
-        args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent],
-        account: connectedAddress as `0x${string}`,
-        onSuccess: async () => {
-          toast.success("Table created successfully");
-          reset();
-          onOpenChange?.(false);
-          onCreatedTable && onCreatedTable();
-        },
-        onError: async err => {
-          // 用户取消交易不显示错误提示
-          if (err.message.includes("User rejected") || err.message.includes("user rejected")) {
-            return;
-          }
-          toast.error(`Failed to create table: ${err.message}`);
-        },
-      });
+      if (isEditMode && tableData) {
+        // 编辑现有表
+        await writeContractWithCallback({
+          address: tableData.address as `0x${string}`,
+          abi: [editGameTable],
+          functionName: "editGameTable",
+          args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent, data.firstRaise, data.secondRaise],
+          account: connectedAddress as `0x${string}`,
+          onSuccess: async () => {
+            toast.success("Table updated successfully");
+            reset();
+            onOpenChange?.(false);
+            onCreatedTable && onCreatedTable();
+          },
+          onError: async err => {
+            // 用户取消交易不显示错误提示
+            if (err.message.includes("User rejected") || err.message.includes("user rejected")) {
+              return;
+            }
+            toast.error(`Failed to update table: ${err.message}`);
+          },
+        });
+      } else {
+        // 创建新表
+        await writeContractWithCallback({
+          address: gameConfig.gameMainAddress,
+          abi: [createGameTable],
+          functionName: "createGameTable",
+          args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent, data.firstRaise, data.secondRaise],
+          account: connectedAddress as `0x${string}`,
+          gas: 8000000n,
+          onSuccess: async () => {
+            toast.success("Table created successfully");
+            reset();
+            onOpenChange?.(false);
+            onCreatedTable && onCreatedTable();
+          },
+          onError: async err => {
+            // 用户取消交易不显示错误提示
+            if (err.message.includes("User rejected") || err.message.includes("user rejected")) {
+              return;
+            }
+            toast.error(`Failed to create table: ${err.message}`);
+          },
+        });
+      }
     } catch (error) {
-      console.error("create table fail:", error);
+      console.error(isEditMode ? "update table fail:" : "create table fail:", error);
     } finally {
     }
 
@@ -196,10 +252,10 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
                 <DialogHeader>
                   <DialogTitle className="text-xl text-white flex items-center">
                     <Sparkles className="h-5 w-5 text-amber-500 mr-2" />
-                    Create New Table
+                    {isEditMode ? "Edit Table" : "Create New Table"}
                   </DialogTitle>
                   <DialogDescription className="text-zinc-400">
-                    Set up your poker table parameters below.
+                    {isEditMode ? "Update your poker table parameters below." : "Set up your poker table parameters below."}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -219,15 +275,89 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
 
                   <div className="grid gap-2">
                     <Label htmlFor="bet" className="text-zinc-300">
-                      Bet Amount ({symbol})
+                      Base Bet ({symbol})
                     </Label>
                     <Input
                       id="bet"
                       {...register("betAmount")}
-                      placeholder="Enter the Bet Amount"
+                      placeholder="Enter the Base Bet"
                       className="h-12 px-4 py-3 bg-zinc-800 border-zinc-700 text-white focus:border-amber-600 transition-colors text-base"
                     />
                     {errors.betAmount && <span className="text-red-500 text-sm">{errors.betAmount.message}</span>}
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="firstRaise" className="text-zinc-300">
+                      First Raise
+                    </Label>
+                    <div className="flex gap-3 mt-1">
+                      {[1, 2, 3, 4].map((value) => (
+                        <label
+                          key={`first-raise-${value}`}
+                          className={`flex items-center justify-center h-8 flex-1 rounded-md border ${
+                            watch("firstRaise") === value
+                              ? "bg-amber-600/20 border-amber-600 text-white"
+                              : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                          } cursor-pointer transition-all duration-200`}
+                        >
+                          <input
+                            type="radio"
+                            className="sr-only"
+                            name="firstRaise"
+                            value={value}
+                            onChange={(e) => {
+                              const event = {
+                                target: {
+                                  name: "firstRaise",
+                                  value: parseInt(e.target.value)
+                                }
+                              };
+                              register("firstRaise").onChange(event);
+                            }}
+                            defaultChecked={value === 1}
+                          />
+                          <span>x{value}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.firstRaise && <span className="text-red-500 text-sm">{errors.firstRaise.message}</span>}
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="secondRaise" className="text-zinc-300">
+                      Second Raise
+                    </Label>
+                    <div className="flex gap-3 mt-1">
+                      {[1, 2, 3, 4].map((value) => (
+                        <label
+                          key={`second-raise-${value}`}
+                          className={`flex items-center justify-center h-8 flex-1 rounded-md border ${
+                            watch("secondRaise") === value
+                              ? "bg-amber-600/20 border-amber-600 text-white"
+                              : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                          } cursor-pointer transition-all duration-200`}
+                        >
+                          <input
+                            type="radio"
+                            className="sr-only"
+                            name="secondRaise"
+                            value={value}
+                            onChange={(e) => {
+                              const event = {
+                                target: {
+                                  name: "secondRaise",
+                                  value: parseInt(e.target.value)
+                                }
+                              };
+                              register("secondRaise").onChange(event);
+                            }}
+                            defaultChecked={value === 1}
+                          />
+                          <span>x{value}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.secondRaise && <span className="text-red-500 text-sm">{errors.secondRaise.message}</span>}
                   </div>
 
                   <div className="grid gap-2">
@@ -238,14 +368,16 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
                       id="players"
                       {...register("maxPlayers", { valueAsNumber: true })}
                       type="number"
-                      placeholder="Enter the maximum number of players"
+                      min={2}
+                      max={gameConfig.maxPlayers}
+                      placeholder={`Enter the maximum number of players (max: ${gameConfig.maxPlayers})`}
                       className="h-12 px-4 py-3 bg-zinc-800 border-zinc-700 text-white focus:border-amber-600 transition-colors text-base"
                     />
                     {errors.maxPlayers && <span className="text-red-500 text-sm">{errors.maxPlayers.message}</span>}
                   </div>
 
                   {/* Select Reward Dropdown */}
-                  <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label htmlFor="reward" className="text-zinc-300">
                       Select Reward
                     </Label>
@@ -339,7 +471,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="grid gap-3">
                     <Label className="text-zinc-300">Owner Commission ({watch("bankerFeePercent")}%)</Label>
@@ -362,7 +494,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable }
                     type="submit"
                     className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-medium border-0 shadow-md hover:shadow-lg transition-all duration-200"
                   >
-                    Create Table
+                    {isEditMode ? "Update Table" : "Create Table"}
                   </Button>
                 </DialogFooter>
               </div>

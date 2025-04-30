@@ -5,7 +5,6 @@ import "./BBCardUtils.sol";
 import "./BBPlayer.sol";
 import "./BBTypes.sol";
 import "./BBCardDealer.sol";
-import "./BBVersion.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -51,11 +50,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     uint8 public bankerFeePercent; // 庄家费用百分比
     uint8 public liquidatorFeePercent; // 清算人费用百分比
     uint256 public implementationVersion; // 实现版本号
-
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
 
     // 玩家数据
     BBPlayer[] public players;
@@ -106,6 +100,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint8 _maxPlayers,
         address _gameMainAddr,
         uint8 _bankerFeePercent,
+        uint8 _firstRaise,
+        uint8 _secondRaise,
         uint256 _implementationVersion
     ) external {
         // 确保只初始化一次的检查
@@ -129,8 +125,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         bankerFeePercent = _bankerFeePercent;
         implementationVersion = _implementationVersion;
 
-        firstBetX = 2;
-        secondBetX = 2;
+        firstBetX = _firstRaise;
+        secondBetX = _secondRaise;
 
 
         refreshConfig();
@@ -166,6 +162,35 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         return playerAddresses;
+    }
+
+    // 添加编辑table的函数
+    function editGameTable(
+        string memory _tableName,
+        uint256 _betAmount,
+        uint8 _maxPlayers,
+        uint8 _bankerFeePercent,
+        uint8 _firstRaise,
+        uint8 _secondRaise
+    ) external onlyBanker nonReentrant {
+        IGameMain gameMain = IGameMain(gameMainAddr);
+        GameConfig memory config = gameMain.getGameConfig();
+        
+        require(_betAmount != 0, "Bet amount too small");
+        require(_maxPlayers > 0 && _maxPlayers <= config.maxPlayers, "Invalid max players");
+        require(_bankerFeePercent <= config.maxBankerFeePercent, "Invalid banker fee percent");
+        require(bytes(_tableName).length > 0 && bytes(_tableName).length <= 20, "Invalid table name");
+        require(_firstRaise >= 1 && _firstRaise <= 4, "Invalid first raise");
+        require(_secondRaise >= 1 && _secondRaise <= 4, "Invalid second raise");
+        
+        tableName = _tableName;
+        betAmount = _betAmount;
+        maxPlayers = _maxPlayers;
+        bankerFeePercent = _bankerFeePercent;
+        firstBetX = _firstRaise;
+        secondBetX = _secondRaise;
+        
+        emit GameTableChanged(address(this));
     }
 
     /**
@@ -667,11 +692,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
     function canMoveToNextStep() public view returns (bool canMove, string memory title, string memory reason) {
-        if (playerCount == 0) {
-            // 如果没有玩家，直接返回
-            return (false, "", "No players in game");
-        }
-
         if (state == GameState.LIQUIDATED) {
             return (false, "", "Game has been liquidated");
         }else if(state == GameState.SETTLED){
@@ -681,6 +701,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }else if(state == GameState.SETTLED){
             return (true, "Play Again", "");
         }else if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
+
+            if (playerCount == 0) {
+                // 如果没有玩家，直接返回
+                return (false, "", "No players in game");
+            }
 
             bool isDeadlinePassed = _isTimeOut();
             bool allPlayersActed = _allPlayersActed();
@@ -1200,10 +1225,15 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     }
 
 
-    // 修改 getTableInfo 函数
     function getTableInfo() external view returns (GameTableView memory) {
         IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
         (bool canNext, string memory nextTitle, string memory nextReason) = canMoveToNextStep();
+        // 创建一个空的 RewardPoolInfo 结构体
+        RewardPoolInfo memory emptyRewardPoolInfo;
+        if (rewardPoolId != 0) {
+            emptyRewardPoolInfo = rewardPool.getRewardPoolInfo(bankerAddr, rewardPoolId);
+        }
+
         return GameTableView({
             // balance: address(this).balance / 1 ether,
             active: active,
@@ -1229,9 +1259,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             tableInactiveTimeout: tableInactiveTimeout,
             lastActivityTimestamp: lastActivityTimestamp,
             rewardPoolId: rewardPoolId,
-            rewardPoolInfo: rewardPoolId != 0 ? rewardPool.getRewardPoolInfo(bankerAddr, rewardPoolId) : 
-            RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, [uint256(0), uint256(0), uint256(0), 
-            uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]), // 奖励池信息，如果没有奖励池，则返回空结构体
+            rewardPoolInfo: emptyRewardPoolInfo, // 奖励池信息，如果没有奖励池，则返回空结构体
             implementationVersion: implementationVersion,
             firstBetX: firstBetX,
             secondBetX: secondBetX,
@@ -1242,6 +1270,34 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             rewardAddr: rewardAddr,
             rewardAmount: rewardAmount,
             chatGroupId: chatGroupId
+        });
+    }
+
+    function getTableInfoShort() external view returns (GameTableInfoShort memory) {
+        IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
+
+        // 创建一个空的 RewardPoolInfo 结构体
+        RewardPoolInfo memory emptyRewardPoolInfo;
+        if (rewardPoolId != 0) {
+            emptyRewardPoolInfo = rewardPool.getRewardPoolInfo(bankerAddr, rewardPoolId);
+        }
+
+        return GameTableInfoShort({
+            active: active,
+            gameRound: gameRound,
+            gameLiquidatedCount: gameLiquidatedCount,
+            tableAddr: address(this),
+            tableId: tableId,
+            tableName: tableName,
+            bankerAddr: bankerAddr,
+            betAmount: betAmount,
+            bankerFeePercent: bankerFeePercent,
+            playerCount: playerCount,
+            maxPlayers: maxPlayers,
+            state: state,
+            lastActivityTimestamp: lastActivityTimestamp,
+            rewardPoolId: rewardPoolId,
+            rewardPoolInfo: emptyRewardPoolInfo // 奖励池信息，如果没有奖励池，则返回空结构体
         });
     }
 

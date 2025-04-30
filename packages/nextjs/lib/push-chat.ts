@@ -451,26 +451,15 @@ export class PushChat {
   /**
    * 格式化地址显示
    * @param addr 地址
-   * @param playerAddresses 玩家地址列表
    * @param bankerAddr 庄家地址
    * @returns 格式化后的地址
    */
   formatAddress(
     addr: string,
-    playerAddresses: string[] | undefined,
     bankerAddr: string | undefined
   ): string {
     if (!addr) return "Unknown";
     if (addr.toLowerCase() === this.address?.toLowerCase()) return "You";
-    
-    // 检查是否是玩家地址，如果是则显示玩家位置
-    const playerIndex = playerAddresses?.findIndex(
-      playerAddr => playerAddr?.toLowerCase() === addr.toLowerCase()
-    );
-    
-    if (playerIndex !== undefined && playerIndex >= 0) {
-      return `(${addr.slice(0,6)}...${addr.slice(-4)})`;
-    }
     
     // 检查是否是庄家
     if (bankerAddr?.toLowerCase() === addr.toLowerCase()) {

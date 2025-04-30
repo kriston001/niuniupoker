@@ -146,6 +146,19 @@ const abi = [
   },
   {
     "inputs": [],
+    "name": "_allPlayersActed",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "active",
     "outputs": [
       {
@@ -282,6 +295,44 @@ const abi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_tableName",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_betAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_maxPlayers",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_bankerFeePercent",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_firstRaise",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_secondRaise",
+        "type": "uint8"
+      }
+    ],
+    "name": "editGameTable",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -733,15 +784,134 @@ const abi = [
   },
   {
     "inputs": [],
-    "name": "getVersion",
+    "name": "getTableInfoShort",
     "outputs": [
       {
-        "internalType": "string",
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
+          },
+          {
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct GameTableInfoShort",
         "name": "",
-        "type": "string"
+        "type": "tuple"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -792,6 +962,16 @@ const abi = [
       {
         "internalType": "uint8",
         "name": "_bankerFeePercent",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_firstRaise",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_secondRaise",
         "type": "uint8"
       },
       {
@@ -1310,6 +1490,8 @@ export const liquidateInactiveTable = abi.find(x => "name" in x && x.name === "l
 export const getAllPlayerData = abi.find(x => "name" in x && x.name === "getAllPlayerData");
 export const getPlayerData = abi.find(x => "name" in x && x.name === "getPlayerData");
 export const getTableInfo = abi.find(x => "name" in x && x.name === "getTableInfo");
+export const getTableInfoShort = abi.find(x => "name" in x && x.name === "getTableInfoShort");
 export const GameTableChanged = abi.find(x => "name" in x && x.name === "GameTableChanged");
 export const startGame = abi.find(x => "name" in x && x.name === "startGame");
 export const updateChatGroupId = abi.find(x => "name" in x && x.name === "updateChatGroupId");
+export const editGameTable = abi.find(x => "name" in x && x.name === "editGameTable");

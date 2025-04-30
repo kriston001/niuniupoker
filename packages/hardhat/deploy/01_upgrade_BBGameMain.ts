@@ -3,6 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
+import upgradeRoomCardNFT from "./01_upgrade_BBRoomCardNFT";
 // import {colorLog, readDeployedAddresses, deployOrUpgrade} from "./scripts/deploy_utils"
 
 /**
@@ -72,28 +73,28 @@ async function deployOrUpgrade(
 }
 
 /**
- * 升级 BBRoomCardNFT 合约
+ * 升级 BBGameMain 合约
  */
-const upgradeRoomCardNFT: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const upgradeBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // 如果是自动部署（比如 hardhat node），则跳过这个脚本
   if (process.env.AUTO_DEPLOY === "true") {
-    console.log("Skipping BBRoomCardNFT upgrade in auto deploy mode");
+    console.log("Skipping BBGameMain upgrade in auto deploy mode");
     return;
   }
 
   const { deployer } = await hre.getNamedAccounts();
 
-  const contract = await deployOrUpgrade(hre, "BBRoomCardNFT", [], deployer);
+  const contract = await deployOrUpgrade(hre, "BBGameMain", [], deployer);
 
-  colorLog("新的 BBRoomCardNFT 合约已部署到地址:", contract.address);
+  colorLog("新的 BBGameMain 合约已部署到地址:", contract.address);
 };
 
 // 设置标签和依赖
-upgradeRoomCardNFT.tags = ["UpgradeRoomCardNFT"];
+upgradeBBGameMain.tags = ["UpgradeBBGameMain"];
 // 设置为可选部署
-upgradeRoomCardNFT.runAtTheEnd = true;
+upgradeBBGameMain.runAtTheEnd = true;
 // 设置为手动部署
-upgradeRoomCardNFT.skip = async (hre: HardhatRuntimeEnvironment) =>
+upgradeBBGameMain.skip = async (hre: HardhatRuntimeEnvironment) =>
   process.env.AUTO_DEPLOY === "true" || hre.network.name === "hardhat";
 
-export default upgradeRoomCardNFT;
+export default upgradeBBGameMain;

@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useReadContract, useWatchContractEvent } from "wagmi";
 import { GameTableCreated, GameTableRemoved, getNewestGameTables } from "~~/contracts/abis/BBGameMainABI";
-import scaffoldConfig from "~~/scaffold.config";
-import { GameTable } from "~~/types/game-types";
+import { GameTableInfoShort } from "~~/types/game-types";
 import { useGlobalState } from "~~/services/store/store";
 
 export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?: number }) {
@@ -98,7 +97,7 @@ export function useGameLobbyData({ refreshInterval = 10000 }: { refreshInterval?
 
   // 修改返回值，只在真正加载数据时才显示加载状态
   return {
-    gameTables: gameTables as GameTable[] | undefined,
+    gameTables: gameTables as GameTableInfoShort[] | undefined,
     isLoading: isLoadingTables,
     refreshData,
   };

@@ -12,17 +12,31 @@ interface IGameTableFactory {
         uint256 betAmount,
         uint8 maxPlayers,
         address gameMainAddr,
-        uint8 bankerFeePercent
+        uint8 bankerFeePercent,
+        uint8 firstRaise,
+        uint8 secondRaise
     ) external returns (address);
 }
 
 interface IGameTableImplementation {
     function bankerAddr() external view returns (address);
     function getTableInfo() external view returns (GameTableView memory);
+    function getTableInfoShort() external view returns (GameTableInfoShort memory);
     function lastActivityTimestamp() external view returns (uint256);
     function state() external view returns (GameState);
     function rewardPoolId() external view returns (uint256);
-    function initialize(uint256, string memory, address, uint256, uint8, address, uint8, uint256) external;
+    function initialize(
+        uint256 _tableId,
+        string memory _tableName,
+        address _bankerAddr,
+        uint256 _betAmount,
+        uint8 _maxPlayers,
+        address _gameMainAddr,
+        uint8 _bankerFeePercent,
+        uint8 _firstRaise,
+        uint8 _secondRaise,
+        uint256 _implementationVersion
+    ) external;
 }
 
 interface IGameMain {
@@ -33,7 +47,6 @@ interface IGameMain {
     function rewardPoolAddress() external view returns (address);
     function roomCardAddress() external view returns (address);
     function roomLevelAddress() external view returns (address);
-    function randomnessManagerAddress() external view returns (address);
     function getGameConfig() external view returns (GameConfig memory);
     function rewardPoolIsInUse(address, uint256) external view returns (bool);
 }

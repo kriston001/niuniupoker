@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./BBVersion.sol";
 import "./BBTypes.sol";
 
 /**
@@ -9,10 +8,6 @@ import "./BBTypes.sol";
  * @dev 牌型计算和比较的工具库
  */
 library BBCardUtils {
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
     /**
      * @dev 合并两轮牌
      */

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BBVersion.sol";
 import "./BBInterfaces.sol";
 
 /**
@@ -22,11 +21,6 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     
     // 事件
     event ImplementationUpdated(address indexed oldImpl, address indexed newImpl, uint256 version);
-    
-    // 使用集中版本管理
-    function getVersion() public pure returns (string memory) {
-        return BBVersion.VERSION;
-    }
     
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -68,6 +62,8 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
      * @param maxPlayers 最大玩家数
      * @param gameMainAddr 游戏主合约地址
      * @param bankerFeePercent 庄家费用百分比
+     * @param firstRaise 第一轮下注倍数
+     * @param secondRaise 第二轮下注倍数
      * @return 新创建的游戏桌地址
      */
     function createGameTable(
@@ -77,7 +73,9 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         uint256 betAmount,
         uint8 maxPlayers,
         address gameMainAddr,
-        uint8 bankerFeePercent
+        uint8 bankerFeePercent,
+        uint8 firstRaise,
+        uint8 secondRaise
     ) external returns (address) {
         // 准备初始化数据
         bytes memory initData = abi.encodeWithSelector(
@@ -89,6 +87,8 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
             maxPlayers,
             gameMainAddr,
             bankerFeePercent,
+            firstRaise,
+            secondRaise,
             version
         );
         

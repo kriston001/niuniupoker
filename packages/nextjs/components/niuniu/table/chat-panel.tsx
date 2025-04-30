@@ -250,22 +250,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const formatAddress = (addr: string) => {
     if (!pushChatRef.current) return addr;
     
-    // 检查是否是庄家地址
-    const isSenderBanker = tableInfo.bankerAddr && 
-      addr.toLowerCase() === tableInfo.bankerAddr.toLowerCase();
-    
-    // 检查是否是当前用户
-    const isSelf = address && addr.toLowerCase() === address.toLowerCase();
-    
     // 使用PushChat的formatAddress方法格式化地址
     const formattedAddr = pushChatRef.current.formatAddress(
       addr,
-      tableInfo.playerAddresses,
       tableInfo.bankerAddr
     );
     
-    // 如果是庄家且不是自己，添加Owner前缀
-    return (isSenderBanker && !isSelf) ? `Owner ${formattedAddr}` : formattedAddr;
+    return formattedAddr;
   };
 
   // 滚动到最新消息

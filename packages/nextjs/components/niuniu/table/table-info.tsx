@@ -1,16 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils";
-import { Clock, Coins, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet, Copy, Check } from "lucide-react";
+import { Clock, Coins, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet, Copy, Check, Edit } from "lucide-react";
 import { formatEther, parseEther } from "viem";
+import { useAccount } from "wagmi";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { GameTable } from "~~/types/game-types";
 import { useState, useEffect } from "react";
+import { CreateTableModal } from "../create-table-modal";
+import { Button } from "@/components/ui/button";
 
-export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
+export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, tableUpdated?: () => void; }) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
   const [currentUrl, setCurrentUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const { address: connectedAddress } = useAccount();
+  const isOwner = connectedAddress && connectedAddress.toLowerCase() === tableInfo.bankerAddr.toLowerCase();
 
   useEffect(() => {
     // 在客户端渲染时获取当前URL
@@ -48,6 +54,18 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
               <Wallet className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Owner: </span>
               <span className="text-sm text-zinc-300 ml-1">{truncateAddress(tableInfo.bankerAddr)}</span>
+              
+              {isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 p-1 h-7 rounded-md hover:bg-amber-600/20 hover:text-amber-500 transition-colors"
+                  onClick={() => setEditModalOpen(true)}
+                  title="Edit Table"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             <div className="flex items-center text-zinc-400">
@@ -76,7 +94,7 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
               <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">First Raise: </span>
               <span className="text-sm text-zinc-300 ml-1">
-                {formatEther(tableInfo.betAmount * BigInt(tableInfo.firstBetX))} {symbol}
+                x{tableInfo.firstBetX}
               </span>
             </div>
 
@@ -84,7 +102,7 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
               <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Second Raise: </span>
               <span className="text-sm text-zinc-300 ml-1">
-                {formatEther(tableInfo.betAmount * BigInt(tableInfo.secondBetX))} {symbol}
+                x{tableInfo.secondBetX}
               </span>
             </div>
 
@@ -172,6 +190,27 @@ export function TableInfo({ tableInfo }: { tableInfo: GameTable }) {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑表格的模态框 */}
+      {isOwner && (
+        <CreateTableModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          tableData={{
+            address: tableInfo.tableAddr,
+            name: tableInfo.tableName,
+            betAmount: formatEther(tableInfo.betAmount),
+            maxPlayers: tableInfo.maxPlayers,
+            bankerFeePercent: tableInfo.bankerFeePercent,
+            firstRaise: tableInfo.firstBetX,
+            secondRaise: tableInfo.secondBetX,
+          }}
+          onCreatedTable={() => {
+            // 可以在这里添加表格更新后的回调，例如刷新数据
+            tableUpdated?.();
+          }}
+        />
+      )}
     </div>
   );
 }
