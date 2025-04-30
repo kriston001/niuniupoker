@@ -49,6 +49,8 @@ interface IGameMain {
     function roomLevelAddress() external view returns (address);
     function getGameConfig() external view returns (GameConfig memory);
     function rewardPoolIsInUse(address, uint256) external view returns (bool);
+    function userJoinTable(address userAddr) external returns(bool);
+    function userLeaveTable(address userAddr) external returns(bool);
 }
 
 interface IRewardPool{

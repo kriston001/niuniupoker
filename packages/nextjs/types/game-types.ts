@@ -40,6 +40,7 @@ export enum CardType {
 export interface GameConfig {
   maxRoomCount: number;
   maxPlayers: number;
+  maxJoinTablesCount: number;
   maxBankerFeePercent: number;
   playerTimeout: bigint;
   tableInactiveTimeout: bigint;

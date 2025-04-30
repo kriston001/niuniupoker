@@ -137,6 +137,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   // 设置初始化参数
   const maxPlayers = 6; // 最大玩家数
   const maxRoomCount = 10; // 最大房间数
+  const maxJoinTablesCount = 5; // 最大加入游戏桌数
   const maxBankerFeePercent = 20; // 庄家手续费百分比
   const liquidatorFeePercent = 5; // 清算员手续费百分比
   const playerTimeout = 20; // 玩家基准超时时间，单位为秒，最后超时时间会把这个数字乘以玩家人数
@@ -152,6 +153,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     [
       maxPlayers,
       maxRoomCount,
+      maxJoinTablesCount,
       maxBankerFeePercent,
       liquidatorFeePercent,
       playerTimeout,

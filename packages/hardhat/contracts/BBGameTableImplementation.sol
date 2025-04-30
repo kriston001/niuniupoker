@@ -343,6 +343,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         _updateLastActivity();
 
+        IGameMain(gameMainAddr).userJoinTable(playerAddr);
+
         emit GameTableChanged(address(this));
     }
 
@@ -425,6 +427,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             _removePlayerByIndex(playerIndex);
         }  
         
+        IGameMain(gameMainAddr).userLeaveTable(playerAddr);
 
         _updateLastActivity();
 
@@ -451,12 +454,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         _removePlayerByIndex(playerIndex);
         _updateLastActivity();
 
+        IGameMain(gameMainAddr).userLeaveTable(playerAddr);
+
         // 最后进行转账
         if(amountToReturn > 0){
             (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
             require(success, "transfer failed");
         }
-
 
         emit GameTableChanged(address(this));
     }

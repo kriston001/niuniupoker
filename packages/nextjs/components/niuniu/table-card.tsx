@@ -6,13 +6,13 @@ import { Button } from "~~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~~/components/ui/card";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { getTimeAgo } from "~~/lib/utils";
-import { GameState, GameTable } from "~~/types/game-types";
+import { GameState, GameTableInfoShort } from "~~/types/game-types";
 
 export function TableCard({
   table,
   onJoinTableClick,
 }: {
-  table: GameTable;
+  table: GameTableInfoShort;
   onJoinTableClick: (tableAddr: `0x${string}`) => void;
 }) {
   const { targetNetwork } = useTargetNetwork();

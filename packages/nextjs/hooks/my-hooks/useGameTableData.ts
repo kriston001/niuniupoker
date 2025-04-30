@@ -3,6 +3,7 @@ import debounce from "lodash.debounce";
 import { Address } from "viem";
 import { useReadContracts, useWatchContractEvent } from "wagmi";
 import { GameTableChanged, getAllPlayerData, getPlayerData, getTableInfo } from "~~/contracts/abis/BBGameTableABI";
+import { getUserJoinedTablesCount } from "~~/contracts/abis/BBGameMainABI";
 import { getUserRoomCards } from "~~/contracts/abis/BBRoomCardNFTABI";
 import { convertToMyRoomCardNft } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
@@ -37,6 +38,7 @@ export function useGameTableData({
   let allPlayersData = undefined;
   let tableInfo = undefined;
   const myRoomCardNfts: any[] = [];
+  let userJoinedTablesCount = 0;
 
   // 所有 ref 的初始化
   const refreshIntervalRef = useRef(refreshInterval);
@@ -64,6 +66,12 @@ export function useGameTableData({
       functionName: "getUserNfts",
       args: [playerAddress],
     },
+    {
+      address: gameConfig?.gameMainAddress,
+      abi: [getUserJoinedTablesCount],
+      functionName: "getUserJoinedTablesCount",
+      args: [playerAddress],
+    },
   ] as const;
 
   const { data, refetch: refetchData } = useReadContracts({
@@ -82,6 +90,11 @@ export function useGameTableData({
     if (data[3].status === "success") {
       const nfts = Array.isArray(data[3].result) ? (data[3].result[1] as RoomCardNftDetail[]) : [];
       myRoomCardNfts.push(...convertToMyRoomCardNft(nfts));
+    }
+
+    if (data[4].status === "success") {
+      const count = data[4].result;
+      userJoinedTablesCount = count as number;
     }
   }
 
@@ -152,6 +165,7 @@ export function useGameTableData({
       allPlayers: allPlayersData as Player[] | undefined,
       tableInfo: tableInfo as GameTable | undefined,
       myRoomCardNfts: myRoomCardNfts as any[],
+      userJoinedTablesCount,
       refreshData: refetchData,
     }),
     [validPlayerData, allPlayersData, tableInfo, refetchData],

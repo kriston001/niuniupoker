@@ -473,6 +473,11 @@ const abi =  [
           },
           {
             "internalType": "uint8",
+            "name": "maxJoinTablesCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
             "name": "maxBankerFeePercent",
             "type": "uint8"
           },
@@ -976,9 +981,147 @@ const abi =  [
     "name": "getUserJoinedTables",
     "outputs": [
       {
-        "internalType": "address[]",
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameRound",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gameLiquidatedCount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "tableAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tableId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "tableName",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "bankerAddr",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "betAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bankerFeePercent",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "maxPlayers",
+            "type": "uint8"
+          },
+          {
+            "internalType": "enum GameState",
+            "name": "state",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastActivityTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPoolId",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "banker",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerGame",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "winProbability",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "remainingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "__gap",
+                "type": "uint256[10]"
+              }
+            ],
+            "internalType": "struct RewardPoolInfo",
+            "name": "rewardPoolInfo",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct GameTableInfoShort[]",
         "name": "",
-        "type": "address[]"
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "userAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getUserJoinedTablesCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -994,6 +1137,11 @@ const abi =  [
       {
         "internalType": "uint8",
         "name": "_maxRoomCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_maxJoinTablesCount",
         "type": "uint8"
       },
       {
@@ -1062,6 +1210,19 @@ const abi =  [
   {
     "inputs": [],
     "name": "maxBankerFeePercent",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxJoinTablesCount",
     "outputs": [
       {
         "internalType": "uint8",
@@ -1353,6 +1514,11 @@ const abi =  [
       },
       {
         "internalType": "uint8",
+        "name": "_maxJoinTablesCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
         "name": "_maxBankerFeePercent",
         "type": "uint8"
       },
@@ -1418,6 +1584,25 @@ const abi =  [
     "inputs": [
       {
         "internalType": "address",
+        "name": "userAddr",
+        "type": "address"
+      }
+    ],
+    "name": "userJoinTable",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "",
         "type": "address"
       },
@@ -1436,6 +1621,25 @@ const abi =  [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "userAddr",
+        "type": "address"
+      }
+    ],
+    "name": "userLeaveTable",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1476,6 +1680,7 @@ export const BBGameMainABI = {
 // 导出具体的函数 ABI，可以更细粒度地 tree-shake
 export const getGameConfig = abi.find(x => "name" in x && x.name === "getGameConfig");
 export const createGameTable = abi.find(x => "name" in x && x.name === "createGameTable");
+export const getUserJoinedTablesCount = abi.find(x => "name" in x && x.name === "getUserJoinedTablesCount");
 export const getNewestGameTables = abi.find(x => "name" in x && x.name === "getNewestGameTables");
 export const getAllGameTablesInactive = abi.find(x => "name" in x && x.name === "getAllGameTablesInactive");
 export const getGameTableInfo = abi.find(x => "name" in x && x.name === "getGameTableInfo");

@@ -31,15 +31,17 @@ import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
 import { createPushChat } from "~~/lib/push-chat";
 import { delay } from "~~/lib/utils";
+import toast from "react-hot-toast";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
   const tableAddr = resolvedParams.addr;
+  const { gameConfig } = useGlobalState();
 
   const { address: connectedAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
 
-  const { playerData, allPlayers, tableInfo, myRoomCardNfts, refreshData } = useGameTableData({
+  const { playerData, allPlayers, tableInfo, myRoomCardNfts, userJoinedTablesCount, refreshData } = useGameTableData({
     refreshInterval: 0,
     tableAddress: tableAddr,
     playerAddress: connectedAddress,
@@ -90,6 +92,10 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   };
 
   const handlePlayerJoin = () => {
+    if (userJoinedTablesCount >= gameConfig?.maxJoinTablesCount) {
+      toast.error(`You have reached the maximum number of ${gameConfig?.maxJoinTablesCount} tables you can join`);
+      return;
+    }
     writeContractWithCallback({
       address: tableAddr as `0x${string}`,
       abi: [playerJoin],

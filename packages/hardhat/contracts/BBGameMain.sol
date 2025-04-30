@@ -30,6 +30,7 @@ contract BBGameMain is
     // 游戏配置
     uint256 public nextTableId;
     uint8 public maxRoomCount;  //最大创建房间数
+    uint8 public maxJoinTablesCount; // 最大加入游戏桌数
     uint8 public maxPlayers;
     uint256 public playerTimeout;  // 玩家超时时间
     uint256 public tableInactiveTimeout;  // 游戏桌不活跃超时时间
@@ -75,6 +76,7 @@ contract BBGameMain is
     function initialize(
         uint8 _maxPlayers,
         uint8 _maxRoomCount,
+        uint8 _maxJoinTablesCount,
         uint8 _maxBankerFeePercent,
         uint8 _liquidatorFeePercent,
         uint256 _playerTimeout,
@@ -89,6 +91,7 @@ contract BBGameMain is
         nextTableId = 1;
         maxPlayers = _maxPlayers;
         maxRoomCount = _maxRoomCount;
+        maxJoinTablesCount = _maxJoinTablesCount;
         maxBankerFeePercent = _maxBankerFeePercent;
         liquidatorFeePercent = _liquidatorFeePercent;
         playerTimeout = _playerTimeout;
@@ -183,18 +186,54 @@ contract BBGameMain is
     }
 
     // 用户加入新的游戏桌
-    function userJoinTable(address tableAddr, address userAddr) external returns(bool){
+    function userJoinTable(address userAddr) external returns(bool){
+        address tableAddr = msg.sender;
+        require(gameTables[tableAddr] == tableAddr, "Invalid table address");
         address[] storage tables = userJoinedTables[userAddr];
-        
+        require(tables.length <= maxJoinTablesCount, "Max join tables count exceeded");
 
+        //先检查用户是否已经加入过这个游戏桌
+        for (uint256 i = 0; i < tables.length; i++) {
+            if (tables[i] == tableAddr) {
+                return false;
+            }
+        }
+        tables.push(tableAddr);
+        return true;
+    }
+
+    //用户退出游戏桌
+    function userLeaveTable(address userAddr) external returns(bool){
+        address tableAddr = msg.sender;
+        require(gameTables[tableAddr] == tableAddr, "Invalid table address");
+        address[] storage tables = userJoinedTables[userAddr];
+        for (uint256 i = 0; i < tables.length; i++) {
+            if (tables[i] == tableAddr) {
+                tables[i] = tables[tables.length - 1];
+                tables.pop();
+                return true;
+            }
+        }
+        return false;
     }
 
     // 获取用户加入的游戏桌列表
-    function getUserJoinedTables(address userAddress) external view returns (address[] memory) {
-        return userJoinedTables[userAddress];
+    function getUserJoinedTables(address userAddress) external view returns (GameTableInfoShort[] memory) {
+        address[] storage tables = userJoinedTables[userAddress];
+        GameTableInfoShort[] memory result = new GameTableInfoShort[](tables.length);
+        for (uint256 i = 0; i < tables.length; i++) {
+            address tableAddr = tables[i];
+            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
+            result[i] = gameTable.getTableInfoShort();
+        }
+        return result;
     }
 
-
+    // 获取用户加入的游戏桌数量
+    function getUserJoinedTablesCount(address userAddress) external view returns (uint256) {
+        return userJoinedTables[userAddress].length;
+    }
+    
     /**
      * @dev 暂停合约（仅限合约拥有者）
      */
@@ -205,7 +244,7 @@ contract BBGameMain is
     /**
      * @dev 恢复合约（仅限合约拥有者）
      */
-    function unpause() external onlyOwner {
+    function unpause() external onlyOwner { 
         _unpause();
     }
 
@@ -213,6 +252,7 @@ contract BBGameMain is
         return GameConfig({
             maxRoomCount: maxRoomCount,
             maxPlayers: maxPlayers,
+            maxJoinTablesCount: maxJoinTablesCount,
             maxBankerFeePercent: maxBankerFeePercent,
             playerTimeout: playerTimeout,
             tableInactiveTimeout: tableInactiveTimeout,
@@ -230,6 +270,7 @@ contract BBGameMain is
      */
     function updateGameConfig(
         uint8 _maxPlayers,
+        uint8 _maxJoinTablesCount,
         uint8 _maxBankerFeePercent,
         uint256 _playerTimeout,
         uint256 _tableInactiveTimeout,
@@ -242,6 +283,7 @@ contract BBGameMain is
         require(_liquidatorFeePercent != 0 && _liquidatorFeePercent < 100, "Invalid liquidator fee percent");
 
         maxPlayers = _maxPlayers;
+        maxJoinTablesCount = _maxJoinTablesCount;
         maxBankerFeePercent = _maxBankerFeePercent;
         playerTimeout = _playerTimeout;
         tableInactiveTimeout = _tableInactiveTimeout;
