@@ -3,6 +3,8 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { CreateRewardModal } from "./create-reward-modal";
+import { RewardList } from "./reward-list";
+import { RewardSelector } from "./reward-selector";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,15 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,38 +24,13 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
+import { z } from "zod";
 import { createGameTable } from "~~/contracts/abis/BBGameMainABI";
 import { editGameTable } from "~~/contracts/abis/BBGameTableABI";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
-import scaffoldConfig from "~~/scaffold.config";
 import { useGlobalState } from "~~/services/store/store";
-import { z } from "zod";
-
-// Sample reward data
-// const rewardOptions = [
-//   {
-//     id: "reward-1",
-//     name: "High Roller",
-//     totalPool: 5.0,
-//     rewardPerRound: 0.5,
-//     winRate: 10,
-//   },
-//   {
-//     id: "reward-2",
-//     name: "Lucky Streak",
-//     totalPool: 3.0,
-//     rewardPerRound: 0.3,
-//     winRate: 15,
-//   },
-//   {
-//     id: "reward-3",
-//     name: "Jackpot",
-//     totalPool: 10.0,
-//     rewardPerRound: 1.0,
-//     winRate: 5,
-//   },
-// ];
+import { useRewardPoolData } from "~~/hooks/my-hooks/useRewardPoolData";
 
 interface CreateTableModalProps {
   open?: boolean;
@@ -77,12 +45,14 @@ interface CreateTableModalProps {
     bankerFeePercent: number;
     firstRaise: number;
     secondRaise: number;
+    rewardPoolId: string;
   };
 }
 
 export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, tableData }: CreateTableModalProps) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const gameConfig = useGlobalState(state => state.gameConfig);
   const isEditMode = !!tableData;
@@ -102,6 +72,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
         Number(gameConfig.maxBankerFeePercent),
         `Banker fee percent cannot exceed ${Number(gameConfig.maxBankerFeePercent)}%`,
       ),
+    rewardPoolId: z.string()
   });
 
   type FormData = z.infer<typeof formSchema>;
@@ -122,24 +93,16 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
       name: tableData?.name || "",
       betAmount: tableData?.betAmount || "",
       maxPlayers: tableData?.maxPlayers || 6,
+      rewardPoolId: tableData?.rewardPoolId || "",
     },
   });
 
   const { address: connectedAddress } = useAccount();
-  const [selectedReward, setSelectedReward] = useState<string | undefined>(undefined);
   const [createRewardOpen, setCreateRewardOpen] = useState(false);
-  const [hasRewards] = useState(true); // Always show rewards for this implementation
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [rewardListOpen, setRewardListOpen] = useState(false);
 
-  useEffect(() => {
-    if (createRewardOpen && dropdownOpen) {
-      setDropdownOpen(false);
-      const selectTrigger = document.activeElement;
-      if (selectTrigger) {
-        (selectTrigger as HTMLElement).blur();
-      }
-    }
-  }, [createRewardOpen, dropdownOpen]);
+
+  const { rewards: rewardOptions, refreshRewards } = useRewardPoolData();
 
   useEffect(() => {
     if (tableData) {
@@ -149,6 +112,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
       setValue("bankerFeePercent", tableData.bankerFeePercent);
       setValue("firstRaise", tableData.firstRaise);
       setValue("secondRaise", tableData.secondRaise);
+      setValue("rewardPoolId", tableData.rewardPoolId);
     }
   }, [tableData, setValue]);
 
@@ -161,6 +125,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
 
     try {
       const parsedBetAmount = parseEther(data.betAmount);
+      setIsSubmitting(true);
 
       if (isEditMode && tableData) {
         // 编辑现有表
@@ -168,7 +133,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
           address: tableData.address as `0x${string}`,
           abi: [editGameTable],
           functionName: "editGameTable",
-          args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent, data.firstRaise, data.secondRaise],
+          args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent, data.firstRaise, data.secondRaise, BigInt(data.rewardPoolId)],
           account: connectedAddress as `0x${string}`,
           onSuccess: async () => {
             toast.success("Table updated successfully");
@@ -192,7 +157,6 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
           functionName: "createGameTable",
           args: [data.name, parsedBetAmount, data.maxPlayers, data.bankerFeePercent, data.firstRaise, data.secondRaise],
           account: connectedAddress as `0x${string}`,
-          gas: 8000000n,
           onSuccess: async () => {
             toast.success("Table created successfully");
             reset();
@@ -211,6 +175,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
     } catch (error) {
       console.error(isEditMode ? "update table fail:" : "create table fail:", error);
     } finally {
+      setIsSubmitting(false);
     }
 
     setCreateRewardOpen(false);
@@ -255,11 +220,13 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                     {isEditMode ? "Edit Table" : "Create New Table"}
                   </DialogTitle>
                   <DialogDescription className="text-zinc-400">
-                    {isEditMode ? "Update your poker table parameters below." : "Set up your poker table parameters below."}
+                    {isEditMode
+                      ? "Update your poker table parameters below."
+                      : "Set up your poker table parameters below."}
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-5 py-4">
+                <div className="space-y-6">
                   <div className="grid gap-2">
                     <Label htmlFor="name" className="text-zinc-300">
                       Table Name
@@ -291,7 +258,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                       First Raise
                     </Label>
                     <div className="flex gap-3 mt-1">
-                      {[1, 2, 3, 4].map((value) => (
+                      {[1, 2, 3, 4].map(value => (
                         <label
                           key={`first-raise-${value}`}
                           className={`flex items-center justify-center h-8 flex-1 rounded-md border ${
@@ -305,16 +272,10 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                             className="sr-only"
                             name="firstRaise"
                             value={value}
-                            onChange={(e) => {
-                              const event = {
-                                target: {
-                                  name: "firstRaise",
-                                  value: parseInt(e.target.value)
-                                }
-                              };
-                              register("firstRaise").onChange(event);
+                            checked={watch("firstRaise") === value}
+                            onChange={() => {
+                              setValue("firstRaise", value);
                             }}
-                            defaultChecked={value === 1}
                           />
                           <span>x{value}</span>
                         </label>
@@ -328,7 +289,7 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                       Second Raise
                     </Label>
                     <div className="flex gap-3 mt-1">
-                      {[1, 2, 3, 4].map((value) => (
+                      {[1, 2, 3, 4].map(value => (
                         <label
                           key={`second-raise-${value}`}
                           className={`flex items-center justify-center h-8 flex-1 rounded-md border ${
@@ -342,16 +303,10 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                             className="sr-only"
                             name="secondRaise"
                             value={value}
-                            onChange={(e) => {
-                              const event = {
-                                target: {
-                                  name: "secondRaise",
-                                  value: parseInt(e.target.value)
-                                }
-                              };
-                              register("secondRaise").onChange(event);
+                            checked={watch("secondRaise") === value}
+                            onChange={() => {
+                              setValue("secondRaise", value);
                             }}
-                            defaultChecked={value === 1}
                           />
                           <span>x{value}</span>
                         </label>
@@ -376,102 +331,20 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                     {errors.maxPlayers && <span className="text-red-500 text-sm">{errors.maxPlayers.message}</span>}
                   </div>
 
-                  {/* Select Reward Dropdown */}
-                  {/* <div className="grid gap-2">
-                    <Label htmlFor="reward" className="text-zinc-300">
-                      Select Reward
-                    </Label>
-                    <div className="relative">
-                      <Select
-                        onValueChange={setSelectedReward}
-                        value={selectedReward}
-                        onOpenChange={open => {
-                          setDropdownOpen(open);
-                          // If the dropdown is being opened while the create reward panel is open,
-                          // close the create reward panel
-                          if (open && createRewardOpen) {
-                            setCreateRewardOpen(false);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-12 px-4 py-3 bg-zinc-800 border-zinc-700 text-white hover:border-zinc-600 focus:border-amber-600 transition-colors text-base">
-                          <SelectValue placeholder="Select a reward scheme" />
-                          {selectedReward && (
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation();
-                                setSelectedReward(undefined);
-                              }}
-                              className="absolute right-10 text-zinc-400 hover:text-zinc-200 transition-colors"
-                            >
-                              <XCircle className="h-5 w-5" />
-                            </button>
-                          )}
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-700 text-white">
-                          <SelectGroup>
-                            <SelectLabel className="text-zinc-400">Available Rewards</SelectLabel>
-                            <SelectItem value="none" className="focus:bg-zinc-800 focus:text-white transition-colors">
-                              — No Reward —
-                            </SelectItem>
-                            {hasRewards &&
-                              rewardOptions.map(reward => (
-                                <SelectItem
-                                  key={reward.id}
-                                  value={reward.id}
-                                  className="focus:bg-zinc-800 focus:text-white transition-colors"
-                                >
-                                  <div className="py-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="font-medium text-amber-400">{reward.name}</span>
-                                      <span className="text-xs bg-zinc-800 px-2 py-0.5 rounded text-zinc-300">
-                                        {reward.winRate}% Win Rate
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs text-zinc-400">
-                                      <span>Pool: {reward.totalPool} ETH</span>
-                                      <span>Per Round: {reward.rewardPerRound} ETH</span>
-                                    </div>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            {!hasRewards && (
-                              <div className="py-2 px-2 text-center">
-                                <Info className="h-4 w-4 text-zinc-500 mx-auto mb-1" />
-                                <p className="text-sm text-zinc-500">No rewards available</p>
-                              </div>
-                            )}
-                            <div className="pt-2 pb-1 px-2 border-t border-zinc-800 mt-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full border-zinc-700 text-zinc-300 hover:text-white hover:border-amber-600/50 bg-zinc-800/80 hover:bg-zinc-700 transition-all duration-200"
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-
-                                  // Force close the dropdown
-                                  const selectTrigger = document.activeElement;
-                                  if (selectTrigger) {
-                                    (selectTrigger as HTMLElement).blur();
-                                  }
-
-                                  // Open the create reward panel after a small delay to ensure dropdown is closed
-                                  setTimeout(() => {
-                                    setCreateRewardOpen(true);
-                                  }, 50);
-                                }}
-                              >
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create New Reward
-                              </Button>
-                            </div>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div> */}
+                  <div className="grid gap-4 mt-6">
+                    <h3 className="text-lg font-medium text-white">Reward Settings</h3>
+                    <RewardSelector
+                      selectedReward={watch("rewardPoolId")}
+                      setSelectedReward={(selectId) => {
+                        setValue("rewardPoolId", selectId || "");
+                      }}
+                      rewardOptions={rewardOptions}
+                      hasRewards={!!rewardOptions.length}
+                      onCreateReward={() => setCreateRewardOpen(true)}
+                      label="Select Reward"
+                      className="mb-2"
+                    />
+                  </div>
 
                   <div className="grid gap-3">
                     <Label className="text-zinc-300">Owner Commission ({watch("bankerFeePercent")}%)</Label>
@@ -492,22 +365,62 @@ export function CreateTableModal({ open, onOpenChange, trigger, onCreatedTable, 
                 <DialogFooter className="mt-5">
                   <Button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-medium border-0 shadow-md hover:shadow-lg transition-all duration-200"
                   >
-                    {isEditMode ? "Update Table" : "Create Table"}
+                    {isSubmitting ? (
+                      <span className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        {isEditMode ? "Updating Table" : "Creating Table"}
+                      </span>
+                    ) : (
+                      isEditMode ? "Update Table" : "Create Table"
+                    )}
+                    
                   </Button>
                 </DialogFooter>
               </div>
             </div>
 
-            {/* Create Reward Side Panel - with slide-in animation */}
+            {/* Reward List Side Panel */}
+            {/* {rewardListOpen && (
+              <RewardList
+                open={rewardListOpen}
+                onOpenChange={setRewardListOpen}
+                onCreateReward={() => {
+                  setCreateRewardOpen(true);
+                }}
+              />
+            )} */}
+
+            {/* Create Reward Side Panel */}
             {createRewardOpen && (
               <CreateRewardModal
                 open={createRewardOpen}
-                onOpenChange={setCreateRewardOpen}
-                onCreatedReward={reward => {
-                  console.log("Created reward:", reward);
-                  // 处理创建的奖励
+                onOpenChange={open => {
+                  setCreateRewardOpen(open);
+                }}
+                onCreatedReward={() => {
+                  refreshRewards();
                 }}
               />
             )}

@@ -134,3 +134,9 @@ struct GameTableInfoShort {
     uint256 rewardPoolId;
     RewardPoolInfo rewardPoolInfo; // 奖励池信息，如果没有奖励池，则返回空结构体
 }
+
+struct UserInfo {
+    address[] tables;
+    address[] joinedTables;
+    mapping(address => uint256) joinedTableIndex; 
+}

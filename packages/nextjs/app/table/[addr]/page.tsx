@@ -101,6 +101,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       abi: [playerJoin],
       functionName: "playerJoin",
       account: connectedAddress as `0x${string}`,
+      gas: 4000000n,
       onSuccess: async () => {
         console.log("✅ Join Game 成功");
         await refreshData();
@@ -316,7 +317,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
 
                     {/* Table center info */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-20">
-                      <div className="text-white font-bold text-2xl mb-2">{tableInfo.tableName}</div>
                       <div className="text-amber-500 font-bold text-3xl">
                         {formatEther(tableInfo.totalPrizePool)} ETH
                       </div>

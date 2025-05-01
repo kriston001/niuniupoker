@@ -42,7 +42,7 @@ export function TableCard({
         <div className="space-y-3 mb-4">
           <div className="flex items-center text-zinc-400">
             <Wallet className="h-4 w-4 mr-2 text-amber-500" />
-            <span className="text-sm">Dealer: </span>
+            <span className="text-sm">Owner: </span>
             <span className="text-sm text-zinc-300 ml-1">{truncateAddress(table.bankerAddr)}</span>
           </div>
 
@@ -89,13 +89,13 @@ export function TableCard({
               <div className="flex items-center">
                 <Coins className="h-3.5 w-3.5 text-amber-500 mr-1" />
                 <span className="text-xs text-zinc-300">
-                  {table.rewardPoolInfo.remainingAmount}/{table.rewardPoolInfo.totalAmount} {symbol}
+                  {formatEther(table.rewardPoolInfo.remainingAmount)}/{formatEther(table.rewardPoolInfo.totalAmount)} {symbol}
                 </span>
               </div>
               <div className="flex items-center">
                 <Gift className="h-3.5 w-3.5 text-amber-500 mr-1" />
                 <span className="text-xs text-zinc-300">
-                  {table.rewardPoolInfo.rewardPerGame} {symbol}
+                  {formatEther(table.rewardPoolInfo.rewardPerGame)} {symbol}
                 </span>
               </div>
               <div className="flex items-center">

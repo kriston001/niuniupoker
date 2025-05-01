@@ -41,13 +41,9 @@ contract BBGameMain is
     // 游戏桌地址列表
     address[] public tableAddresses;
     mapping(address => address) public gameTables;
-    // 用户创建的游戏桌映射
-    mapping(address => address[]) public userTables;
-    // 用户加入的游戏桌映射
-    mapping(address => address[]) public userJoinedTables;
 
-    // 记录每个用户创建的房间数量
-    mapping(address => uint256) public userCreatedRoomsCount;
+    // 用户信息，包含用户创建的table和加入的table数据
+    mapping(address => UserInfo) private userInfos;
 
     address public rewardPoolAddress;    // 奖励池合约地址
 
@@ -126,12 +122,9 @@ contract BBGameMain is
         require(firstRaise >= 1 && firstRaise <= 4, "Invalid first raise");
         require(secondRaise >= 1 && secondRaise <= 4, "Invalid second raise");
 
-        // 将玩家的房间数量加1
-        userCreatedRoomsCount[msg.sender]++;
-
         uint256 createdRooms = getUserCreatedRoomsCount(msg.sender);
         // 验证用户的房间等级和已创建的房间数量
-        if (createdRooms > maxRoomCount) {
+        if (createdRooms >= maxRoomCount) {
             require(roomLevelAddress != address(0), "Invalid room level address");
 
             // 验证用户是否拥有房间等级
@@ -142,9 +135,8 @@ contract BBGameMain is
             uint256 maxRooms = roomLevel.getMaxRooms(msg.sender);
 
             // 验证用户是否超过房间创建上限
-            if (createdRooms > maxRooms + maxRoomCount) {
+            if (createdRooms >= maxRooms + maxRoomCount) {
                 // 如果超过上限，先将计数减回去，再抛出错误
-                userCreatedRoomsCount[msg.sender]--;
                 require(false, "room level limit exceeded");
             }
         }
@@ -169,12 +161,13 @@ contract BBGameMain is
 
         nextTableId++;
         
-
         // 添加到活跃游戏列表
         tableAddresses.push(tableAddr);
         gameTables[tableAddr] = tableAddr;
-        // 添加到用户的游戏桌列表
-        userTables[msg.sender].push(tableAddr);
+
+        //添加到用户的游戏桌列表
+        UserInfo storage userInfo = userInfos[msg.sender];
+        userInfo.tables.push(tableAddr);
 
         // 触发事件
         emit GameTableCreated(tableAddr, msg.sender, betAmount, tableMaxPlayers, bankerFeePercent);
@@ -185,53 +178,78 @@ contract BBGameMain is
         return tableAddresses;
     }
 
-    // 用户加入新的游戏桌
-    function userJoinTable(address userAddr) external returns(bool){
-        address tableAddr = msg.sender;
-        require(gameTables[tableAddr] == tableAddr, "Invalid table address");
-        address[] storage tables = userJoinedTables[userAddr];
-        require(tables.length <= maxJoinTablesCount, "Max join tables count exceeded");
-
-        //先检查用户是否已经加入过这个游戏桌
-        for (uint256 i = 0; i < tables.length; i++) {
-            if (tables[i] == tableAddr) {
-                return false;
+    function getUserJoinedTablesCount(address userAddr) public view returns (uint8){
+        UserInfo storage user = userInfos[userAddr];
+        uint8 count = 0;
+        for (uint i = 0; i < user.joinedTables.length; i++) {
+            if (user.joinedTables[i] != address(0)) {
+                count++;
             }
         }
-        tables.push(tableAddr);
-        return true;
+
+        return count;
     }
 
-    //用户退出游戏桌
-    function userLeaveTable(address userAddr) external returns(bool){
+    /// @notice 用户加入某个游戏桌
+    function userJoinTable(address userAddr) external {
         address tableAddr = msg.sender;
         require(gameTables[tableAddr] == tableAddr, "Invalid table address");
-        address[] storage tables = userJoinedTables[userAddr];
-        for (uint256 i = 0; i < tables.length; i++) {
-            if (tables[i] == tableAddr) {
-                tables[i] = tables[tables.length - 1];
-                tables.pop();
-                return true;
+        
+
+        uint8 joinedTableCount = getUserJoinedTablesCount(userAddr);
+        require(joinedTableCount <= maxJoinTablesCount, "Max join tables count exceeded");
+
+        UserInfo storage user = userInfos[userAddr];
+        require(user.joinedTableIndex[tableAddr] == 0, "User Already joined");
+
+        // 查找空位（address(0)）
+        bool reused = false;
+        for (uint i = 0; i < user.joinedTables.length; i++) {
+            if (user.joinedTables[i] == address(0)) {
+                user.joinedTables[i] = tableAddr;
+                user.joinedTableIndex[tableAddr] = i + 1;
+                reused = true;
+                break;
             }
         }
-        return false;
+
+        // 没有空位则 push
+        if (!reused) {
+            user.joinedTables.push(tableAddr);
+            user.joinedTableIndex[tableAddr] = user.joinedTables.length; // index + 1
+        }
     }
 
-    // 获取用户加入的游戏桌列表
-    function getUserJoinedTables(address userAddress) external view returns (GameTableInfoShort[] memory) {
-        address[] storage tables = userJoinedTables[userAddress];
-        GameTableInfoShort[] memory result = new GameTableInfoShort[](tables.length);
-        for (uint256 i = 0; i < tables.length; i++) {
-            address tableAddr = tables[i];
-            IGameTableImplementation gameTable = IGameTableImplementation(tableAddr);
-            result[i] = gameTable.getTableInfoShort();
+    /// @notice 用户退出某个游戏桌
+    function userLeaveTable(address userAddr) external {
+        address tableAddr = msg.sender;
+        require(gameTables[tableAddr] == tableAddr, "Invalid table address");
+
+        UserInfo storage user = userInfos[userAddr];
+        uint index = user.joinedTableIndex[tableAddr];
+        require(index > 0, "User Not joined");
+
+        // 懒清除：将地址置为 address(0)，不 pop
+        user.joinedTables[index - 1] = address(0);
+        delete user.joinedTableIndex[tableAddr];
+    }
+
+    /// @notice 获取用户已加入的桌子（过滤空位）
+    function getUserJoinedTables(address userAddr) external view returns (GameTableInfoShort[] memory) {
+        UserInfo storage user = userInfos[userAddr];
+
+        uint8 joinedTableCount = getUserJoinedTablesCount(userAddr);
+
+        GameTableInfoShort[] memory result = new GameTableInfoShort[](joinedTableCount);
+        uint j = 0;
+        for (uint i = 0; i < user.joinedTables.length; i++) {
+            if (user.joinedTables[i] != address(0)) {
+                result[j] = IGameTableImplementation(user.joinedTables[i]).getTableInfoShort();
+                j++;
+            }
         }
+
         return result;
-    }
-
-    // 获取用户加入的游戏桌数量
-    function getUserJoinedTablesCount(address userAddress) external view returns (uint256) {
-        return userJoinedTables[userAddress].length;
     }
     
     /**
@@ -376,11 +394,11 @@ contract BBGameMain is
      * @return 返回游戏桌信息
      */
     function getMyGameTables() external view returns (GameTableInfoShort[] memory) {
-        uint256 tableCount = userTables[msg.sender].length;
-        GameTableInfoShort[] memory tables = new GameTableInfoShort[](tableCount);
+        UserInfo storage userInfo = userInfos[msg.sender];
+        GameTableInfoShort[] memory tables = new GameTableInfoShort[](userInfo.tables.length);
 
-        for (uint256 i = 0; i < tableCount; i++) {
-            address tableAddr = userTables[msg.sender][i];
+        for (uint256 i = 0; i < userInfo.tables.length; i++) {
+            address tableAddr = userInfo.tables[i];
             tables[i] = _getTableInfo(tableAddr);
         }
 
@@ -406,7 +424,7 @@ contract BBGameMain is
     }
 
     function rewardPoolIsInUse(address _bankerAddr, uint256 _poolId) external view returns (bool) {
-        address[] storage tableAddrs = userTables[_bankerAddr];
+        address[] storage tableAddrs = userInfos[_bankerAddr].tables;
 
         for (uint256 i = 0; i < tableAddrs.length; i++) {
             address tableAddr = tableAddrs[i];
@@ -444,7 +462,7 @@ contract BBGameMain is
      * @return 用户创建的房间数量
      */
     function getUserCreatedRoomsCount(address userAddress) public view returns (uint256) {
-        return userCreatedRoomsCount[userAddress];
+        return userInfos[userAddress].tables.length;
     }
 
 
@@ -464,4 +482,3 @@ contract BBGameMain is
     event GameTableRemoved(address indexed tableAddr);
     event GameConfigUpdated(uint256 minBet, uint8 maxPlayers);
 }
-

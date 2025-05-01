@@ -328,6 +328,11 @@ const abi = [
         "internalType": "uint8",
         "name": "_secondRaise",
         "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_rewardPoolId",
+        "type": "uint256"
       }
     ],
     "name": "editGameTable",

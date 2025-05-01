@@ -141,7 +141,7 @@ export function CustomWalletConnection({ className }: CustomWalletConnectionProp
                   <div className="text-xs text-zinc-500">Connected Wallet</div>
                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 </div>
-                <div className="text-sm font-medium text-white truncate">{account.address}</div>
+                <div className="text-sm font-medium text-white truncate">{truncateAddress(account.address)}</div>
               </div>
 
               <DropdownMenuSeparator className="bg-zinc-800/80" />
@@ -154,13 +154,6 @@ export function CustomWalletConnection({ className }: CustomWalletConnectionProp
                 {copied ? "Copied!" : "Copy Address"}
               </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer text-zinc-400 hover:text-white hover:bg-zinc-800/70"
-                onClick={() => explorerLink && window.open(explorerLink, "_blank")}
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View on Explorer
-              </DropdownMenuItem>
 
               {chain.id !== targetNetwork.id && (
                 <DropdownMenuItem

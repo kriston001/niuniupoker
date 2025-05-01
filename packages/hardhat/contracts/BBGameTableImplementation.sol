@@ -171,7 +171,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint8 _maxPlayers,
         uint8 _bankerFeePercent,
         uint8 _firstRaise,
-        uint8 _secondRaise
+        uint8 _secondRaise,
+        uint256 _rewardPoolId
     ) external onlyBanker nonReentrant {
         IGameMain gameMain = IGameMain(gameMainAddr);
         GameConfig memory config = gameMain.getGameConfig();
@@ -189,6 +190,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         bankerFeePercent = _bankerFeePercent;
         firstBetX = _firstRaise;
         secondBetX = _secondRaise;
+        rewardPoolId = _rewardPoolId;
         
         emit GameTableChanged(address(this));
     }
@@ -327,6 +329,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     // 更新聊天群组ID
     function updateChatGroupId(string memory _chatGroupId) external onlyBanker {
         chatGroupId = _chatGroupId;
+        emit GameTableChanged(address(this));
     }
 
 

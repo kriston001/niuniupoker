@@ -1,15 +1,15 @@
+import { useEffect, useState } from "react";
+import { CreateTableModal } from "../create-table-modal";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils";
-import { Clock, Coins, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet, Copy, Check, Edit } from "lucide-react";
+import { Check, Clock, Coins, Copy, Edit, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet } from "lucide-react";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { GameTable } from "~~/types/game-types";
-import { useState, useEffect } from "react";
-import { CreateTableModal } from "../create-table-modal";
-import { Button } from "@/components/ui/button";
 
-export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, tableUpdated?: () => void; }) {
+export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; tableUpdated?: () => void }) {
   const { targetNetwork } = useTargetNetwork();
   const symbol = targetNetwork.nativeCurrency.symbol;
   const [currentUrl, setCurrentUrl] = useState<string>("");
@@ -27,7 +27,8 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
 
   const copyToClipboard = () => {
     if (navigator.clipboard && currentUrl) {
-      navigator.clipboard.writeText(currentUrl)
+      navigator.clipboard
+        .writeText(currentUrl)
         .then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -54,7 +55,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
               <Wallet className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Owner: </span>
               <span className="text-sm text-zinc-300 ml-1">{truncateAddress(tableInfo.bankerAddr)}</span>
-              
+
               {isOwner && (
                 <Button
                   variant="ghost"
@@ -93,17 +94,13 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
             <div className="flex items-center text-zinc-400">
               <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">First Raise: </span>
-              <span className="text-sm text-zinc-300 ml-1">
-                x{tableInfo.firstBetX}
-              </span>
+              <span className="text-sm text-zinc-300 ml-1">x{tableInfo.firstBetX}</span>
             </div>
 
             <div className="flex items-center text-zinc-400">
               <TrendingUp className="h-4 w-4 mr-2 text-amber-500" />
               <span className="text-sm">Second Raise: </span>
-              <span className="text-sm text-zinc-300 ml-1">
-                x{tableInfo.secondBetX}
-              </span>
+              <span className="text-sm text-zinc-300 ml-1">x{tableInfo.secondBetX}</span>
             </div>
 
             {/* Add Banker Stake Amount here */}
@@ -121,20 +118,15 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
               <span className="text-sm">Invite: </span>
               <div className="flex-1 flex items-center justify-between ml-1">
                 <span className="text-sm text-zinc-300 truncate max-w-[180px]">{currentUrl}</span>
-                <button 
+                <button
                   onClick={copyToClipboard}
                   className="ml-2 p-1 rounded-md hover:bg-zinc-700 transition-colors"
                   title="Copy URL"
                 >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-zinc-300" />
-                  )}
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-zinc-300" />}
                 </button>
               </div>
             </div>
-            
           </div>
 
           {/* Enhanced Reward Information Block */}
@@ -143,15 +135,17 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
               <div className="bg-zinc-800/50 rounded-md p-4 border border-zinc-700/50">
                 <div className="flex items-center mb-3">
                   <Trophy className="h-4 w-4 text-amber-500 mr-2" />
-                  <span className="text-sm font-medium text-amber-400">{tableInfo.rewardPoolInfo.name} Reward</span>
+                  <span className="text-sm font-medium text-amber-400">{tableInfo.rewardPoolInfo.name}</span>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <Coins className="h-4 w-4 text-amber-500 mr-2" />
-                      <span className="text-xs text-zinc-400">Total Pool:</span>
+                      <span className="text-xs text-zinc-400">Total Pot:</span>
                     </div>
-                    <span className="text-sm font-medium text-white">{tableInfo.rewardPoolInfo.totalAmount} USDT</span>
+                    <span className="text-sm font-medium text-white">
+                      {formatEther(tableInfo.rewardPoolInfo.totalAmount)} {symbol}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -159,7 +153,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
                       <span className="text-xs text-zinc-400">Per Win:</span>
                     </div>
                     <span className="text-sm font-medium text-white">
-                      {tableInfo.rewardPoolInfo.rewardPerGame} USDT
+                      {formatEther(tableInfo.rewardPoolInfo.rewardPerGame)} {symbol}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -169,21 +163,23 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
                     </div>
                     <span className="text-sm font-medium text-white">{tableInfo.rewardPoolInfo.winProbability}%</span>
                   </div>
-                </div>
-              </div>
 
-              <div className="bg-zinc-800/50 rounded-md p-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-zinc-400">Current Pot:</span>
-                  <span className="text-lg font-bold text-amber-500">
-                    {tableInfo.totalPrizePool} {symbol}
-                  </span>
-                </div>
-                <div className="w-full bg-zinc-700 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-amber-400 to-amber-600 h-full rounded-full"
-                    style={{ width: `${(tableInfo.playerCount / tableInfo.maxPlayers) * 100}%` }}
-                  ></div>
+                  <div className="bg-zinc-800/50 rounded-md p-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-zinc-400">Current Pot:</span>
+                      <span className="text-lg font-bold text-amber-500">
+                        {formatEther(tableInfo.rewardPoolInfo.remainingAmount)} {symbol}
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-amber-400 to-amber-600 h-full rounded-full"
+                        style={{
+                          width: `${Number(tableInfo.rewardPoolInfo.remainingAmount / tableInfo.rewardPoolInfo.totalAmount) * 100}%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -204,6 +200,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable, t
             bankerFeePercent: tableInfo.bankerFeePercent,
             firstRaise: tableInfo.firstBetX,
             secondRaise: tableInfo.secondBetX,
+            rewardPoolId: String(tableInfo.rewardPoolId),
           }}
           onCreatedTable={() => {
             // 可以在这里添加表格更新后的回调，例如刷新数据
