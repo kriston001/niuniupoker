@@ -22,7 +22,9 @@ export function NftRoomCard({
   return (
     <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
       <div className="relative aspect-square cursor-pointer" onClick={onDetailClick}>
-        <Image src={getNftImageUrl(nft)} alt={getNftFullName(nft)} fill className="object-cover" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4">
+          <Image src={getNftImageUrl(nft)} alt={getNftFullName(nft)} fill className="object-cover" />
+        </div>
         {nft.rarity && (
           <div className="absolute top-2 right-2">
             <Badge
@@ -97,7 +99,9 @@ export function NftRoomLevel({
   return (
     <Card className="bg-zinc-900/80 border-zinc-800 overflow-hidden group">
       <div className="relative aspect-square cursor-pointer" onClick={onDetailClick}>
-        <Image src={nft.uriSuffix || "/placeholder.svg"} alt={getNftFullName(nft)} fill className="object-cover" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2">
+          <Image src={nft.uriSuffix || "/placeholder.svg"} alt={getNftFullName(nft)} fill className="object-cover" />
+        </div>
         {nft.rarity && (
           <div className="absolute top-2 right-2">
             <Badge

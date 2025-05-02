@@ -75,6 +75,7 @@ contract BBRewardPool is
         pool.rewardPerGame = _rewardPerGame;
         pool.winProbability = _winProbability;
         pool.remainingAmount = _totalReward;
+        pool.inUse = false;
         pool.__gap = [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)];
 
         // 添加到庄家的奖励池列表
@@ -187,7 +188,13 @@ contract BBRewardPool is
      * @return 奖励池信息数组
      */
     function getBankerPools(address _banker) external view returns (RewardPoolInfo[] memory) {
-        return bankerPools[_banker];
+        uint256 poolCount = bankerPools[_banker].length;
+        RewardPoolInfo[] memory pools = new RewardPoolInfo[](poolCount);
+        for(uint256 i = 0; i < poolCount; i++) {
+            pools[i] = bankerPools[_banker][i];
+            pools[i].inUse = IGameMain(gameMainAddr).rewardPoolIsInUse(_banker, pools[i].poolId);
+        }
+        return pools;
     }
 
     /**
@@ -203,7 +210,7 @@ contract BBRewardPool is
                 return pools[i];
             }
         }
-        return RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]);
+        return RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, false, [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]);
     }
 
     /**

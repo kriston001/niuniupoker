@@ -102,6 +102,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint8 _bankerFeePercent,
         uint8 _firstRaise,
         uint8 _secondRaise,
+        uint256 _rewardPoolId,
         uint256 _implementationVersion
     ) external {
         // 确保只初始化一次的检查
@@ -128,8 +129,13 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         firstBetX = _firstRaise;
         secondBetX = _secondRaise;
 
-
         refreshConfig();
+
+        if(_rewardPoolId > 0){
+            IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
+            require(rewardPool.isBankerPool(bankerAddr, _rewardPoolId), "Invalid reward pool");
+        }
+        rewardPoolId = _rewardPoolId;
 
         emit GameTableInitialized(address(this), _bankerAddr, _implementationVersion);
     }
@@ -183,6 +189,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         require(bytes(_tableName).length > 0 && bytes(_tableName).length <= 20, "Invalid table name");
         require(_firstRaise >= 1 && _firstRaise <= 4, "Invalid first raise");
         require(_secondRaise >= 1 && _secondRaise <= 4, "Invalid second raise");
+
+        if(_rewardPoolId > 0){
+            IRewardPool rewardPool = IRewardPool(rewardPoolAddr);
+            require(rewardPool.isBankerPool(bankerAddr, _rewardPoolId), "Invalid reward pool");
+        }
         
         tableName = _tableName;
         betAmount = _betAmount;
@@ -444,26 +455,12 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         require(state == GameState.WAITING, "Game not in waiting state");
         require(playerAddr != bankerAddr, "Can not remove banker");
         (uint8 playerIndex, BBPlayer storage player) = _getPlayer(playerAddr);
+        require(player.state == PlayerState.JOINED, "Player not in joined state");
 
-
-        uint256 amountToReturn = 0;
-        if(player.totalBet > 0){
-            amountToReturn = player.totalBet;
-        }
-        if(player.state == PlayerState.READY){
-            playerReadyCount--;
-            totalPrizePool -= amountToReturn;
-        }
         _removePlayerByIndex(playerIndex);
         _updateLastActivity();
 
         IGameMain(gameMainAddr).userLeaveTable(playerAddr);
-
-        // 最后进行转账
-        if(amountToReturn > 0){
-            (bool success, ) = payable(playerAddr).call{value: amountToReturn}("");
-            require(success, "transfer failed");
-        }
 
         emit GameTableChanged(address(this));
     }

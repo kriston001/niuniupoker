@@ -393,6 +393,11 @@ const abi = [
             "type": "uint256"
           },
           {
+            "internalType": "bool",
+            "name": "inUse",
+            "type": "bool"
+          },
+          {
             "internalType": "uint256[10]",
             "name": "__gap",
             "type": "uint256[10]"
@@ -457,6 +462,11 @@ const abi = [
             "internalType": "uint256",
             "name": "remainingAmount",
             "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "inUse",
+            "type": "bool"
           },
           {
             "internalType": "uint256[10]",

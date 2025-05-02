@@ -241,6 +241,30 @@ export class PushChat {
     }
   }
 
+  async removeMember(chatGroupId: string, member: string): Promise<boolean> {
+    if (!chatGroupId || !member) {
+      console.log("Cannot remove member: missing required data");
+      return false;
+    }
+
+    try {
+      // 获取 Push User 实例
+      const userInstance = await this.getUserInstance();
+    
+      // 移除成员
+      await userInstance.chat.group.remove(chatGroupId, {
+        role: "MEMBER",
+        accounts: [member]
+      });
+      console.log("Successfully removed member:", member);
+      
+      return true;
+    } catch (e) {
+      console.error("Error removing member:", e);
+      return false;
+    }
+  }
+
   /**
    * 发送消息到群组
    * @param chatGroupId 聊天群组ID

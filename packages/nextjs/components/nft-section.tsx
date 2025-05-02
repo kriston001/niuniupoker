@@ -139,7 +139,7 @@ export default function NftSection() {
               </div>
               <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
               <p className="text-zinc-500 max-w-md mx-auto mb-6">
-                You don't own any NFTs yet. Mint some from the Room Card or Room Level tabs.
+                You don't own any NFTs yet. Mint some from the Table Card or Table Permit tabs.
               </p>
             </div>
           )}

@@ -112,7 +112,8 @@ contract BBGameMain is
         uint8 tableMaxPlayers,
         uint8 bankerFeePercent,
         uint8 firstRaise,
-        uint8 secondRaise
+        uint8 secondRaise,
+        uint256 rewardPoolId
     ) external payable nonReentrant {
         require(!paused(), "Contract paused");
         require(betAmount != 0, "Bet amount too small");
@@ -156,7 +157,8 @@ contract BBGameMain is
             address(this),
             bankerFeePercent,
             firstRaise,
-            secondRaise
+            secondRaise,
+            rewardPoolId
         );
 
         nextTableId++;
@@ -391,10 +393,11 @@ contract BBGameMain is
 
     /**
      * @dev 获取我参与的赌桌
+     * @param userAddr 用户地址
      * @return 返回游戏桌信息
      */
-    function getMyGameTables() external view returns (GameTableInfoShort[] memory) {
-        UserInfo storage userInfo = userInfos[msg.sender];
+    function getUserGameTables(address userAddr) external view returns (GameTableInfoShort[] memory) {
+        UserInfo storage userInfo = userInfos[userAddr];
         GameTableInfoShort[] memory tables = new GameTableInfoShort[](userInfo.tables.length);
 
         for (uint256 i = 0; i < userInfo.tables.length; i++) {

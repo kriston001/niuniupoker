@@ -33,6 +33,7 @@ struct RewardPoolInfo {
     uint256 rewardPerGame;    // 每局游戏奖励金额
     uint256 winProbability;   // 中奖概率（以百分之一为单位）
     uint256 remainingAmount;  // 剩余奖池金额
+    bool inUse;              // 是否正在使用
 
     uint256[10] __gap;
 }
@@ -138,5 +139,5 @@ struct GameTableInfoShort {
 struct UserInfo {
     address[] tables;
     address[] joinedTables;
-    mapping(address => uint256) joinedTableIndex; 
+    mapping(address => uint256) joinedTableIndex;
 }

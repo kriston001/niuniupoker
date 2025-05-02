@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { use } from "react";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { TableInfo } from "@/components/niuniu/table/table-info";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 import { bytesToHex, concat, formatEther, hexToBytes, keccak256, toBytes } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { readContract } from "wagmi/actions";
@@ -15,6 +16,7 @@ import { ChatPanel } from "~~/components/niuniu/table/chat-panel";
 import { PlayerControlsPanel } from "~~/components/niuniu/table/player-controls-panel";
 import { PlayerInfo } from "~~/components/niuniu/table/player-info";
 import {
+  bankerRemovePlayer,
   nextStep,
   playerContinue,
   playerFold,
@@ -26,12 +28,22 @@ import {
 } from "~~/contracts/abis/BBGameTableABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
 import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
+import { createPushChat } from "~~/lib/push-chat";
+import { delay } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
-import { createPushChat } from "~~/lib/push-chat";
-import { delay } from "~~/lib/utils";
-import toast from "react-hot-toast";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~~/components/ui/alert-dialog";
+import { UserX } from "lucide-react";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
@@ -55,10 +67,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
   }, [tableInfo]);
 
   // 创建PushChat实例
-  const pushChat = createPushChat(
-    connectedAddress as string,
-    walletClient
-  );
+  const pushChat = createPushChat(connectedAddress as string, walletClient);
 
   // Handle timer completion
   const handleTimerComplete = async () => {
@@ -68,7 +77,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     // Here you would handle what happens when the timer runs out
   };
 
-  function getRandomValue(){
+  function getRandomValue() {
     const randomValue = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
     return randomValue;
   }
@@ -147,6 +156,50 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
     });
   };
 
+  const [isKickDialogOpen, setIsKickDialogOpen] = useState(false);
+  const [playerToKick, setPlayerToKick] = useState<`0x${string}` | null>(null);
+
+  const handleKickPlayer = (playerAddress: `0x${string}`) => {
+    setPlayerToKick(playerAddress);
+    setIsKickDialogOpen(true);
+  };
+
+  const confirmKickPlayer = () => {
+    if (!playerToKick) return;
+    
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [bankerRemovePlayer],
+      functionName: "bankerRemovePlayer",
+      account: connectedAddress as `0x${string}`,
+      args: [playerToKick],
+      onSuccess: async () => {
+        toast.success("Player kicked successfully");
+        console.log("✅ Kick Player 成功");
+        if (tableInfo?.chatGroupId) {
+          try {
+              const success = await pushChat.removeMember(tableInfo.chatGroupId, playerToKick);
+              if (success) {
+                console.log("✅ 成功移除玩家");
+              } else {
+                console.log("⚠️ 移除玩家失败");
+              }
+          } catch (error) {
+            console.error("❌ 移除玩家出错:", error);
+          }
+        }
+        await refreshData();
+      },
+      onError: async err => {
+        toast.error("Failed to kick player");
+        console.error("❌ Kick Player 失败:", err);
+      },
+    });
+    
+    setIsKickDialogOpen(false);
+    setPlayerToKick(null);
+  };
+
   const handleStartGame = useCallback(
     (tokenId: string) => {
       const randomValue = getRandomValue();
@@ -219,7 +272,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
         if (tableInfo?.chatGroupId && walletClient) {
           try {
             // 离开群组
-            if(playerData?.addr != tableInfo?.bankerAddr) {
+            if (playerData?.addr != tableInfo?.bankerAddr) {
               const success = await pushChat.leaveChatGroup(tableInfo.chatGroupId);
               if (success) {
                 console.log("✅ 成功离开聊天群组");
@@ -231,7 +284,6 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
             console.error("❌ 离开聊天群组出错:", error);
           }
         }
-        
       },
       onError: async err => {
         console.error("❌ Player Quit 失败:", err);
@@ -383,6 +435,13 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                             player={player}
                             isBanker={player.addr == tableInfo.bankerAddr}
                             isSelf={player.addr === connectedAddress}
+                            showKickButton={
+                              tableInfo.state === GameState.WAITING &&
+                              player.state === PlayerState.JOINED &&
+                              player.addr !== tableInfo.bankerAddr &&
+                              playerData?.addr == tableInfo.bankerAddr
+                            }
+                            onKickPlayer={handleKickPlayer}
                           />
                         </div>
                       );
@@ -432,6 +491,30 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
           </div>
         </div>
       )}
+      {/* Kick Player Confirmation Dialog */}
+      <AlertDialog open={isKickDialogOpen} onOpenChange={setIsKickDialogOpen}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirm Kick Player</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Are you sure you want to kick out {playerToKick} from the game table?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700 hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 text-white hover:bg-red-700" 
+              onClick={confirmKickPlayer}
+            >
+              <UserX className="h-4 w-4 mr-2" />
+              Kick Player
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

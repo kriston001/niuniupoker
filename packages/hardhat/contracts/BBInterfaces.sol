@@ -14,7 +14,8 @@ interface IGameTableFactory {
         address gameMainAddr,
         uint8 bankerFeePercent,
         uint8 firstRaise,
-        uint8 secondRaise
+        uint8 secondRaise,
+        uint256 rewardPoolId
     ) external returns (address);
 }
 
@@ -35,6 +36,7 @@ interface IGameTableImplementation {
         uint8 _bankerFeePercent,
         uint8 _firstRaise,
         uint8 _secondRaise,
+        uint256 _rewardPoolId,
         uint256 _implementationVersion
     ) external;
 }

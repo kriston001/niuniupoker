@@ -64,6 +64,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
      * @param bankerFeePercent 庄家费用百分比
      * @param firstRaise 第一轮下注倍数
      * @param secondRaise 第二轮下注倍数
+     * @param rewardPoolId 奖池ID
      * @return 新创建的游戏桌地址
      */
     function createGameTable(
@@ -75,7 +76,8 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
         address gameMainAddr,
         uint8 bankerFeePercent,
         uint8 firstRaise,
-        uint8 secondRaise
+        uint8 secondRaise,
+        uint256 rewardPoolId
     ) external returns (address) {
         // 准备初始化数据
         bytes memory initData = abi.encodeWithSelector(
@@ -89,6 +91,7 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
             bankerFeePercent,
             firstRaise,
             secondRaise,
+            rewardPoolId,
             version
         );
         

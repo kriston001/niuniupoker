@@ -56,7 +56,7 @@ export function useRewardPoolData() {
         args: [name, totalReward, rewardPerGame, BigInt(winRate)],
         value: totalReward,
         onPending: (hash) => {
-          toast.loading(`Creating reward pool... (${hash.slice(0, 8)}...)`);
+          //toast.loading(`Creating reward pool... (${hash.slice(0, 8)}...)`);
         },
         onSuccess: async () => {
           toast.success("Reward pool created successfully!");
@@ -95,15 +95,18 @@ export function useRewardPoolData() {
         functionName: "removeRewardPool",
         args: [BigInt(poolId)],
         onPending: (hash) => {
-          toast.loading(`Deleting reward pool... (${hash.slice(0, 8)}...)`);
+          //toast.loading(`Deleting reward pool... (${hash.slice(0, 8)}...)`);
         },
         onSuccess: async () => {
           toast.success("Reward pool deleted successfully!");
           await refetch();
         },
         onError: async (error) => {
+          // 用户取消交易不显示错误提示
+          if (error.message.includes("User rejected") || error.message.includes("user rejected")) {
+            return;
+          }
           console.error("Error deleting reward pool:", error);
-          toast.error(`Failed to delete reward pool: ${error.message}`);
         },
       });
     } catch (error) {

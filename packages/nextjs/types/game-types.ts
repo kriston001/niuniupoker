@@ -61,6 +61,7 @@ export interface RewardPoolInfo {
   rewardPerGame: bigint; // 每局游戏奖励金额
   winProbability: bigint; // 中奖概率（以百分之一为单位）
   remainingAmount: bigint; // 剩余奖池金额
+  inUse: boolean; // 是否正在使用
 }
 
 // 游戏桌信息类型定义

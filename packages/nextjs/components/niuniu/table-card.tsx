@@ -83,7 +83,7 @@ export function TableCard({
           <div className="mt-3 bg-zinc-800/50 rounded-md p-3 border border-zinc-700/50">
             <div className="flex items-center mb-2">
               <Trophy className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
-              <span className="text-xs font-medium text-amber-400">{table.rewardPoolInfo.name} Reward</span>
+              <span className="text-xs font-medium text-amber-400">{table.rewardPoolInfo.name}</span>
             </div>
             <div className="flex justify-between items-center px-1">
               <div className="flex items-center">

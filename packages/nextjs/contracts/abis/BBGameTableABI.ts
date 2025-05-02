@@ -719,6 +719,11 @@ const abi = [
                 "type": "uint256"
               },
               {
+                "internalType": "bool",
+                "name": "inUse",
+                "type": "bool"
+              },
+              {
                 "internalType": "uint256[10]",
                 "name": "__gap",
                 "type": "uint256[10]"
@@ -901,6 +906,11 @@ const abi = [
                 "type": "uint256"
               },
               {
+                "internalType": "bool",
+                "name": "inUse",
+                "type": "bool"
+              },
+              {
                 "internalType": "uint256[10]",
                 "name": "__gap",
                 "type": "uint256[10]"
@@ -978,6 +988,11 @@ const abi = [
         "internalType": "uint8",
         "name": "_secondRaise",
         "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_rewardPoolId",
+        "type": "uint256"
       },
       {
         "internalType": "uint256",

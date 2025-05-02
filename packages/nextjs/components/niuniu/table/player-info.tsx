@@ -1,18 +1,24 @@
 import { HandResultDisplay } from "@/components/hand-result-display";
 import { CardSuit, CardValue, PokerCard } from "@/components/poker-card";
 import { convertCardNumber, getPlayerGameStateName, truncateAddress } from "@/lib/utils";
-import { CardType, GameTable, Player, PlayerState } from "@/types/game-types";
+import { CardType, GameState, GameTable, Player, PlayerState } from "@/types/game-types";
+import { Button } from "~~/components/ui/button";
+import { UserX } from "lucide-react";
 
 export function PlayerInfo({
   tableInfo,
   player,
   isBanker,
   isSelf,
+  showKickButton,
+  onKickPlayer,
 }: {
   tableInfo: GameTable;
   player: Player;
   isBanker: boolean;
   isSelf: boolean;
+  showKickButton: boolean;
+  onKickPlayer?: (playerAddress: `0x${string}`) => void;
 }) {
   return (
     <div>
@@ -80,6 +86,19 @@ export function PlayerInfo({
       >
         {/* Player info */}
         <div className="text-sm font-medium text-white truncate mb-2">{truncateAddress(player.addr)}</div>
+
+        {/* Kick player button - only shown when table is in WAITING state and current user is banker */}
+        {showKickButton && (
+          <Button 
+            variant="destructive" 
+            size="lg" 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-2 py-0 h-8 text-xs flex items-center z-50"
+            onClick={() => onKickPlayer?.(player.addr)}
+          >
+            <UserX className="h-3 w-3 mr-1" />
+            Kick Player
+          </Button>
+        )}
 
         {/* Player cards */}
         {player.cards ? (
