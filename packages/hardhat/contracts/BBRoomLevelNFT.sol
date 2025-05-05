@@ -44,6 +44,9 @@ contract BBRoomLevelNFT is
     // Array of all level type IDs
     uint256[] private _allNftTypeIds;
 
+    // 预留 25 个 slot 给将来新增变量用，防止存储冲突
+    uint256[25] private __gap;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -286,7 +289,7 @@ contract BBRoomLevelNFT is
         string memory suffix = nftTypes[nftTypeId].uriSuffix;
 
         return bytes(baseURI).length > 0 ?
-            string(abi.encodePacked(baseURI, suffix, "/", tokenId.toString())) : "";
+            string(abi.encodePacked(baseURI, suffix)) : "";
     }
 
     /**

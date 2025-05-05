@@ -34,6 +34,32 @@ export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
   }
 }
 
+export function getGameDescription(tableInfo: GameTable, player: Player | null): string {
+  if(tableInfo.state == GameState.WAITING){
+    if(player?.state === PlayerState.JOINED) {
+      return "Click \"Ready\" to join the game and stake your entry deposit";
+    }else if(player?.state === PlayerState.READY) {
+      if(tableInfo.playerReadyCount == tableInfo.playerCount){
+        return "Waiting for owner to start the game";
+      }else{
+        return "Waiting for other players to be ready";
+      }
+    }
+  }else if (tableInfo.state === GameState.FIRST_BETTING || tableInfo.state === GameState.SECOND_BETTING) {
+    //如果超时
+    if(Date.now() > tableInfo.currentRoundDeadline * 1000n){
+      return "Player timeout, waiting for owner to next the game";
+    }
+    
+    if(player?.hasActedThisRound){
+      return "Waiting for other players to be acted";
+    }else{
+      return "Choose to Raise or Fold";
+    }
+  }
+  return "";
+}
+
 export function getNftSympol(nft: RoomCardNftType | RoomLevelNftType): string {
   if ("maxPlayers" in nft) {
     return "RC";
@@ -54,7 +80,7 @@ export function getNftFullName(nft: RoomCardNftType | RoomLevelNftType): string 
   if ("maxPlayers" in nft) {
     return nft.name + " Table Card";
   } else {
-    return nft.name + " Level";
+    return nft.name + " Table Level";
   }
 }
 

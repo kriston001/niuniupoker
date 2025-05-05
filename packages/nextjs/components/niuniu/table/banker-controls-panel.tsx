@@ -129,7 +129,7 @@ export const BankerControlsPanel = memo(function BankerControlsPanel({
                     onClick={handleStartGame}
                   >
                     <PlayCircle className="mr-2 h-5 w-5" />
-                    Start Game – Stake {formatEther(tableInfo.betAmount)} {symbol}
+                    Start Game – Stake {formatEther(tableInfo.betAmount * 2n)} {symbol}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">

@@ -51,6 +51,7 @@
     "class-variance-authority": "^0.7.1",
     "daisyui": "4.12.10",
     "ethers": "^6.13.7",
+    "framer-motion": "^12.9.4",
     "kubo-rpc-client": "~5.0.2",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.488.0",

@@ -86,6 +86,7 @@ export interface GameTable {
   playerReadyCount: number; // 准备好的玩家数量
   playerAddresses: `0x${string}`[]; // 玩家地址列表
   currentRoundDeadline: bigint; // 当前回合截止时间
+  liquidateDeadline: bigint; // 清算截止时间
   playerTimeout: bigint; // 玩家超时时间
   tableInactiveTimeout: bigint; // 游戏桌不活跃超时时间
   lastActivityTimestamp: bigint; // 最后活动时间戳

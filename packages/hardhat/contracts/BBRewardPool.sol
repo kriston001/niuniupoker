@@ -31,8 +31,8 @@ contract BBRewardPool is
     // 最大概率值（100 = 100%）
     uint8 private constant MAX_PROBABILITY = 100;
 
-    // 预留 50 个 slot 给将来新增变量用，防止存储冲突
-    uint256[50] private __gap;
+    // 预留 25 个 slot 给将来新增变量用，防止存储冲突
+    uint256[25] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -51,6 +51,12 @@ contract BBRewardPool is
         require(_gameMainAddr != address(0), "Invalid game main address");
         gameMainAddr = _gameMainAddr;
         nextPoolId = 1;
+    }
+
+    modifier onlyValidTable() {
+        IGameMain gameMain = IGameMain(gameMainAddr);
+        require(gameMain.isValidGameTable(msg.sender), "invalid table");
+        _;
     }
 
     /**
@@ -86,6 +92,9 @@ contract BBRewardPool is
 
     //验证是否是这个庄家的奖励池
     function isBankerPool(address _banker, uint256 _poolId) external view returns (bool) {
+        require(_banker != address(0), "Invalid banker address");
+        require(_poolId > 0, "Invalid pool ID");
+        
         RewardPoolInfo[] memory pools = bankerPools[_banker];
         for (uint256 i = 0; i < pools.length; i++) {
             if (pools[i].poolId == _poolId) {
@@ -95,77 +104,94 @@ contract BBRewardPool is
         return false;
     }
 
+    // 根据bankerAddr和poolId获取pool
+    function _getPool(address _banker, uint256 _poolId) internal view returns (uint256, RewardPoolInfo storage) {
+        RewardPoolInfo[] storage pools = bankerPools[_banker];
+        uint256 poolIndex = 0;
+        bool found = false;
+        
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].poolId == _poolId) {
+                poolIndex = i;
+                found = true;
+                break;
+            }
+        }
+        
+        require(found, "Pool not found");
+        return (poolIndex, pools[poolIndex]);
+    }
+
     /**
      * @dev 庄家删除奖励池并取回剩余资金
      * @param _poolId 要删除的奖励池ID
      */
     function removeRewardPool(uint256 _poolId) external nonReentrant {
-        RewardPoolInfo[] storage pools = bankerPools[msg.sender];
-        require(pools.length > 0, "Reward pool not active");
-        
-        // 查找并验证奖励池
-        uint256 poolIndex = type(uint256).max;
-        for (uint256 i = 0; i < pools.length; i++) {
-            if (pools[i].poolId == _poolId) {
-                poolIndex = i;
-                break;
-            }
-        }
-        
-        require(poolIndex != type(uint256).max, "Reward pool not active");
+        address bankerAddr = msg.sender;
+        require(bankerAddr != address(0), "Invalid banker address");
 
-        if(IGameMain(gameMainAddr).rewardPoolIsInUse(msg.sender, _poolId)){
+        (uint256 poolIndex, RewardPoolInfo storage pool) = _getPool(bankerAddr, _poolId);
+        
+        if(IGameMain(gameMainAddr).rewardPoolIsInUse(bankerAddr, _poolId)){
             require(false, "Reward pool in use");
         }
         
-        RewardPoolInfo storage pool = pools[poolIndex];
         uint256 remainingAmount = pool.remainingAmount;
 
         // 从数组中移除奖励池（通过将最后一个元素移到要删除的位置）
-        if (poolIndex != pools.length - 1) {
-            pools[poolIndex] = pools[pools.length - 1];
+        if (poolIndex != bankerPools[bankerAddr].length - 1) {
+            bankerPools[bankerAddr][poolIndex] = bankerPools[bankerAddr][bankerPools[bankerAddr].length - 1];
         }
-        pools.pop();
+        bankerPools[bankerAddr].pop();
 
         if(remainingAmount > 0){
             // 转账剩余资金给庄家
-            (bool success, ) = payable(msg.sender).call{value: remainingAmount}("");
+            (bool success, ) = payable(bankerAddr).call{value: remainingAmount}("");
             require(success, "Transfer failed");
         }
         
 
-        emit RewardPoolRemoved(_poolId, msg.sender, remainingAmount);
+        emit RewardPoolRemoved(_poolId, bankerAddr, remainingAmount);
     }
 
     /**
      * @dev 游戏结束时尝试分配奖励
-     * @param _poolId 游戏桌地址
+     * @param _poolId 奖励池ID
      * @param _players 参与游戏的玩家地址数组
      * @param finalSeed 最终种子
      * @return 是否分配了奖励
      */
-    function tryDistributeReward(uint256 _poolId, address[] calldata _players, uint256 finalSeed) external nonReentrant returns (address, uint256) {
+    function tryDistributeReward(uint256 _poolId, address[] calldata _players, uint256 finalSeed) external onlyValidTable nonReentrant returns (address, uint256) {
         address tableAddr = msg.sender;
         address bankerAddr = IGameTableImplementation(tableAddr).bankerAddr();
         require(bankerAddr != address(0), "invalid banker address");
 
-        RewardPoolInfo storage pool = bankerPools[bankerAddr][_poolId];
+        (, RewardPoolInfo storage pool) = _getPool(bankerAddr, _poolId);
         if (pool.poolId == 0) return (address(0), 0);
 
         // 验证有足够的资金
         if (pool.remainingAmount < pool.rewardPerGame) return (address(0), 0);
 
         // 验证有玩家参与
-        if (_players.length == 0) return (address(0), 0);
+        uint256 playerCount = _players.length;
+        if (playerCount == 0) return (address(0), 0);
 
         // 生成随机数决定是否发放奖励
         uint256 randomValue = _generateRandomNumber(finalSeed, _poolId, tableAddr) % MAX_PROBABILITY;
 
         // 如果随机数小于中奖概率，则发放奖励
         if (randomValue < pool.winProbability) {
-            // 随机选择一名玩家
-            uint256 winnerIndex = _generateRandomNumber(finalSeed, _poolId + 1, tableAddr) % _players.length;
+            // 安全地随机选择一名玩家
+            uint256 winnerIndex = 0;
+            if (playerCount > 1) {
+                winnerIndex = _generateRandomNumber(finalSeed, _poolId + 1, tableAddr) % playerCount;
+            }
+            
+            // 额外安全检查，确保索引在范围内
+            require(winnerIndex < playerCount, "Winner index out of bounds");
+            
             address winner = _players[winnerIndex];
+            require(winner != address(0), "Invalid winner address");
 
             // 更新奖励池余额
             pool.remainingAmount -= pool.rewardPerGame;
@@ -179,7 +205,6 @@ contract BBRewardPool is
         }
 
         return (address(0), 0);
-
     }
 
     /**
@@ -204,31 +229,8 @@ contract BBRewardPool is
      * @return 奖励池信息
      */
     function getRewardPoolInfo(address _banker, uint256 _poolId) external view returns (RewardPoolInfo memory) {
-        RewardPoolInfo[] memory pools = bankerPools[_banker];
-        for (uint256 i = 0; i < pools.length; i++) {
-            if (pools[i].poolId == _poolId) {
-                return pools[i];
-            }
-        }
-        return RewardPoolInfo(0, "", address(0), 0, 0, 0, 0, false, [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]);
-    }
-
-    /**
-     * @dev 更新奖励池的剩余金额（内部函数）
-     * @param _banker 庄家地址
-     * @param _poolId 奖励池ID
-     * @param _amount 要减少的金额
-     */
-    function _updateRewardPoolAmount(address _banker, uint256 _poolId, uint256 _amount) internal {
-        RewardPoolInfo[] storage pools = bankerPools[_banker];
-        for (uint256 i = 0; i < pools.length; i++) {
-            if (pools[i].poolId == _poolId) {
-                require(pools[i].remainingAmount >= _amount, "Insufficient funds");
-                pools[i].remainingAmount -= _amount;
-                return;
-            }
-        }
-        require(false, "Reward pool not active");
+        (, RewardPoolInfo storage pool) = _getPool(_banker, _poolId);
+        return pool;
     }
 
     /**

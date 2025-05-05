@@ -632,6 +632,11 @@ const abi = [
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "liquidateDeadline",
+            "type": "uint256"
+          },
+          {
             "internalType": "enum GameState",
             "name": "state",
             "type": "uint8"
@@ -1039,7 +1044,20 @@ const abi = [
   },
   {
     "inputs": [],
-    "name": "liquidateInactiveTable",
+    "name": "liquidateDeadline",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidateGame",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1506,7 +1524,7 @@ export const bankerRemovePlayer = abi.find(x => "name" in x && x.name === "banke
 export const nextStep = abi.find(x => "name" in x && x.name === "nextStep");
 export const playerContinue = abi.find(x => "name" in x && x.name === "playerContinue");
 export const playerFold = abi.find(x => "name" in x && x.name === "playerFold");
-export const liquidateInactiveTable = abi.find(x => "name" in x && x.name === "liquidateInactiveTable");
+export const liquidateGame = abi.find(x => "name" in x && x.name === "liquidateGame");
 export const getAllPlayerData = abi.find(x => "name" in x && x.name === "getAllPlayerData");
 export const getPlayerData = abi.find(x => "name" in x && x.name === "getPlayerData");
 export const getTableInfo = abi.find(x => "name" in x && x.name === "getTableInfo");

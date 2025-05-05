@@ -3,11 +3,11 @@ import { CreateTableModal } from "../create-table-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils";
-import { Check, Clock, Coins, Copy, Edit, Gift, Info, Link, TrendingUp, Trophy, Users, Wallet } from "lucide-react";
-import { formatEther, parseEther } from "viem";
+import { Check, Coins, Copy, Edit, Gift, Link, TrendingUp, Trophy, Users, Wallet } from "lucide-react";
+import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { GameTable } from "~~/types/game-types";
+import { GameTable, GameState } from "~~/types/game-types";
 
 export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; tableUpdated?: () => void }) {
   const { targetNetwork } = useTargetNetwork();
@@ -56,7 +56,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
               <span className="text-sm">Owner: </span>
               <span className="text-sm text-zinc-300 ml-1">{truncateAddress(tableInfo.bankerAddr)}</span>
 
-              {isOwner && (
+              {isOwner && tableInfo.state === GameState.WAITING && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -175,7 +175,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
                       <div
                         className="bg-gradient-to-r from-amber-400 to-amber-600 h-full rounded-full"
                         style={{
-                          width: `${Number(tableInfo.rewardPoolInfo.remainingAmount / tableInfo.rewardPoolInfo.totalAmount) * 100}%`,
+                          width: `${Number(tableInfo.rewardPoolInfo.remainingAmount) * 100 / Number(tableInfo.rewardPoolInfo.totalAmount)}%`,
                         }}
                       ></div>
                     </div>

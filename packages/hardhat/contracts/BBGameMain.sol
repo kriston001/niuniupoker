@@ -59,7 +59,7 @@ contract BBGameMain is
 
 
     // 预留 50 个 slot 给将来新增变量用，防止存储冲突
-    uint256[50] private __gap;
+    uint256[25] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {

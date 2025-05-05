@@ -94,6 +94,7 @@ struct GameTableView {
     uint8 playerCount;
     uint8 maxPlayers;
     uint256 creationTimestamp;
+    uint256 liquidateDeadline;
     GameState state;
     uint8 liquidatorFeePercent;
     uint8 playerContinuedCount;

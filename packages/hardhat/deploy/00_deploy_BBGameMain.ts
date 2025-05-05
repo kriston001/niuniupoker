@@ -140,8 +140,8 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   const maxJoinTablesCount = 5; // 最大加入游戏桌数
   const maxBankerFeePercent = 20; // 庄家手续费百分比
   const liquidatorFeePercent = 5; // 清算员手续费百分比
-  const playerTimeout = 20; // 玩家基准超时时间，单位为秒，最后超时时间会把这个数字乘以玩家人数
-  const tableInactiveTimeout = 1200; // 桌子空闲超时时间，单位为秒，这里是20分钟
+  const playerTimeout = 60; // 玩家基准超时时间，单位为秒
+  const tableInactiveTimeout = 120; // 桌子空闲超时时间，单位为秒，这里是2分钟
 
   // 用于存储本次部署的合约地址
   const newDeployedAddresses: Record<string, string> = {};
@@ -192,7 +192,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     hre,
     "BBRoomCardNFT",
     [
-      "Room Card", // NFT名称
+      "Table Card", // NFT名称
       "NNRC", // NFT符号
       "http://localhost:3000/nft/metadata/tablecard/", // 基础URI
     ],
@@ -205,7 +205,7 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
     hre,
     "BBRoomLevelNFT",
     [
-      "Room Level", // NFT名称
+      "Table Level", // NFT名称
       "NNRL", // NFT符号
       "http://localhost:3000/nft/metadata/tablelevel/", // 基础URI
     ],

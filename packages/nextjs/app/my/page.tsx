@@ -214,7 +214,7 @@ export default function MyPage() {
                               <div
                                 className="bg-gradient-to-r from-amber-400 to-amber-600 h-full rounded-full"
                                 style={{
-                                  width: `${Number(pool.remainingAmount / pool.totalAmount) * 100}%`,
+                                  width: `${Number(pool.remainingAmount) * 100 / Number(pool.totalAmount)}%`,
                                 }}
                               ></div>
                             </div>

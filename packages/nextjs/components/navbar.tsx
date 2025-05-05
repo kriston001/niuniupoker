@@ -115,12 +115,15 @@ export function Navbar() {
               <CustomNetworkSelector />
             </div>
             {/* Balance Display */}
-            <div className="hidden sm:block">
-              <Balance
-                address={connectedAddress}
-                className="border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800/80 text-zinc-300 hover:text-white hover:border-amber-500/50 transition-all duration-200 rounded-md px-3 py-1.5"
-              />
-            </div>
+            {connectedAddress && (
+              <div className="hidden sm:block">
+                <Balance
+                  address={connectedAddress}
+                  className="border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800/80 text-zinc-300 hover:text-white hover:border-amber-500/50 transition-all duration-200 rounded-md px-3 py-1.5"
+                />
+              </div>
+            )}
+            
             <div className="hidden sm:block">
               <CustomWalletConnection />
             </div>

@@ -25,11 +25,12 @@ import {
   playerReady,
   playerUnready,
   startGame,
+  liquidateGame
 } from "~~/contracts/abis/BBGameTableABI";
 import { useGameTableData } from "~~/hooks/my-hooks/useGameTableData";
 import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import { createPushChat } from "~~/lib/push-chat";
-import { delay } from "~~/lib/utils";
+import { delay, getGameDescription } from "~~/lib/utils";
 import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { GameState, PlayerState, getGameStateName } from "~~/types/game-types";
@@ -44,6 +45,7 @@ import {
   AlertDialogTitle,
 } from "~~/components/ui/alert-dialog";
 import { UserX } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
@@ -208,7 +210,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
         abi: [startGame],
         functionName: "startGame",
         args: [BigInt(tokenId), randomValue],
-        value: tableInfo?.betAmount,
+        value: tableInfo?.betAmount ? tableInfo.betAmount * 2n : 0n,
         account: connectedAddress as `0x${string}`,
         onSuccess: async () => {
           console.log("✅ Start Game 成功");
@@ -287,6 +289,22 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
       },
       onError: async err => {
         console.error("❌ Player Quit 失败:", err);
+      },
+    });
+  };
+
+  const handleLiquidate = () => {
+    writeContractWithCallback({
+      address: tableAddr as `0x${string}`,
+      abi: [liquidateGame],
+      functionName: "liquidateGame",
+      account: connectedAddress as `0x${string}`,
+      onSuccess: async () => {
+        console.log("✅ Liquidate Game 成功");
+        await refreshData();
+      },
+      onError: async err => {
+        console.error("❌ Liquidate Game 失败:", err);
       },
     });
   };
@@ -374,16 +392,105 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                       </div>
                       <div className="text-zinc-400 text-lg mt-2">{getGameStateName(tableInfo.state)} Round</div>
                       <div className="text-zinc-500 text-sm mt-1">
-                        {tableInfo.state === GameState.WAITING &&
-                          playerData?.state === PlayerState.JOINED &&
-                          'Click "Ready" to join the game and stake your entry deposit'}
-                        {tableInfo.state === GameState.FIRST_BETTING && "First Betting Round: choose to Raise or Fold"}
-                        {tableInfo.state === GameState.SECOND_BETTING &&
-                          "Second Betting Round: choose to Raise or Fold"}
-                        {tableInfo.state === GameState.WAITING &&
-                          playerData?.state === PlayerState.READY &&
-                          "Waiting for other players to be ready"}
+                        {getGameDescription(tableInfo, playerData || null)}
                       </div>
+
+                      {/* Reward Animation - show when rewardAddr is not 0 */}
+                      <AnimatePresence>
+                        {tableInfo.rewardAddr !== "0x0000000000000000000000000000000000000000" && (
+                          <motion.div 
+                            className="mt-4 bg-amber-900/80 backdrop-blur-sm border border-amber-600 rounded-lg px-6 py-4 shadow-lg relative overflow-hidden"
+                            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                            animate={{ 
+                              opacity: 1, 
+                              scale: 1, 
+                              y: 0,
+                              transition: { 
+                                duration: 0.5 
+                              }
+                            }}
+                            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                          >
+                            {/* 背景粒子效果 */}
+                            {Array.from({ length: 20 }).map((_, i) => (
+                              <motion.div
+                                key={i}
+                                className="absolute w-2 h-2 rounded-full bg-amber-300/60"
+                                initial={{ 
+                                  x: Math.random() * 300 - 150,
+                                  y: Math.random() * 200 - 100,
+                                  opacity: 0
+                                }}
+                                animate={{ 
+                                  x: Math.random() * 300 - 150,
+                                  y: Math.random() * 200 - 100,
+                                  opacity: [0, 0.8, 0],
+                                  scale: [0, 1, 0]
+                                }}
+                                transition={{
+                                  duration: 2 + Math.random() * 2,
+                                  repeat: Infinity,
+                                  delay: Math.random() * 2
+                                }}
+                              />
+                            ))}
+                            
+                            <motion.div 
+                              className="text-amber-300 font-bold text-xl relative z-10"
+                              animate={{ 
+                                scale: [1, 1.05, 1],
+                                textShadow: [
+                                  "0 0 5px rgba(251, 191, 36, 0.5)",
+                                  "0 0 20px rgba(251, 191, 36, 0.8)",
+                                  "0 0 5px rgba(251, 191, 36, 0.5)"
+                                ]
+                              }}
+                              transition={{ 
+                                duration: 2,
+                                repeat: Infinity,
+                                repeatType: "reverse"
+                              }}
+                            >
+                              🎉 Pool Reward! 🎉
+                            </motion.div>
+                            <div className="mt-2 text-amber-100 font-medium relative z-10">
+                              <motion.div 
+                                className="text-sm truncate max-w-[240px] mx-auto bg-amber-950/50 py-1 px-3 rounded-full"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ 
+                                  opacity: 1, 
+                                  y: 0,
+                                  transition: { delay: 0.2, duration: 0.4 }
+                                }}
+                              >
+                                {tableInfo.rewardAddr.substring(0, 6)}...{tableInfo.rewardAddr.substring(tableInfo.rewardAddr.length - 4)}
+                              </motion.div>
+                              <motion.div 
+                                className="mt-2 text-xl font-bold"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ 
+                                  opacity: 1,
+                                  scale: 1,
+                                  transition: { delay: 0.4, duration: 0.5 }
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                <motion.span
+                                  animate={{
+                                    color: ["#fcd34d", "#f59e0b", "#fcd34d"]
+                                  }}
+                                  transition={{
+                                    duration: 3,
+                                    repeat: Infinity
+                                  }}
+                                >
+                                  {formatEther(tableInfo.rewardAmount)} ETH
+                                </motion.span>
+                              </motion.div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
                       {/* Countdown Timer - only show when game is active */}
                       {remainingSeconds > 0 && (
@@ -482,6 +589,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                         onQuitClick={handlePlayerQuit}
                         onContinueClick={handlePlayerContinue}
                         onFoldClick={handlePlayerFold}
+                        onLiquidateClick={handleLiquidate}
                       />
                     </div>
                   )}

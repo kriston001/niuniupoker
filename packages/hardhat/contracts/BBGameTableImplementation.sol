@@ -65,6 +65,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     // 添加超时相关状态变量
     uint256 public playerTimeout; // 玩家操作超时时间，单位为秒
     uint256 public currentRoundDeadline; // 当前回合的截止时间
+    uint256 public liquidateDeadline; // 超时清算时间
 
     uint256 public tableInactiveTimeout; // 游戏桌不活跃超时时间，单位为秒
     uint256 public lastActivityTimestamp; // 最后活动时间戳
@@ -75,8 +76,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
     string public chatGroupId; // 聊天组ID
 
-    // 预留 50 个 slot 给将来新增变量用，防止存储冲突
-    uint256[50] private __gap;
+    // 预留 25 个 slot 给将来新增变量用，防止存储冲突
+    uint256[25] private __gap;
 
     // 事件
     event GameTableChanged(address indexed tableAddr);
@@ -144,7 +145,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
     function refreshConfig() internal {
         IGameMain gameMain = IGameMain(gameMainAddr);
         GameConfig memory config = gameMain.getGameConfig();
-        playerTimeout = config.playerTimeout * playerCount;
+        playerTimeout = config.playerTimeout;
         liquidatorFeePercent = config.liquidatorFeePercent;
         tableInactiveTimeout = config.tableInactiveTimeout;
         roomCardAddr = config.roomCardAddress;
@@ -487,8 +488,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         require(playerCount >= 2, "Not enough players");
 
         // 庄家需要押金
-        require(msg.value == betAmount, "Insufficient funds");
-        bankerStakeAmount = betAmount;
+        require(msg.value == betAmount * 2, "Insufficient funds");
+        bankerStakeAmount = betAmount * 2;
 
         //验证房卡
         IRoomCardNFT roomCard = IRoomCardNFT(roomCardAddr);
@@ -509,6 +510,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         gameStartTimestamp = 0;
         gameEndTimestamp = 0;
         currentRoundDeadline = 0;
+        liquidateDeadline = 0;
+        bankerStakeAmount = 0;
         playerReadyCount = 0;
         totalPrizePool = 0;
         rewardAddr = address(0);
@@ -519,7 +522,6 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
                 players[i].playerReset();
             }  
         }
-        setState(GameState.WAITING);
     }
 
     function _canSettleGame() internal view returns (bool) {
@@ -573,8 +575,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         else if(state == GameState.SECOND_BETTING) {
             _endGame();
         }
-        else if(state == GameState.SETTLED) {
+        else if(state == GameState.SETTLED || state == GameState.LIQUIDATED) {
             _resetGame();
+            setState(GameState.WAITING);
         }
 
         // 将所有人设置为未操作状态
@@ -697,13 +700,11 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
     function canMoveToNextStep() public view returns (bool canMove, string memory title, string memory reason) {
         if (state == GameState.LIQUIDATED) {
-            return (false, "", "Game has been liquidated");
+            return (true, "Play Again", "Game has been liquidated");
         }else if(state == GameState.SETTLED){
             return (true, "Play Again", "");
         }else if (state == GameState.ENDED) {
             return (true, "Settle Game", "");
-        }else if(state == GameState.SETTLED){
-            return (true, "Play Again", "");
         }else if (state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING) {
 
             if (playerCount == 0) {
@@ -1091,11 +1092,14 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * 此函数来清算长时间不活跃的游戏桌
      * 庄家的押金将被分配给玩家和清算人
      */
-    function liquidateInactiveTable() external onlyPlayers nonReentrant {
+    function liquidateGame() external onlyPlayers nonReentrant {
         // 检查游戏桌是否超时
-        require(block.timestamp > lastActivityTimestamp + tableInactiveTimeout, "Table not inactive");
         require(msg.sender != bankerAddr, "Banker cannot liquidate");
-        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING, "Table not in gaming");
+        require(state == GameState.FIRST_BETTING || state == GameState.SECOND_BETTING || state == GameState.ENDED, "Table not in gaming");
+
+        require(block.timestamp > liquidateDeadline, "Game not timeout");
+
+        setState(GameState.LIQUIDATED);
 
         // 清算人的奖励 (从庄家押金中收取)
         uint256 liquidatorReward = bankerStakeAmount * liquidatorFeePercent / 100;
@@ -1108,7 +1112,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint8 eligiblePlayerCount = 0;
         for(uint8 i = 0; i < players.length; i++){
             BBPlayer storage player = players[i];
-            if(player.isValid() && player.addr != bankerAddr){
+            if(player.isValid()){
                 eligiblePlayerCount++;
             }
         }
@@ -1119,7 +1123,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint256 paymentCount = 0;
 
         // 如果没有其他玩家，清算人获得全部奖励
-        if (eligiblePlayerCount == 0) {
+        if (eligiblePlayerCount == 1) {
             liquidatorReward = bankerStakeAmount;
             remainingBankerBet = 0;
         } else {
@@ -1129,7 +1133,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             // 计算每个玩家应得的金额
             for (uint i = 0; i < players.length; i++) {
                 BBPlayer storage player = players[i];
-                if(player.isValid() && player.addr != bankerAddr){
+                if(player.isValid()){
                     uint256 totalPayment = 0;
 
                     // 计算玩家应得的总金额（押金 + 奖励）
@@ -1158,20 +1162,9 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             liquidatorReward += (bankerStakeAmount - actualDistributed);
         }
 
-        // 重置玩家状态
-        for (uint i = 0; i < players.length; i++) {
-            if(players[i].isValid()){
-                players[i].playerReset();
-            }
-        }
-
-        playerCount = 0;
-        playerReadyCount = 0;
-        playerContinuedCount = 0;
-        totalPrizePool = 0;
+        // _resetGame();
         gameLiquidatedCount++;
 
-        setState(GameState.LIQUIDATED);
 
         // 所有状态更新完成后，进行转账操作
         // 然后进行其他转账
@@ -1197,6 +1190,10 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         // 如果进入下注阶段，为所有玩家设置操作截止时间
         if (_state == GameState.FIRST_BETTING || _state == GameState.SECOND_BETTING) {
             currentRoundDeadline = block.timestamp + playerTimeout;
+            liquidateDeadline = block.timestamp + tableInactiveTimeout;
+        }
+        if(_state == GameState.ENDED){
+            liquidateDeadline = block.timestamp + tableInactiveTimeout;
         }
 
         _updateLastActivity(); // 更新最后活动时间
@@ -1253,6 +1250,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
             playerCount: playerCount,
             maxPlayers: maxPlayers,
             creationTimestamp: creationTimestamp,
+            liquidateDeadline: liquidateDeadline,
             state: state,
             liquidatorFeePercent: liquidatorFeePercent,
             playerContinuedCount: playerContinuedCount,

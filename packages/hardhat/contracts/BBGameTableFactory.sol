@@ -18,6 +18,9 @@ contract BBGameTableFactory is Initializable, OwnableUpgradeable, UUPSUpgradeabl
     
     // 版本号，用于跟踪实现合约的版本
     uint256 public version;
+
+    // 预留 5 个 slot 给将来新增变量用，防止存储冲突
+    uint256[5] private __gap;
     
     // 事件
     event ImplementationUpdated(address indexed oldImpl, address indexed newImpl, uint256 version);

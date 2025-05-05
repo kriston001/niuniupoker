@@ -41,6 +41,8 @@ export default function NftSection() {
 
   const handleUseClick = (nft: any) => {
     console.log("Use NFT:", nft);
+    // 跳转到tables界面
+    window.location.href = "/tables";
   };
 
   const handleMyNftDetailClick = (myNft: any) => {
@@ -62,7 +64,7 @@ export default function NftSection() {
           </TabsTrigger>
           <TabsTrigger value="room-levels" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
             <Layers className="h-4 w-4 mr-2" />
-            Table Permit NFTs
+            Table Level NFTs
           </TabsTrigger>
           <TabsTrigger value="my-nfts" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white">
             <User className="h-4 w-4 mr-2" />
@@ -113,7 +115,7 @@ export default function NftSection() {
               </div>
               <h3 className="text-xl font-medium text-zinc-300 mb-2">No NFTs Found</h3>
               <p className="text-zinc-500 max-w-md mx-auto">
-                No table permit NFTs match your search criteria. Try adjusting your filters.
+                No table level NFTs match your search criteria. Try adjusting your filters.
               </p>
             </div>
           )}
