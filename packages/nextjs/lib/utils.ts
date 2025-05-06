@@ -20,15 +20,15 @@ export const delay = (ms: number): Promise<void> => {
 
 export function getPlayerGameStateName(tableInfo: GameTable, player: Player) {
   if (player.state == PlayerState.FOLDED) {
-    return "Folded";
+    return "FOLDED";
   }
   switch (tableInfo.state) {
     case GameState.WAITING:
-      return player.state == PlayerState.READY ? "Ready" : "";
+      return player.state == PlayerState.READY ? "READY" : "";
     case GameState.FIRST_BETTING:
-      return player.hasActedThisRound ? "Raised" : "";
+      return player.hasActedThisRound ? "RAISED" : "";
     case GameState.SECOND_BETTING:
-      return player.hasActedThisRound ? "Raised" : "";
+      return player.hasActedThisRound ? "RAISED" : "";
     default:
       return "";
   }

@@ -56,7 +56,7 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
               <span className="text-sm">Owner: </span>
               <span className="text-sm text-zinc-300 ml-1">{truncateAddress(tableInfo.bankerAddr)}</span>
 
-              {isOwner && tableInfo.state === GameState.WAITING && (
+              {isOwner && (tableInfo.state === GameState.WAITING || tableInfo.state == GameState.SETTLED) && tableInfo.playerCount == 0 && (
                 <Button
                   variant="ghost"
                   size="sm"

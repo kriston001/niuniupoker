@@ -181,6 +181,8 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         uint8 _secondRaise,
         uint256 _rewardPoolId
     ) external onlyBanker nonReentrant {
+        require(state == GameState.WAITING && playerCount == 0, "Invalid game state or player count not equal zero");
+
         IGameMain gameMain = IGameMain(gameMainAddr);
         GameConfig memory config = gameMain.getGameConfig();
         
@@ -415,7 +417,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
      * @dev 玩家退出游戏
      */
     function playerQuit() external payable onlyPlayers nonReentrant {
-        require(state == GameState.WAITING || state == GameState.SETTLED, "Game not in waiting or settled state");
+        require(state == GameState.WAITING || state == GameState.SETTLED || state == GameState.LIQUIDATED, "Game not in waiting or settled state");
         address playerAddr = msg.sender;
         (uint8 playerIndex, BBPlayer storage player) = _getPlayer(playerAddr);
         if(state == GameState.WAITING){
@@ -981,7 +983,7 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
         }
 
         // 如果所有玩家都没有牛牌型，则比较最大牌
-        if (_maxCardType == CardType.NONE) {
+        if (_maxCardType == CardType.NO_BULL) {
             (winnerAddrs, winnerCount) = _settleNormalGameWithNoBull();
         } else {
             // 找出获胜者（有牛牌型的情况）
@@ -1101,65 +1103,65 @@ contract BBGameTableImplementation is ReentrancyGuard, Ownable {
 
         setState(GameState.LIQUIDATED);
 
-        // 清算人的奖励 (从庄家押金中收取)
-        uint256 liquidatorReward = bankerStakeAmount * liquidatorFeePercent / 100;
-
-        // 剩余的庄家押金平均分配给所有玩家
-        uint256 remainingBankerBet = bankerStakeAmount - liquidatorReward;
-        uint256 playerRewardTotal = 0;
-
+        uint256 bankerFunds = bankerStakeAmount;
         // 计算有多少玩家可以分配奖励（不包括庄家）
         uint8 eligiblePlayerCount = 0;
         for(uint8 i = 0; i < players.length; i++){
             BBPlayer storage player = players[i];
-            if(player.isValid()){
+            if(player.isValid() && player.addr != bankerAddr){
                 eligiblePlayerCount++;
             }
+            if(player.addr == bankerAddr){
+                bankerFunds += player.totalBet;
+            }
         }
+
+        // 清算人的奖励 (从庄家押金和玩游戏的资金中收取)
+        uint256 liquidatorReward = bankerFunds * liquidatorFeePercent / 100;
+
+        // 剩余的庄家押金平均分配给所有玩家
+        uint256 remainingBankerBet = bankerFunds - liquidatorReward;
+        uint256 playerRewardTotal = 0;
+
+        
 
         // 创建临时数组存储需要支付的地址和金额
         address[] memory paymentAddresses = new address[](eligiblePlayerCount);
         uint256[] memory paymentAmounts = new uint256[](eligiblePlayerCount);
         uint256 paymentCount = 0;
 
-        // 如果没有其他玩家，清算人获得全部奖励
-        if (eligiblePlayerCount == 1) {
-            liquidatorReward = bankerStakeAmount;
-            remainingBankerBet = 0;
-        } else {
-            // 计算每个玩家的奖励
-            uint256 rewardPerPlayer = remainingBankerBet / eligiblePlayerCount;
 
-            // 计算每个玩家应得的金额
-            for (uint i = 0; i < players.length; i++) {
-                BBPlayer storage player = players[i];
-                if(player.isValid()){
-                    uint256 totalPayment = 0;
+        // 计算每个玩家的奖励
+        uint256 rewardPerPlayer = remainingBankerBet / eligiblePlayerCount;
 
-                    // 计算玩家应得的总金额（押金 + 奖励）
-                    totalPayment += player.totalBet;
+        // 计算每个玩家应得的金额
+        for (uint i = 0; i < players.length; i++) {
+            BBPlayer storage player = players[i];
+            if(player.isValid() && player.addr != bankerAddr){
+                uint256 totalPayment = 0;
 
-                    // 添加奖励金额
-                    totalPayment += rewardPerPlayer;
+                // 计算玩家应得的总金额（押金 + 奖励）
+                totalPayment += player.totalBet;
 
-                    // 记录需要支付的金额
-                    if (totalPayment > 0) {
-                        paymentAddresses[paymentCount] = player.addr;
-                        paymentAmounts[paymentCount] = totalPayment;
-                        paymentCount++;
-                    }
+                // 添加奖励金额
+                totalPayment += rewardPerPlayer;
 
-                    playerRewardTotal += rewardPerPlayer;
+                // 记录需要支付的金额
+                if (totalPayment > 0) {
+                    paymentAddresses[paymentCount] = player.addr;
+                    paymentAmounts[paymentCount] = totalPayment;
+                    paymentCount++;
                 }
 
-                
+                playerRewardTotal += rewardPerPlayer;
             }
         }
+        
 
         // 处理可能的舍入误差
         uint256 actualDistributed = playerRewardTotal + liquidatorReward;
-        if (actualDistributed < bankerStakeAmount) {
-            liquidatorReward += (bankerStakeAmount - actualDistributed);
+        if (actualDistributed < bankerFunds) {
+            liquidatorReward += (bankerFunds - actualDistributed);
         }
 
         // _resetGame();

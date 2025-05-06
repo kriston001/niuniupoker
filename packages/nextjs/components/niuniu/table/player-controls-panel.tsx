@@ -42,7 +42,7 @@ export function PlayerControlsPanel({
   const showFirstBetting = gameState === GameState.FIRST_BETTING && playerInfo;
   const showSecondBetting =
     gameState === GameState.SECOND_BETTING && playerInfo && playerInfo.state !== PlayerState.FOLDED;
-  const showLeaveButtons = gameState === GameState.SETTLED && playerInfo;
+  const showLeaveButtons = (gameState === GameState.SETTLED || gameState == GameState.LIQUIDATED) && playerInfo;
   const showLiquidationInfo = [GameState.FIRST_BETTING, GameState.SECOND_BETTING, GameState.ENDED].includes(gameState);
 
   // Calculate remaining time for liquidation
@@ -180,7 +180,7 @@ export function PlayerControlsPanel({
         )}
 
         {/* Liquidation Countdown and Button */}
-        {showLiquidationInfo && playerInfo && (
+        {showLiquidationInfo && (
           <div className="mt-2">
             {remainingTime !== null && remainingTime > 0 ? (
               <div className="flex flex-col p-3 bg-zinc-800/50 rounded-md border border-zinc-700/50">
@@ -195,7 +195,7 @@ export function PlayerControlsPanel({
                   If owner does not act, this game can be liquidated after the timer ends.
                 </p>
               </div>
-            ) : canLiquidate ? (
+            ) : canLiquidate && playerInfo?.addr != tableInfo.bankerAddr ? (
               <Button 
                 size="lg" 
                 className="w-full bg-amber-600 hover:bg-amber-500 text-white"

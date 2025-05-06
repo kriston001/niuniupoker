@@ -40,7 +40,7 @@ export function PlayerInfo({
                 {[...Array(5)].map((_, i) => (
                   <div 
                     key={i} 
-                    className="animate-spin-slow text-2xl"
+                    className={`animate-spin-slow text-2xl ${i === 0 || i === 4 ? '' : 'opacity-0'}`}
                     style={{ 
                       animationDelay: `${i * 0.2}s`,
                       animationDuration: `${1.5 + i * 0.2}s`
@@ -52,7 +52,7 @@ export function PlayerInfo({
               </div>
             </div>
           </div>
-          <div className="absolute inset-0 overflow-hidden">
+          {/* <div className="absolute inset-0 overflow-hidden">
             {[...Array(20)].map((_, i) => (
               <div
                 key={i}
@@ -65,12 +65,12 @@ export function PlayerInfo({
                 }}
               />
             ))}
-          </div>
+          </div> */}
         </div>
       )}
 
       {/* Ready indicator */}
-      {getPlayerGameStateName(tableInfo, player) !== "" && getPlayerGameStateName(tableInfo, player) !== "Folded" && (
+      {getPlayerGameStateName(tableInfo, player) !== "" && getPlayerGameStateName(tableInfo, player) !== "FOLDED" && (
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-1.5 rounded-full backdrop-blur-sm font-bold text-lg transition-all duration-500 text-emerald-300 bg-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.5)] translate-y-[-3rem]">
           {getPlayerGameStateName(tableInfo, player)}
         </div>

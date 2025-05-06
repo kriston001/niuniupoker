@@ -93,6 +93,7 @@ export const BankerControlsPanel = memo(function BankerControlsPanel({
                       <SelectItem
                         key={card.nftType.id}
                         value={card.nftType.id}
+                        disabled={tableInfo.playerCount > card.nftType.maxPlayers}
                         className="text-white focus:bg-zinc-800 focus:text-white"
                       >
                         <div className="flex items-center justify-between w-full py-1 pr-4">

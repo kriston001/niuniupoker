@@ -46,17 +46,22 @@ import {
 } from "~~/components/ui/alert-dialog";
 import { UserX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { symbol } from "zod";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
 export default function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
   const resolvedParams = use(params);
   const tableAddr = resolvedParams.addr;
   const { gameConfig } = useGlobalState();
+  const { targetNetwork } = useTargetNetwork();
+  const symbol = targetNetwork.nativeCurrency.symbol;
+
 
   const { address: connectedAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
 
   const { playerData, allPlayers, tableInfo, myRoomCardNfts, userJoinedTablesCount, refreshData } = useGameTableData({
-    refreshInterval: 0,
+    refreshInterval: 8000,
     tableAddress: tableAddr,
     playerAddress: connectedAddress,
   });
@@ -463,7 +468,10 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                                   transition: { delay: 0.2, duration: 0.4 }
                                 }}
                               >
-                                {tableInfo.rewardAddr.substring(0, 6)}...{tableInfo.rewardAddr.substring(tableInfo.rewardAddr.length - 4)}
+                                {tableInfo.rewardAddr === connectedAddress ? 
+                                  `You ${tableInfo.rewardAddr.substring(0, 6)}...${tableInfo.rewardAddr.substring(tableInfo.rewardAddr.length - 4)}` : 
+                                  `${tableInfo.rewardAddr.substring(0, 6)}...${tableInfo.rewardAddr.substring(tableInfo.rewardAddr.length - 4)}`
+                                }
                               </motion.div>
                               <motion.div 
                                 className="mt-2 text-xl font-bold"
@@ -484,7 +492,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                                     repeat: Infinity
                                   }}
                                 >
-                                  {formatEther(tableInfo.rewardAmount)} ETH
+                                  {formatEther(tableInfo.rewardAmount)} {symbol}
                                 </motion.span>
                               </motion.div>
                             </div>
@@ -493,7 +501,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                       </AnimatePresence>
 
                       {/* Countdown Timer - only show when game is active */}
-                      {remainingSeconds > 0 && (
+                      {remainingSeconds > 0 && (tableInfo.state == GameState.FIRST_BETTING ||  tableInfo.state == GameState.SECOND_BETTING) && (
                         <div className="mt-6">
                           <CountdownTimer
                             initialSeconds={remainingSeconds}
@@ -578,7 +586,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                   <h3 className="text-lg font-semibold text-white mb-6">Game Controls</h3>
 
                   {/* Player actions */}
-                  {tableInfo && (
+                  {tableInfo && connectedAddress && (
                     <div className="space-y-6">
                       <PlayerControlsPanel
                         tableInfo={tableInfo}

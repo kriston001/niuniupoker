@@ -55,6 +55,11 @@ export function Navbar() {
       href: "/my",
       icon: <User className="h-4 w-4 mr-2" />,
     },
+    {
+      name: "How to play",
+      href: "/about",
+      icon: <User className="h-4 w-4 mr-2" />,
+    },
   ];
 
   return (
