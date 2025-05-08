@@ -9,6 +9,10 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
  */
 const deployedContracts = {
   31337: {
+    BBGameMain: {
+      address: "",
+      abi: [] // Add an empty array as the abi for now
+    }
   },
 } as const;
 

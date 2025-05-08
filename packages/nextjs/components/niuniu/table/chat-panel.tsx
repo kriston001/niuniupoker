@@ -270,7 +270,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   useEffect(() => {
     if (!address || !walletClient) return;
     
-    // 创建PushChat实例
+    // 使用单例模式获取PushChat实例
     const pushChat = createPushChat(
       address,
       walletClient,
@@ -280,12 +280,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     // 保存到ref
     pushChatRef.current = pushChat;
     
-    // 清理函数
+    // 不需要在组件卸载时清理资源，因为单例模式下的实例会被全局复用
+    // 只有在应用退出时才需要清理，这由PushChat单例自己管理
     return () => {
-      if (pushChatRef.current) {
-        pushChatRef.current.cleanup();
-        pushChatRef.current = null;
-      }
+      // 移除对实例的引用，但不调用cleanup()
+      pushChatRef.current = null;
     };
   }, [walletClient, address]);
 

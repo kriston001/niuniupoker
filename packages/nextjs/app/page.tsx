@@ -19,7 +19,6 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-white">Game Tables</h2>
-          CreateTableModal
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -43,21 +42,15 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600"></div>
+              {/* <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600"></div> */}
               <span className="text-zinc-400">NiuNiu Poker © {new Date().getFullYear()}</span>
             </div>
             <div className="flex gap-6">
-              <a href="#" className="text-zinc-400 hover:text-amber-500 transition-colors">
-                Terms
+              <a href="https://t.me/niuniu_poker" target="_blank" className="text-zinc-400 hover:text-amber-500 transition-colors">
+                Telegram
               </a>
-              <a href="#" className="text-zinc-400 hover:text-amber-500 transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="text-zinc-400 hover:text-amber-500 transition-colors">
-                Support
-              </a>
-              <a href="#" className="text-zinc-400 hover:text-amber-500 transition-colors">
-                Docs
+              <a href="https://discord.gg/wkYs5crPQs" target="_blank" className="text-zinc-400 hover:text-amber-500 transition-colors">
+                Discord
               </a>
             </div>
           </div>

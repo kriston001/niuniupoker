@@ -13,6 +13,7 @@ export interface ChatMessage {
 
 /**
  * PushChat 类 - 处理与Push Protocol聊天相关的所有功能
+ * 使用单例模式确保全局只有一个实例
  */
 export class PushChat {
   private address: string;
@@ -20,14 +21,17 @@ export class PushChat {
   private socketRef: React.MutableRefObject<any> | null = null;
   private userInstance: any = null;
   private cleanupFunctions: Array<() => void> = [];
+  
+  // 单例实例
+  private static instance: PushChat | null = null;
 
   /**
-   * 构造函数
+   * 私有构造函数，防止外部直接实例化
    * @param address 用户地址
    * @param walletClient 钱包客户端
    * @param socketRef Socket引用（可选）
    */
-  constructor(
+  private constructor(
     address: string,
     walletClient: any,
     socketRef?: React.MutableRefObject<any>
@@ -35,6 +39,38 @@ export class PushChat {
     this.address = address;
     this.walletClient = walletClient;
     this.socketRef = socketRef || null;
+  }
+  
+  /**
+   * 获取PushChat实例（单例模式）
+   * @param address 用户地址
+   * @param walletClient 钱包客户端
+   * @param socketRef Socket引用（可选）
+   * @returns PushChat实例
+   */
+  public static getInstance(
+    address: string,
+    walletClient: any,
+    socketRef?: React.MutableRefObject<any>
+  ): PushChat {
+    // 如果实例不存在或者地址/钱包客户端发生变化，则创建新实例
+    if (!PushChat.instance || 
+        PushChat.instance.address !== address || 
+        PushChat.instance.walletClient !== walletClient) {
+      
+      // 如果已有实例，先清理资源
+      if (PushChat.instance) {
+        PushChat.instance.cleanup();
+      }
+      
+      // 创建新实例
+      PushChat.instance = new PushChat(address, walletClient, socketRef);
+    } else if (socketRef && PushChat.instance.socketRef !== socketRef) {
+      // 如果只有socketRef变化，则更新socketRef
+      PushChat.instance.socketRef = socketRef;
+    }
+    
+    return PushChat.instance;
   }
 
   /**
@@ -511,11 +547,12 @@ export class PushChat {
 
 /**
  * 创建PushChat实例的工厂函数
+ * 现在使用单例模式，确保全局只有一个实例
  */
 export function createPushChat(
   address: string,
   walletClient: any,
   socketRef?: React.MutableRefObject<any>
 ): PushChat {
-  return new PushChat(address, walletClient, socketRef);
+  return PushChat.getInstance(address, walletClient, socketRef);
 }

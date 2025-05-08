@@ -15,6 +15,17 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
   const [currentUrl, setCurrentUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  // 存储初始表格数据，只在打开模态框时更新
+  const [initialTableData, setInitialTableData] = useState<{
+    address: string;
+    name: string;
+    betAmount: string;
+    maxPlayers: number;
+    bankerFeePercent: number;
+    firstRaise: number;
+    secondRaise: number;
+    rewardPoolId: string;
+  } | null>(null);
   const { address: connectedAddress } = useAccount();
   const isOwner = connectedAddress && connectedAddress.toLowerCase() === tableInfo.bankerAddr.toLowerCase();
 
@@ -61,7 +72,20 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
                   variant="ghost"
                   size="sm"
                   className="ml-2 p-1 h-7 rounded-md hover:bg-amber-600/20 hover:text-amber-500 transition-colors"
-                  onClick={() => setEditModalOpen(true)}
+                  onClick={() => {
+                    // 打开模态框时，存储当前的表格数据
+                    setInitialTableData({
+                      address: tableInfo.tableAddr,
+                      name: tableInfo.tableName,
+                      betAmount: formatEther(tableInfo.betAmount),
+                      maxPlayers: tableInfo.maxPlayers,
+                      bankerFeePercent: tableInfo.bankerFeePercent,
+                      firstRaise: tableInfo.firstBetX,
+                      secondRaise: tableInfo.secondBetX,
+                      rewardPoolId: String(tableInfo.rewardPoolId),
+                    });
+                    setEditModalOpen(true);
+                  }}
                   title="Edit Table"
                 >
                   <Edit className="h-4 w-4" />
@@ -188,23 +212,23 @@ export function TableInfo({ tableInfo, tableUpdated }: { tableInfo: GameTable; t
       </Card>
 
       {/* 编辑表格的模态框 */}
-      {isOwner && (
+      {isOwner && initialTableData && (
         <CreateTableModal
           open={editModalOpen}
-          onOpenChange={setEditModalOpen}
-          tableData={{
-            address: tableInfo.tableAddr,
-            name: tableInfo.tableName,
-            betAmount: formatEther(tableInfo.betAmount),
-            maxPlayers: tableInfo.maxPlayers,
-            bankerFeePercent: tableInfo.bankerFeePercent,
-            firstRaise: tableInfo.firstBetX,
-            secondRaise: tableInfo.secondBetX,
-            rewardPoolId: String(tableInfo.rewardPoolId),
+          onOpenChange={(open) => {
+            setEditModalOpen(open);
+            // 当模态框关闭时，清空初始表格数据
+            if (!open) {
+              setInitialTableData(null);
+            }
           }}
+          tableData={initialTableData}
           onCreatedTable={() => {
             // 可以在这里添加表格更新后的回调，例如刷新数据
             tableUpdated?.();
+            // 关闭模态框并清空初始表格数据
+            setEditModalOpen(false);
+            setInitialTableData(null);
           }}
         />
       )}

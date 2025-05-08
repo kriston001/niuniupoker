@@ -1,0 +1,274 @@
+{
+  "address": "0xA655851724749f143aC955ACf01863eab0A0Fbc0",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "implementation",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "implementation",
+          "type": "address"
+        }
+      ],
+      "name": "BeaconInvalidImplementation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableInvalidOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "implementation",
+          "type": "address"
+        }
+      ],
+      "name": "Upgraded",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "implementation",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "upgradeTo",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x2391b939db8bd741e6223aec4657cf31d43be3c54e2c1284bc8fbe7a5d734c91",
+  "receipt": {
+    "to": null,
+    "from": "0xCf4eC0E2Fa3B3f1f706183128D729a9C86c69e4d",
+    "contractAddress": "0xA655851724749f143aC955ACf01863eab0A0Fbc0",
+    "transactionIndex": 19,
+    "gasUsed": "323997",
+    "logsBloom": "0x00000000000000000000000000000000400000000000000000800000000060000000000000000000000000000000000000000000000100000000000000000000000000000000000000040000000002000001000002000000000000000000000000000000020000000000000000000800000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000040000000000000800000000000000000000000000000000000000000000000000000000020000008000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xdb68cafdcbca255134a042f9b3141cae05fbf119f977cb4bb6bc902bd16234cb",
+    "transactionHash": "0x2391b939db8bd741e6223aec4657cf31d43be3c54e2c1284bc8fbe7a5d734c91",
+    "logs": [
+      {
+        "transactionIndex": 19,
+        "blockNumber": 15726279,
+        "transactionHash": "0x2391b939db8bd741e6223aec4657cf31d43be3c54e2c1284bc8fbe7a5d734c91",
+        "address": "0xA655851724749f143aC955ACf01863eab0A0Fbc0",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000cf4ec0e2fa3b3f1f706183128d729a9c86c69e4d"
+        ],
+        "data": "0x",
+        "logIndex": 92,
+        "blockHash": "0xdb68cafdcbca255134a042f9b3141cae05fbf119f977cb4bb6bc902bd16234cb"
+      },
+      {
+        "transactionIndex": 19,
+        "blockNumber": 15726279,
+        "transactionHash": "0x2391b939db8bd741e6223aec4657cf31d43be3c54e2c1284bc8fbe7a5d734c91",
+        "address": "0xA655851724749f143aC955ACf01863eab0A0Fbc0",
+        "topics": [
+          "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
+          "0x0000000000000000000000002315ab62967c852a5a9c45e60b3888c1d3575e97"
+        ],
+        "data": "0x",
+        "logIndex": 93,
+        "blockHash": "0xdb68cafdcbca255134a042f9b3141cae05fbf119f977cb4bb6bc902bd16234cb"
+      }
+    ],
+    "blockNumber": 15726279,
+    "cumulativeGasUsed": "7207862",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x2315AB62967C852a5A9C45E60b3888C1d3575e97",
+    "0xCf4eC0E2Fa3B3f1f706183128D729a9C86c69e4d"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "a552e11ea74d77e900733b617f40e22c",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"BeaconInvalidImplementation\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"BeaconInvalidImplementation(address)\":[{\"details\":\"The `implementation` of the beacon is invalid.\"}],\"OwnableInvalidOwner(address)\":[{\"details\":\"The owner is not a valid owner account. (eg. `address(0)`)\"}],\"OwnableUnauthorizedAccount(address)\":[{\"details\":\"The caller account is not authorized to perform an operation.\"}]},\"events\":{\"Upgraded(address)\":{\"details\":\"Emitted when the implementation returned by the beacon is changed.\"}},\"kind\":\"dev\",\"methods\":{\"implementation()\":{\"details\":\"Returns the current implementation address.\"},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"upgradeTo(address)\":{\"details\":\"Upgrades the beacon to a new implementation. Emits an {Upgraded} event. Requirements: - msg.sender must be the owner of the contract. - `newImplementation` must be a contract.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Beacon \\u5408\\u7ea6\\uff0c\\u7528\\u4e8e\\u6307\\u5411\\u53ef\\u5347\\u7ea7\\u7684\\u5b9e\\u73b0\\u5408\\u7ea6\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/BBGameTableBeacon.sol\":\"BBGameTableBeacon\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\",\"useLiteralContent\":true},\"optimizer\":{\"details\":{\"constantOptimizer\":true,\"cse\":true,\"deduplicate\":true,\"inliner\":true,\"jumpdestRemover\":true,\"orderLiterals\":true,\"peephole\":true,\"simpleCounterForLoopUncheckedIncrement\":true,\"yul\":true,\"yulDetails\":{\"optimizerSteps\":\"dhfoDgvulfnTUtnIf:fDnTOcmuO\",\"stackAllocation\":true}},\"runs\":100},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {Context} from \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * The initial owner is set to the address provided by the deployer. This can\\n * later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    /**\\n     * @dev The caller account is not authorized to perform an operation.\\n     */\\n    error OwnableUnauthorizedAccount(address account);\\n\\n    /**\\n     * @dev The owner is not a valid owner account. (eg. `address(0)`)\\n     */\\n    error OwnableInvalidOwner(address owner);\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the address provided by the deployer as the initial owner.\\n     */\\n    constructor(address initialOwner) {\\n        if (initialOwner == address(0)) {\\n            revert OwnableInvalidOwner(address(0));\\n        }\\n        _transferOwnership(initialOwner);\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        if (owner() != _msgSender()) {\\n            revert OwnableUnauthorizedAccount(_msgSender());\\n        }\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby disabling any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        if (newOwner == address(0)) {\\n            revert OwnableInvalidOwner(address(0));\\n        }\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb\",\"license\":\"MIT\"},\"@openzeppelin/contracts/proxy/beacon/IBeacon.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/IBeacon.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev This is the interface that {BeaconProxy} expects of its beacon.\\n */\\ninterface IBeacon {\\n    /**\\n     * @dev Must return an address that can be used as a delegate call target.\\n     *\\n     * {UpgradeableBeacon} will check that this address is a contract.\\n     */\\n    function implementation() external view returns (address);\\n}\\n\",\"keccak256\":\"0xc59a78b07b44b2cf2e8ab4175fca91e8eca1eee2df7357b8d2a8833e5ea1f64c\",\"license\":\"MIT\"},\"@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (proxy/beacon/UpgradeableBeacon.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IBeacon} from \\\"./IBeacon.sol\\\";\\nimport {Ownable} from \\\"../../access/Ownable.sol\\\";\\n\\n/**\\n * @dev This contract is used in conjunction with one or more instances of {BeaconProxy} to determine their\\n * implementation contract, which is where they will delegate all function calls.\\n *\\n * An owner is able to change the implementation the beacon points to, thus upgrading the proxies that use this beacon.\\n */\\ncontract UpgradeableBeacon is IBeacon, Ownable {\\n    address private _implementation;\\n\\n    /**\\n     * @dev The `implementation` of the beacon is invalid.\\n     */\\n    error BeaconInvalidImplementation(address implementation);\\n\\n    /**\\n     * @dev Emitted when the implementation returned by the beacon is changed.\\n     */\\n    event Upgraded(address indexed implementation);\\n\\n    /**\\n     * @dev Sets the address of the initial implementation, and the initial owner who can upgrade the beacon.\\n     */\\n    constructor(address implementation_, address initialOwner) Ownable(initialOwner) {\\n        _setImplementation(implementation_);\\n    }\\n\\n    /**\\n     * @dev Returns the current implementation address.\\n     */\\n    function implementation() public view virtual returns (address) {\\n        return _implementation;\\n    }\\n\\n    /**\\n     * @dev Upgrades the beacon to a new implementation.\\n     *\\n     * Emits an {Upgraded} event.\\n     *\\n     * Requirements:\\n     *\\n     * - msg.sender must be the owner of the contract.\\n     * - `newImplementation` must be a contract.\\n     */\\n    function upgradeTo(address newImplementation) public virtual onlyOwner {\\n        _setImplementation(newImplementation);\\n    }\\n\\n    /**\\n     * @dev Sets the implementation contract address for this beacon\\n     *\\n     * Requirements:\\n     *\\n     * - `newImplementation` must be a contract.\\n     */\\n    function _setImplementation(address newImplementation) private {\\n        if (newImplementation.code.length == 0) {\\n            revert BeaconInvalidImplementation(newImplementation);\\n        }\\n        _implementation = newImplementation;\\n        emit Upgraded(newImplementation);\\n    }\\n}\\n\",\"keccak256\":\"0x5920bac7215d12961e23b207f6e81a1d64aa4935a4469abe95b64a96a3c3007b\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    function _contextSuffixLength() internal view virtual returns (uint256) {\\n        return 0;\\n    }\\n}\\n\",\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\"},\"contracts/BBGameTableBeacon.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity ^0.8.28;\\r\\n\\r\\nimport \\\"@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol\\\";\\r\\n\\r\\n/**\\r\\n * Beacon \\u5408\\u7ea6\\uff0c\\u7528\\u4e8e\\u6307\\u5411\\u53ef\\u5347\\u7ea7\\u7684\\u5b9e\\u73b0\\u5408\\u7ea6\\r\\n */\\r\\ncontract BBGameTableBeacon is UpgradeableBeacon {\\r\\n    constructor(address implementation, address owner) UpgradeableBeacon(implementation, owner) {}\\r\\n}\\r\\n\",\"keccak256\":\"0xb1af99d66608d0aa018a7d9c3db09c20ebf37a57bb4f8bbc286860bf49fb33d8\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60806040523461002b5761001a6100146100d2565b906100f4565b6040516103b96102be82396103b990f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b90601f01601f191681019081106001600160401b0382111761006757604052565b610030565b9061008061007960405190565b9283610046565b565b6001600160a01b031690565b90565b6001600160a01b0381160361002b57565b9050519061008082610091565b919060408382031261002b5761008e9060206100cb82866100a2565b94016100a2565b6100f0610677803803806100e58161006c565b9283398101906100af565b9091565b906100809161010561008092610133565b6101e2565b61008261008e61008e9290565b61008e9061010a565b6001600160a01b03909116815260200190565b600061013e81610117565b6001600160a01b0381166001600160a01b038416146101625750506100809061026b565b631e4fbdf760e01b8252819061017b9060048301610120565b0390fd5b61008e61008e61008e9290565b61008e90610082906001600160a01b031682565b61008e9061018c565b61008e906101a0565b906101c261008e6101de926101a9565b82546001600160a01b0319166001600160a01b03919091161790565b9055565b6000813b6101f66101f28361017f565b9190565b1461024057508061020b6102109260016101b2565b6101a9565b7fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b61023a60405190565b600090a2565b61017b819263211eb15960e21b835260048301610120565b61008e90610082565b61008e9054610258565b61028c61028661027b6000610261565b61020b8460006101b2565b916101a9565b907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e06102b760405190565b600090a356fe6080604052600436101561001257600080fd5b60003560e01c80633659cfe6146100625780635c60da1b1461005d578063715018a6146100585780638da5cb5b146100535763f2fde38b0361006757610149565b61012e565b610116565b6100ef565b6100af565b600080fd5b6001600160a01b031690565b90565b6001600160a01b0381160361006757565b905035906100998261007b565b565b90602082820312610067576100789161008c565b34610067576100c76100c236600461009b565b610176565b60405180805b0390f35b600091031261006757565b6001600160a01b03909116815260200190565b34610067576100ff3660046100d1565b6100cd61010a61017f565b604051918291826100dc565b34610067576101263660046100d1565b6100c76101c6565b346100675761013e3660046100d1565b6100cd61010a6101ce565b34610067576100c761015c36600461009b565b610235565b6100999061016d61023e565b610099906102dc565b61009990610161565b6001546001600160a01b031690565b61019661023e565b6100996101b4565b61006c6100786100789290565b6100789061019e565b6100996101c160006101ab565b610352565b61009961018e565b6000546001600160a01b031690565b610099906101e961023e565b60006101f4816101ab565b6001600160a01b0381166001600160a01b0384161461021857505061009990610352565b631e4fbdf760e01b8252819061023190600483016100dc565b0390fd5b610099906101dd565b6102466101ce565b339081906001600160a01b03160361025b5750565b63118cdaa760e01b6000908152906102749060046100dc565b036000fd5b6100786100786100789290565b6100789061006c906001600160a01b031682565b61007890610286565b6100789061029a565b906102bc6100786102d8926102a3565b82546001600160a01b0319166001600160a01b03919091161790565b9055565b6000813b6102f06102ec83610279565b9190565b1461033a57508061030561030a9260016102ac565b6102a3565b7fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b61033460405190565b600090a2565b610231819263211eb15960e21b8352600483016100dc565b61037b61037561036a6000546001600160a01b031690565b6103058460006102ac565b916102a3565b907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e06103a660405190565b600090a356fea164736f6c634300081c000a",
+  "deployedBytecode": "0x6080604052600436101561001257600080fd5b60003560e01c80633659cfe6146100625780635c60da1b1461005d578063715018a6146100585780638da5cb5b146100535763f2fde38b0361006757610149565b61012e565b610116565b6100ef565b6100af565b600080fd5b6001600160a01b031690565b90565b6001600160a01b0381160361006757565b905035906100998261007b565b565b90602082820312610067576100789161008c565b34610067576100c76100c236600461009b565b610176565b60405180805b0390f35b600091031261006757565b6001600160a01b03909116815260200190565b34610067576100ff3660046100d1565b6100cd61010a61017f565b604051918291826100dc565b34610067576101263660046100d1565b6100c76101c6565b346100675761013e3660046100d1565b6100cd61010a6101ce565b34610067576100c761015c36600461009b565b610235565b6100999061016d61023e565b610099906102dc565b61009990610161565b6001546001600160a01b031690565b61019661023e565b6100996101b4565b61006c6100786100789290565b6100789061019e565b6100996101c160006101ab565b610352565b61009961018e565b6000546001600160a01b031690565b610099906101e961023e565b60006101f4816101ab565b6001600160a01b0381166001600160a01b0384161461021857505061009990610352565b631e4fbdf760e01b8252819061023190600483016100dc565b0390fd5b610099906101dd565b6102466101ce565b339081906001600160a01b03160361025b5750565b63118cdaa760e01b6000908152906102749060046100dc565b036000fd5b6100786100786100789290565b6100789061006c906001600160a01b031682565b61007890610286565b6100789061029a565b906102bc6100786102d8926102a3565b82546001600160a01b0319166001600160a01b03919091161790565b9055565b6000813b6102f06102ec83610279565b9190565b1461033a57508061030561030a9260016102ac565b6102a3565b7fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b61033460405190565b600090a2565b610231819263211eb15960e21b8352600483016100dc565b61037b61037561036a6000546001600160a01b031690565b6103058460006102ac565b916102a3565b907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e06103a660405190565b600090a356fea164736f6c634300081c000a",
+  "devdoc": {
+    "errors": {
+      "BeaconInvalidImplementation(address)": [
+        {
+          "details": "The `implementation` of the beacon is invalid."
+        }
+      ],
+      "OwnableInvalidOwner(address)": [
+        {
+          "details": "The owner is not a valid owner account. (eg. `address(0)`)"
+        }
+      ],
+      "OwnableUnauthorizedAccount(address)": [
+        {
+          "details": "The caller account is not authorized to perform an operation."
+        }
+      ]
+    },
+    "events": {
+      "Upgraded(address)": {
+        "details": "Emitted when the implementation returned by the beacon is changed."
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "implementation()": {
+        "details": "Returns the current implementation address."
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      },
+      "upgradeTo(address)": {
+        "details": "Upgrades the beacon to a new implementation. Emits an {Upgraded} event. Requirements: - msg.sender must be the owner of the contract. - `newImplementation` must be a contract."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "notice": "Beacon 合约，用于指向可升级的实现合约",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 2594,
+        "contract": "contracts/BBGameTableBeacon.sol:BBGameTableBeacon",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 3312,
+        "contract": "contracts/BBGameTableBeacon.sol:BBGameTableBeacon",
+        "label": "_implementation",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    }
+  }
+}

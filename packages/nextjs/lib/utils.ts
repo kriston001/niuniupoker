@@ -99,7 +99,7 @@ export function getNftImageUrl(nft: RoomCardNftType | RoomLevelNftType): string 
       ? window.location.origin
       : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-  console.log(`${baseUrl}/images/nfts/rc_${nft.uriSuffix}.png`);
+  // console.log(`${baseUrl}/images/nfts/rc_${nft.uriSuffix}.png`);
   if ("maxPlayers" in nft) {
     return `${baseUrl}/images/nfts/rc_${nft.uriSuffix}.png`;
   } else {

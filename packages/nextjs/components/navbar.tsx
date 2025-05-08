@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, ChevronDown, Droplet, Home, Layers, LayoutGrid, Menu, User, X } from "lucide-react";
+import { Check, ChevronDown, Droplet, Home, HelpCircle, Layers, LayoutGrid, Menu, User, X } from "lucide-react";
 import { useAccount } from "wagmi";
 import { CustomNetworkSelector } from "~~/components/CustomNetworkSelector";
 import { CustomWalletConnection } from "~~/components/CustomWalletConnection";
@@ -58,7 +58,7 @@ export function Navbar() {
     {
       name: "How to play",
       href: "/about",
-      icon: <User className="h-4 w-4 mr-2" />,
+      icon: <HelpCircle className="h-4 w-4 mr-2" />,
     },
   ];
 
@@ -132,10 +132,12 @@ export function Navbar() {
             <div className="hidden sm:block">
               <CustomWalletConnection />
             </div>
-            {/* Faucet Button - Desktop */}
-            <div className="hidden sm:block">
-              <FaucetButton />
-            </div>
+            {/* Faucet Button - Desktop (only in development) */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="hidden sm:block">
+                <FaucetButton />
+              </div>
+            )}
             <Button
               variant="outline"
               size="icon"

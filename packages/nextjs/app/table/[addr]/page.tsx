@@ -393,7 +393,7 @@ export default function TableDetail({ params }: { params: Promise<{ addr: string
                     {/* Table center info */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-20">
                       <div className="text-amber-500 font-bold text-3xl">
-                        {formatEther(tableInfo.totalPrizePool)} ETH
+                        {formatEther(tableInfo.totalPrizePool)} {symbol}
                       </div>
                       <div className="text-zinc-400 text-lg mt-2">{getGameStateName(tableInfo.state)} Round</div>
                       <div className="text-zinc-500 text-sm mt-1">

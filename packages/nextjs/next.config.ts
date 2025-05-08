@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "www.baidu.com",
+        hostname: "www.niuniupoker.xyz",
       },
       {
         protocol: "http",

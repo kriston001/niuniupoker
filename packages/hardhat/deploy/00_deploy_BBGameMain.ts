@@ -132,7 +132,15 @@ async function deployOrUpgrade(
  * @param hre HardhatRuntimeEnvironment对象
  */
 const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  console.log("========== 开始执行部署脚本 ==========");
+  console.log("网络名称:", hre.network.name);
+  console.log("链ID:", hre.network.config.chainId);
+  
+
   const { deployer } = await hre.getNamedAccounts();
+
+  console.log("Deploying contract with address:", deployer);
+
 
   // 设置初始化参数
   const maxPlayers = 6; // 最大玩家数
@@ -213,12 +221,14 @@ const deployBBGameMain: DeployFunction = async function (hre: HardhatRuntimeEnvi
   );
   newDeployedAddresses["BBRoomLevelNFT"] = bbRoomLevelNFT.address;
 
-  // 部署Multicall3合约
-  const multicall3 = await deploy("Multicall3", {
-    from: deployer,
-    log: true,
-  });
-  newDeployedAddresses["Multicall3"] = multicall3.address;
+  if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
+    // 部署Multicall3合约
+    const multicall3 = await deploy("Multicall3", {
+      from: deployer,
+      log: true,
+    });
+    newDeployedAddresses["Multicall3"] = multicall3.address;
+  }
 
   // 部署或获取BBRewardPool合约
   const bbRewardPool = await deployOrUpgrade(hre, "BBRewardPool", [bbGameMain.address], deployer);

@@ -18,7 +18,7 @@ const providerApiKey = process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr2
 // If not set, it uses the hardhat account 0 private key.
 // You can generate a random account with `yarn generate` or `yarn account:import` to import your existing PK
 const deployerPrivateKey =
-  process.env.__RUNTIME_DEPLOYER_PRIVATE_KEY ?? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  process.env.DEPLOYER_PRIVATE_KEY_ENCRYPTED ?? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 // If not set, it uses our block explorers default API keys.
 const etherscanApiKey = process.env.ETHERSCAN_MAINNET_API_KEY || "DNXJA8RX2Q3VZ4URQIWP7Z68CJXQZSC6AW";
 const etherscanOptimisticApiKey = process.env.ETHERSCAN_OPTIMISTIC_API_KEY || "RM62RDISS1RH448ZY379NX625ASG1N633R";
@@ -65,7 +65,8 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       // By default, it will take the first Hardhat account as the deployer
-      default: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      default: 0, // 使用第一个账户 (accounts[0])
+      monadTestnet: "0xcf4ec0e2fa3b3f1f706183128d729a9c86c69e4d", // 在 Monad 测试网上也使用第一个账户
     },
   },
   // tenderly: {
@@ -94,6 +95,11 @@ const config: HardhatUserConfig = {
       },
       hardfork: "london", // 使用 London 硬分叉
       chainId: 31337, // 默认的 Hardhat 网络链 ID
+    },
+    monadTestnet: {
+      url: "https://testnet-rpc.monad.xyz/",
+      chainId: 10143,
+      accounts: [deployerPrivateKey],
     },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,

@@ -1,4 +1,6 @@
 import * as chains from "viem/chains";
+import { Chain } from "viem/chains";
+import { monadTestnet } from "./utils/customChains";
 
 export type ScaffoldConfig = {
   targetNetworks: readonly chains.Chain[];
@@ -9,7 +11,7 @@ export type ScaffoldConfig = {
   onlyLocalBurnerWallet: boolean;
 };
 
-export const DEFAULT_ALCHEMY_API_KEY = "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
+export const DEFAULT_ALCHEMY_API_KEY = "I4fR79ZhTt_iXk6ml78nKT5B4HsM-s3S";
 
 // 自定义 Hardhat 链配置，添加 multicall3 合约地址
 const hardhat = {
@@ -25,44 +27,15 @@ const hardhat = {
   },
 };
 
-const MonadNetwork = {
-  id: 10143, // 链ID
-  name: "Monad Testnet",
-  network: "custom",
-  nativeCurrency: {
-    decimals: 18,
-    name: "MON",
-    symbol: "MON",
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://testnet-rpc.monad.xyz/"],
-    },
-    public: {
-      http: ["https://testnet-rpc.monad.xyz/"],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "Monad Testnet",
-      url: "https://testnet.monadexplorer.com/",
-    },
-  },
-  contracts: {
-    multicall3: {
-      address: "0xcA11bde05977b3631167028862bE2a173976CA11", // 替换为您在自定义网络上部署的 Multicall3 合约地址
-    },
-    BBGameMain: {
-      address: "", // 替换为您在 Monad Testnet 上部署的 BBGameMain 合约地址
-    },
-  },
-};
+// 使用条件判断在生产环境中排除hardhat网络
+// 如果是NODE_ENV为'production'，则只使用MonadNetwork，否则包含hardhat
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 const scaffoldConfig = {
   // The networks on which your DApp is live
   targetNetworks: [
-    hardhat,
-    MonadNetwork,
+    ...(isDevelopment ? [hardhat] : []), // 只在开发环境中包含hardhat
+    monadTestnet,
     // {
     //   ...chains.polygon,
     //   contracts: {
