@@ -101,6 +101,11 @@ const config: HardhatUserConfig = {
       chainId: 10143,
       accounts: [deployerPrivateKey],
     },
+    riseTestnet: {
+      url: "https://testnet.riselabs.xyz",
+      chainId: 11155931,
+      accounts: [deployerPrivateKey],
+    },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],

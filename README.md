@@ -37,12 +37,3 @@ All contracts use the UUPS proxy upgrade pattern to allow future updates.
 - **scaffold-eth 2** for full-stack development and testing
 
 ---
-
-## 🧪 Getting Started
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/yourname/quanlian-niuniu.git
-cd quanlian-niuniu
-pnpm install
