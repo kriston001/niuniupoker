@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
-import { useWalletClient } from "wagmi";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,16 +11,18 @@ import { writeContractWithCallback } from "~~/hooks/writeContractWithCallback";
 import {
   updateChatGroupId
 } from "~~/contracts/abis/BBGameTableABI";
+import type { RefObject } from 'react';
 
 interface ChatPanelProps {
   tableInfo: GameTable;
+  pushChatRef: RefObject<PushChat | null>;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
-  tableInfo
+  tableInfo,
+  pushChatRef
 }) => {
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
   
   // 检查用户是否是庄家
   const isBanker = address && tableInfo.bankerAddr && 
@@ -53,12 +54,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [membershipChecked, setMembershipChecked] = useState(false);
   
   // 引用
-  const pushChatRef = useRef<PushChat | null>(null);
-  const socketRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 初始化聊天
   const initializeChat = async () => {
+    console.log("初始化聊天");
     if (!pushChatRef.current || !tableInfo.chatGroupId) return;
     
     setIsInitializing(true);
@@ -83,7 +83,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         setMessages(history);
         
         // 设置消息监听器
-        pushChatRef.current.setupChatListener(
+        pushChatRef.current.addMessageListener(
           tableInfo.chatGroupId,
           (newMessage: ChatMessage) => {
             // 确保不添加重复消息
@@ -94,7 +94,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               return [...prevMessages, newMessage];
             });
           }
-        );
+        )
         
         setHasJoinedChat(true);
         setIsConnected(true);
@@ -266,28 +266,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [messages]);
 
-  // 初始化 Push Protocol
-  useEffect(() => {
-    if (!address || !walletClient) return;
-    
-    // 使用单例模式获取PushChat实例
-    const pushChat = createPushChat(
-      address,
-      walletClient,
-      socketRef
-    );
-    
-    // 保存到ref
-    pushChatRef.current = pushChat;
-    
-    // 不需要在组件卸载时清理资源，因为单例模式下的实例会被全局复用
-    // 只有在应用退出时才需要清理，这由PushChat单例自己管理
-    return () => {
-      // 移除对实例的引用，但不调用cleanup()
-      pushChatRef.current = null;
-    };
-  }, [walletClient, address]);
-
   // 检查用户是否已经加入聊天群组
   useEffect(() => {
     if (groupChat) {
@@ -299,7 +277,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   useEffect(() => {
     const checkStatus = async () => {
       // 确保所有必要的条件都满足
-      if (!pushChatRef.current || !address || !walletClient) return;
+      if (!pushChatRef.current) return;
       
       // 如果没有chatGroupId，无需检查
       if (!tableInfo.chatGroupId) return;
@@ -330,7 +308,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     // 直接调用检查函数
     checkStatus();
     
-  }, [tableInfo.chatGroupId, address, walletClient, isInTable, hasJoinedChat, isCheckingMembership, isBanker, isInitializing, membershipChecked]);
+  }, [tableInfo.chatGroupId, isInTable, hasJoinedChat, isCheckingMembership, isBanker, isInitializing, membershipChecked]);
 
   return (
     <div className="w-full">

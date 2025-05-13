@@ -123,6 +123,8 @@ export function CustomNetworkSelector({ className }: CustomNetworkSelectorProps)
   const addNetworkToWallet = async () => {
     if (!networkToAdd) return;
 
+    if (typeof window == 'undefined') return;
+
     try {
       // 使用window.ethereum API添加网络
       if (window.ethereum) {
@@ -208,9 +210,9 @@ export function CustomNetworkSelector({ className }: CustomNetworkSelectorProps)
       <Dialog open={showAddNetworkDialog} onOpenChange={setShowAddNetworkDialog}>
         <DialogContent className="bg-zinc-900 border border-zinc-700 text-white">
           <DialogHeader>
-            <DialogTitle>添加网络到钱包</DialogTitle>
+            <DialogTitle>Add network to your wallet</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              您的钱包中没有 {networkToAdd?.name} 网络，是否要添加？
+              No {networkToAdd?.name} network，add？
             </DialogDescription>
           </DialogHeader>
           
@@ -222,17 +224,17 @@ export function CustomNetworkSelector({ className }: CustomNetworkSelectorProps)
               </div>
               
               <div className="space-y-2 text-sm text-zinc-300">
-                <p><span className="text-zinc-500">链ID:</span> {networkToAdd.id}</p>
+                <p><span className="text-zinc-500">Chain ID:</span> {networkToAdd.id}</p>
                 {networkToAdd.chain.nativeCurrency && (
                   <p>
-                    <span className="text-zinc-500">原生代币:</span> {networkToAdd.chain.nativeCurrency.name} ({networkToAdd.chain.nativeCurrency.symbol})
+                    <span className="text-zinc-500">Token:</span> {networkToAdd.chain.nativeCurrency.name} ({networkToAdd.chain.nativeCurrency.symbol})
                   </p>
                 )}
                 {networkToAdd.chain.rpcUrls?.default?.http?.[0] && (
                   <p><span className="text-zinc-500">RPC URL:</span> {networkToAdd.chain.rpcUrls.default.http[0]}</p>
                 )}
                 {networkToAdd.chain.blockExplorers?.default?.url && (
-                  <p><span className="text-zinc-500">区块浏览器:</span> {networkToAdd.chain.blockExplorers.default.url}</p>
+                  <p><span className="text-zinc-500">Blockchain Explorer:</span> {networkToAdd.chain.blockExplorers.default.url}</p>
                 )}
               </div>
             </div>
@@ -244,13 +246,13 @@ export function CustomNetworkSelector({ className }: CustomNetworkSelectorProps)
               onClick={() => setShowAddNetworkDialog(false)}
               className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
-              取消
+              Cancel
             </Button>
             <Button 
               onClick={addNetworkToWallet}
               className="bg-amber-500 hover:bg-amber-600 text-black"
             >
-              添加网络
+              Add
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  productionBrowserSourceMaps: true,
   reactStrictMode: true,
   devIndicators: false,
   typescript: {

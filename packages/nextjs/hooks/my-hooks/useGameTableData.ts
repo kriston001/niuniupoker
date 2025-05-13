@@ -166,9 +166,9 @@ export function useGameTableData({
       tableInfo: tableInfo as GameTable | undefined,
       myRoomCardNfts: myRoomCardNfts as any[],
       userJoinedTablesCount,
-      refreshData: refetchData,
+      refreshData: debouncedRefetchRef.current,
     }),
-    [validPlayerData, allPlayersData, tableInfo, refetchData],
+    [validPlayerData, allPlayersData, tableInfo, myRoomCardNfts, userJoinedTablesCount],
   );
 }
 

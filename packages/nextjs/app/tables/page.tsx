@@ -10,12 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { truncateAddress } from "@/lib/utils";
-import {
-  ArrowUpDown,
-  Filter,
-  PlusCircle,
-  Search,
-} from "lucide-react";
+import { ArrowUpDown, Filter, PlusCircle, Search } from "lucide-react";
 import { CreateTableModal } from "~~/components/niuniu/create-table-modal";
 import { TableCard } from "~~/components/niuniu/table-card";
 import { useGameTablesData } from "~~/hooks/my-hooks/useGameTablesData";
