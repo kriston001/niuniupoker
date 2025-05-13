@@ -59,7 +59,7 @@ function TableDetail({ params }: { params: Promise<{ addr: string }> }) {
 
   const { playerData, allPlayers, tableInfo, myRoomCardNfts, userJoinedTablesCount, refreshData } = useGameTableData({
     refreshInterval: 8000,
-    tableAddress: tableAddr,
+    tableAddress: tableAddr as `0x${string}`,
     playerAddress: connectedAddress,
   });
 
